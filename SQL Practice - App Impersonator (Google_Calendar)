@@ -1,0 +1,37 @@
+## SQL Practice - App Impersonator (Google_Calendar)
+
+/* What does the app's SQL look like? /
+/ Favorite App - Google Calendar */
+
+/* CREATE table */
+CREATE TABLE Google_Calendar(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+date INTEGER,
+todolist TEXT)
+;
+
+/* INSERT examples */
+INSERT INTO Google_Calendar (date, todolist)
+VALUES ("10-25-2023", "Dallas Trip");
+INSERT INTO Google_Calendar (date, todolist)
+VALUES ("10-30-2023", "Return Trip");
+INSERT INTO Google_Calendar (date, todolist)
+VALUES ("12-05-2023", "San Francisco Trip");
+INSERT INTO Google_Calendar (date, todolist)
+VALUES ("12-12-2023", "Dallas Trip");
+INSERT INTO Google_Calendar (date, todolist)
+VALUES ("12-15-2023", "Miami Trip");
+SELECT * FROM Google_Calendar;
+
+/* UPDATE when editing data in app*/
+UPDATE Google_Calendar SET date = "10-31-2023"
+WHERE id = 2;
+UPDATE Google_Calendar SET todolist = "Dallas Return Trip" WHERE id = 2;
+UPDATE Google_Calendar SET todolist = "San Francisco Return Trip"
+WHERE date = "12-12-2023";
+SELECT * FROM Google_Calendar;
+
+/* DELETE when deleting data in app*/
+DELETE FROM Google_Calendar
+WHERE id = 5;
+SELECT * FROM Google_Calendar;
