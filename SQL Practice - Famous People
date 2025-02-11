@@ -1,0 +1,119 @@
+## SQL Practice - Famous People
+
+/* Create table about the people and what they do here */
+
+/* Create Movie_Stars table */
+CREATE TABLE Movie_Stars (
+id INTEGER PRIMARY KEY,
+celebrity_id INTEGER,
+name TEXT,
+title TEXT,
+genre TEXT,
+runtime_minutes INTEGER)
+;
+
+INSERT INTO Movie_Stars (id, celebrity_id, name, title, genre, runtime_minutes) VALUES (1, 1, "George_Clooney", "Oceans_Eleven", "Crime/Comedy", "116");
+INSERT INTO Movie_Stars (id, celebrity_id, name, title, genre, runtime_minutes) VALUES (2, 1, "George_Clooney", "The_Flash", "Action/Adventure", "114");
+INSERT INTO Movie_Stars (id, celebrity_id, name, title, genre, runtime_minutes) VALUES (3, 2, "Brad_Pitt", "Oceans_Eleven", "Crime/Comedy", "116");
+INSERT INTO Movie_Stars (id, celebrity_id, name, title, genre, runtime_minutes) VALUES (4, 3, "Matt_Damon", "Oceans_Eleven", "Crime/Comedy", "116");
+INSERT INTO Movie_Stars (id, celebrity_id, name, title, genre, runtime_minutes) VALUES (5, 3, "Matt_Damon", "Good_Will_Hunting", "Romance/Drama", "126");
+INSERT INTO Movie_Stars (id, celebrity_id, name, title, genre, runtime_minutes) VALUES (6, 3, "Matt_Damon", "The_Martian", "Sci-fi/Adventure", "144");
+INSERT INTO Movie_Stars (id, celebrity_id, name, title, genre, runtime_minutes) VALUES (7, 2, "Brad_Pitt", "Fury", "War/Action", "134");
+INSERT INTO Movie_Stars (id, celebrity_id, name, title, genre, runtime_minutes) VALUES (8, 4, "Casey_Affleck", "Oceans_Eleven", "Crime/Comedy", "116");
+INSERT INTO Movie_Stars (id, celebrity_id, name, title, genre, runtime_minutes) VALUES (9, 4, "Casey_Affleck", "Good_Will_Hunting", "Romance/Drama", "126");
+INSERT INTO Movie_Stars (id, celebrity_id, name, title, genre, runtime_minutes) VALUES (10, 5, "Ben_Affleck", "Good_Will_Hunting", "Romance/Drama", "126");
+INSERT INTO Movie_Stars (id, celebrity_id, name, title, genre, runtime_minutes) VALUES (11,5, "Ben_Affleck", "The_Flash", "Action/Adventure", "114");
+
+SELECT * FROM Movie_Stars;
+
+/* Create Movie_Roles Table */
+CREATE TABLE Movie_Roles (
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+Stars_id INTEGER,
+Role TEXT)
+;
+
+INSERT INTO Movie_Roles (Stars_id, Role) VALUES (1, "Danny_Ocean");
+INSERT INTO Movie_Roles (Stars_id, Role) VALUES (1, "Bruce_Wayne");
+INSERT INTO Movie_Roles (Stars_id, Role) VALUES (2, "Rusty_Ryan");
+INSERT INTO Movie_Roles (Stars_id, Role) VALUES (2, "Don_Collier");
+INSERT INTO Movie_Roles (Stars_id, Role) VALUES (3, "Linus_Caldwell");
+INSERT INTO Movie_Roles (Stars_id, Role) VALUES (3, "Will_Hunting");
+INSERT INTO Movie_Roles (Stars_id, Role) VALUES (3, "Mark_Watney");
+INSERT INTO Movie_Roles (Stars_id, Role) VALUES (4, "Virgil_Malloy");
+INSERT INTO Movie_Roles (Stars_id, Role) VALUES (4, "Morgan_O'Malley");
+INSERT INTO Movie_Roles (Stars_id, Role) VALUES (5,"Chuckie_Sullivan");
+INSERT INTO Movie_Roles (Stars_id, Role) VALUES (5,"Bruce_Wayne");
+
+SELECT * FROM Movie_Roles;
+
+/* Create Movie_Relations Table*/
+CREATE TABLE Movie_Relations (
+id INTEGER PRIMARY KEY,
+Roles_id INTEGER,
+Relation TEXT);
+
+INSERT INTO Movie_Relations (id, roles_id, relation)
+VALUES (1, 1, "Superhero");
+INSERT INTO Movie_Relations (id, roles_id, relation)
+VALUES (2, 5, "Superhero");
+INSERT INTO Movie_Relations (id, roles_id, relation)
+VALUES (3, 1, "Thieves");
+INSERT INTO Movie_Relations (id, roles_id, relation)
+VALUES (4, 2, "Thieves");
+INSERT INTO Movie_Relations (id, roles_id, relation)
+VALUES (5, 3, "Thieves");
+INSERT INTO Movie_Relations (id, roles_id, relation)
+VALUES (6, 4, "Thieves");
+INSERT INTO Movie_Relations (id, roles_id, relation)
+VALUES (7, 3, "Juveniles");
+INSERT INTO Movie_Relations (id, roles_id, relation)
+VALUES (8, 4, "Juveniles");
+INSERT INTO Movie_Relations (id, roles_id, relation)
+VALUES (9, 5, "Juveniles");
+INSERT INTO Movie_Relations (id, roles_id, relation)
+VALUES (10, 3, "Scientist");
+INSERT INTO Movie_Relations (id, roles_id, relation)
+VALUES (11, 2, "War Veteran");
+
+SELECT * FROM Movie_Relations;
+
+/* JOIN TABLES*/
+/* Self-JOIN Movie_Relations with Movie_Roles with DISTINCT for removing duplicates*/
+SELECT DISTINCT Movie_Relations.roles_id, Movie_Relations.Relation
+FROM Movie_Relations
+JOIN Movie_Roles
+ON Movie_Relations.roles_id = Movie_Roles.stars_id
+;
+
+/* LEFT OUTER JOIN /
+/ Movie Star Names and Movie Relations*/
+SELECT DISTINCT Movie_Stars.name, Movie_Relations.Relation
+FROM Movie_Stars
+LEFT OUTER JOIN Movie_Relations
+ON Movie_Relations.Roles_id = Movie_Stars.celebrity_id
+;
+
+/* Movie Character Roles and Movie Relations */
+SELECT DISTINCT Movie_Roles.Role, Movie_Relations.Roles_id
+FROM Movie_Roles
+LEFT OUTER JOIN Movie_Relations
+ON Movie_Relations.Roles_id = Movie_Roles.Stars_id
+;
+
+/* Multiple JOINS /
+/ Movie Star Names and Roles */
+SELECT DISTINCT
+Movie_Stars.id AS Celebrity_id,
+Movie_Roles.Role, Movie_Relations.Roles_id
+FROM Movie_Stars
+JOIN Movie_Roles
+ON Movie_Roles.Stars_id = Movie_stars.id
+JOIN Movie_Relations
+ON Movie_Relations.Roles_id = Movie_stars.id;
+
+/* Movie Names/Roles */
+SELECT DISTINCT Movie_Stars.name, Movie_Roles.Role
+FROM Movie_Stars
+JOIN Movie_Roles
+ON Movie_Roles.Stars_id = Movie_Stars.Celebrity_id;
