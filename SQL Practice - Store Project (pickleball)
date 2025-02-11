@@ -1,0 +1,29 @@
+## SQL Practice - Store Project (pickleball)
+
+CREATE TABLE pickleball (id INTEGER PRIMARY KEY, product TEXT, quantity INTEGER, price INTEGER, type TEXT);
+
+INSERT INTO pickleball VALUES(1, "Vatic", 1, 90, "paddle");
+INSERT INTO pickleball VALUES(2, "SLK", 2, 110, "paddle");
+INSERT INTO pickleball VALUES(3, "JOLEA", 1, 250, "paddle");
+INSERT INTO pickleball VALUES(4, "Niupipo", 4, 80, "paddle");
+INSERT INTO pickleball VALUES(5, "Paddletek", 1, 150, "paddle");
+INSERT INTO pickleball VALUES(6, "Dura", 3, 12, "ball");
+INSERT INTO pickleball VALUES(7, "Franklin", 12, 30, "ball");
+INSERT INTO pickleball VALUES(8, "ONYX", 3, 12, "ball");
+INSERT INTO pickleball VALUES(9, "Niupipo", 3, 6, "ball");
+INSERT INTO pickleball VALUES(10, "HEAD", 3, 12, "ball");
+INSERT INTO pickleball VALUES(11, "DULCEDOM", 1, 40, "net");
+INSERT INTO pickleball VALUES(12, "DULCEDOM", 1, 70, "net");
+INSERT INTO pickleball VALUES(13, "DULCEDOM", 1, 110, "net");
+INSERT INTO pickleball VALUES(14, "Mizuno", 1, 130, "shoes");
+INSERT INTO pickleball VALUES(15, "ERNE", 1, 2000, "machine");
+
+SELECT *
+FROM pickleball;
+
+SELECT *
+FROM pickleball
+WHERE price > 100 ORDER BY price;
+
+SELECT SUM(price)
+FROM pickleball;
