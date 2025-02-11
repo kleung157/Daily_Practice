@@ -179,27 +179,3 @@ FROM marvels
 WHERE popularity <=5 OR speed >=5
 LIMIT 10
 ;
-
-Properties
-Assignees
-
-Add assignees…
-Status
-
-Done
-Convert to issue
-Copy link in project
-Archive
-Delete from project
-@kleung157's portfolio
-View 1
-Filter by keyword or by field
-SQL Practice - Basic Query
-#1
-SQL Practice - Creating a Database with Info
-SQL Practice - Store Project (pickleball)
-SQL Practice - Project Dig (marvel heroes)
-SQL Practice - Famous People
-SQL Practice - App Impersonator (Google_Calendar)
-Pickleball Project
-Workout Project
