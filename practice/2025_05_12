@@ -1,0 +1,101 @@
+Date: 05/12/25
+
+#
+
+Website: 
+Data Lemur 
+
+Difficulty:
+Easy
+
+Question Type: 
+SQL
+
+Question: 
+Histogram of Tweets - Twitter SQL Interview Question
+Assume you're given a table Twitter tweet data, write a query to obtain a histogram of tweets posted per user in 2022. Output the tweet count per user as the bucket and the number of Twitter users who fall into that bucket.
+In other words, group the users by the number of tweets they posted in 2022 and count the number of users in each group.
+
+Data Dictionary: 
+Table name = 'tweets'
+tweet_id:	integer
+user_id:	integer
+msg:	string
+tweet_date:	timestamp
+
+Code:
+WITH total_tweets AS (
+    SELECT
+        user_id,
+        COUNT(tweet_id) AS tweet_num
+    FROM tweets
+    WHERE tweet_date BETWEEN '2022-01-01' AND '2022-12-31'
+    GROUP BY user_id
+)
+
+SELECT
+   tweet_num as tweet_bucket,
+   COUNT(user_id) AS users_num
+FROM total_tweets
+GROUP BY tweet_num;
+
+#
+
+Website:
+Data Lemur
+
+Difficulty:
+Easy
+
+Question Type: 
+SQL
+
+Question:
+Data Science Skills - LinkedIn SQL Interview Question
+Given a table of candidates and their skills, you're tasked with finding the candidates best suited for an open Data Science job. You want to find candidates who are proficient in Python, Tableau, and PostgreSQL.
+Write a query to list the candidates who possess all of the required skills for the job. Sort the output by candidate ID in ascending order.
+
+Data Dictionary:
+Table name = 'candidates'
+candidate_id:	integer
+skill:	varchar
+
+Code:
+SELECT 
+    candidate_id
+FROM candidates
+WHERE skill IN ('Python', 'Tableau', 'PostgreSQL')
+GROUP BY candidate_id
+HAVING COUNT(skill) = 3
+ORDER BY candidate_id ASC
+
+#
+
+Website: 
+StrataScratch
+
+Difficulty:
+Easy
+
+Question Type: 
+SQL
+
+Question:
+Number of Comments Per User in 30 days before 2020-02-10
+Return the total number of comments received for each user in the 30 or less days before 2020-02-10. Don't output users who haven't received any comment in the defined time period.
+
+Data Dictionary:
+Table name = 'fb_comments_count
+created_at: date
+number_of_comments: bigint
+user_id: bigint
+
+Code:
+SELECT
+    user_id,
+    SUM(number_of_comments) AS total_comments
+FROM fb_comments_count
+WHERE created_at BETWEEN ('2020-02-10'::DATE - 30 * INTERVAL '1 day') AND '2020-02-10'::DATE
+GROUP BY user_id
+HAVING SUM(number_of_comments) > 0
+ORDER BY total_comments ASC
