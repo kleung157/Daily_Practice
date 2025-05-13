@@ -1,6 +1,6 @@
 Date: 05/12/25
 
-#
+############################
 
 Website: 
 Data Lemur 
@@ -39,7 +39,7 @@ SELECT
 FROM total_tweets
 GROUP BY tweet_num;
 
-#
+############################
 
 Website:
 Data Lemur
@@ -69,7 +69,7 @@ GROUP BY candidate_id
 HAVING COUNT(skill) = 3
 ORDER BY candidate_id ASC
 
-#
+############################
 
 Website: 
 StrataScratch
