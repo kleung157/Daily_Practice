@@ -1,0 +1,177 @@
+Date: 5/13/25
+
+############################
+
+Website:
+Data Lemur
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Page With No Likes - Facebook SQL Interview Question
+Assume you're given two tables containing data about Facebook Pages and their respective likes (as in "Like a Facebook Page").
+Write a query to return the IDs of the Facebook pages that have zero likes. The output should be sorted in ascending order based on the page IDs.
+
+Data Dictionary:
+Table name = 'pages'
+page_id: integer
+page_name: varchar
+Table name = 'page_likes'
+user_id: integer
+page_id: integer
+liked_date: datetime
+
+Code:
+SELECT 
+    p.page_id
+FROM pages AS p
+LEFT JOIN page_likes AS pl
+ON p.page_id = pl.page_id
+WHERE pl.liked_date IS NULL
+ORDER BY p.page_id ASC;
+
+############################
+
+Website:
+Data Lemur
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Unfinished Parts - Tesla SQL Interview Question
+Tesla is investigating production bottlenecks and they need your help to extract the relevant data. Write a query to determine which parts have begun the assembly process but are not yet finished.
+Assumptions:
+parts_assembly table contains all parts currently in production, each at varying stages of the assembly process.
+An unfinished part is one that lacks a finish_date.
+This question is straightforward, so let's approach it with simplicity in both thinking and solution.
+
+Data Dictionary:
+Table name = 'parts_assembly'
+part: string
+finish_date: datetime
+assembly_step: integer
+
+Code:
+SELECT 
+    part,
+    assembly_step
+FROM parts_assembly
+WHERE finish_date IS NULL;
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Laptop vs. Mobile Viewership - NY Times SQL Interview Question
+This is the same question as problem #3 in the SQL Chapter of Ace the Data Science Interview!
+Assume you're given the table on user viewership categorised by device type where the three types are laptop, tablet, and phone.
+Write a query that calculates the total viewership for laptops and mobile devices where mobile is defined as the sum of tablet and phone viewership. Output the total viewership for laptops as laptop_reviews and the total viewership for mobile devices as mobile_views.
+
+Data Dictionary:
+Table name = 'viewership'
+user_id: integer
+device_type: string('laptop', 'tablet', 'phone')
+view_time: timestamp
+
+Code:
+Solution #1 (mine)
+WITH
+    laptop AS (
+        SELECT
+            COUNT(device_type) AS laptop_views
+        FROM viewership
+        WHERE device_type = 'laptop'
+    ),    
+    mobile AS (
+        SELECT 
+            COUNT(device_type) AS mobile_views
+        FROM viewership
+        WHERE device_type IN ('tablet', 'phone')
+    )
+SELECT 
+    laptop.laptop_views,
+    mobile.mobile_views
+FROM laptop, mobile;
+
+Solution #2 
+SELECT
+    COUNT(*) FILTER (WHERE device_type = 'laptop') AS laptop_views,
+    COUNT(*) FILTER (WHERE device_type IN ('tablet', 'phone')) as mobile_views
+FROM viewership;
+
+Solution #3
+SELECT 
+    SUM(CASE 
+        WHEN device_type = 'laptop' THEN 1 
+        ELSE 0 
+    END) AS laptop_views,
+    SUM(CASE
+        WHEN device_type IN ('tablet', 'phone') THEN 1 
+        ELSE 0 
+    END) as mobile_views
+FROM viewership;
+
+############################
+
+Website:
+StrataScratch
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Users Activity Per Month Day
+Return the total number of posts made on each calendar day of the month, aggregated across all months and years (ignoring user and year).
+
+Data Dictionary:
+Table name = 'facebook_posts'
+post_date: date
+post_id: bigint
+post_keywords: text
+post_text: text
+poster: bigint
+
+Code:
+Solution #1 (mine)
+SELECT 
+    DISTINCT COUNT(post_text),
+    post_date
+FROM facebook_posts
+GROUP BY post_date
+ORDER BY post_date ASC
+
+Solution #2
+SELECT
+    EXTRACT(MONTH FROM post_date) AS month,
+    EXTRACT(DAY FROM post_date) AS day_of_month,
+    COUNT(*) as total_posts
+FROM facebook_posts
+GROUP BY day_of_month, month
+ORDER BY day_of_month ASC;
+
+Solution #3
+SELECT
+    CAST(to_char(post_date, 'DD') AS INTEGER) AS day_of_month,
+    COUNT(*) AS total_posts
+FROM facebook_posts
+GROUP BY day_of_month
+ORDER BY day_of_month;
