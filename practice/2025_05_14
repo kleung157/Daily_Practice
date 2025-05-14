@@ -110,7 +110,7 @@ SELECT
 FROM posts
 WHERE post_date BETWEEN '2021-01-01' AND '2021-12-31'
 GROUP BY user_id
-HAVING COUNT(user_id) >= 2
+HAVING COUNT(user_id) >= 2;
 
 Solution #2
 SELECT 
@@ -119,7 +119,7 @@ SELECT
 FROM posts
 WHERE DATE_PART('year',post_date::date)=2021 
 GROUP BY user_id
-HAVING COUNT(post_id) > 1
+HAVING COUNT(post_id) > 1;
 
 ############################
 
@@ -150,7 +150,7 @@ FROM twitch_sessions
 WHERE session_type IN ('viewer', 'streamer')
 GROUP BY user_id
 HAVING COUNT(session_type) >=2
-ORDER BY user_id ASC
+ORDER BY user_id ASC;
 
 ############################
 
@@ -180,4 +180,46 @@ SELECT
     AVG(((session_start - session_end) * -1)) AS avg_session_seconds,
     session_type
 FROM twitch_sessions
-GROUP BY session_type
+GROUP BY session_type;
+
+############################
+
+Website:
+StrataScratch = ID 2002
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+MetLife - Submission Types
+Write a query that returns the user ID of all users that have created at least one ‘Refinance’ submission and at least one ‘InSchool’ submission.
+
+Data Dictionary:
+Table name = 'loans'
+created_at: date
+id: bigint
+status: text
+type: text
+user_id: bigint
+
+Code:
+Solution #1 (mine)
+SELECT user_id
+FROM loans
+WHERE type IN ('Refinance', 'InSchool')
+GROUP BY user_id
+HAVING COUNT(DISTINCT type) >= 2
+ORDER BY user_id ASC;
+
+Solution #2
+SELECT user_id
+FROM loans
+WHERE type IN ('Refinance', 'InSchool')
+GROUP BY user_id
+HAVING
+    SUM(CASE WHEN type = 'Refinance' THEN 1 ELSE 0 END) > 0
+    AND SUM(CASE WHEN type = 'InSchool' THEN 1 ELSE 0 END) > 0
+ORDER BY user_id ASC;
