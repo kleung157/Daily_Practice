@@ -1,0 +1,183 @@
+**Template**
+Date: 05/14/2025
+
+Website:
+
+Difficulty:
+
+Question Type:
+
+Question:
+
+Data Dictionary:
+Table name = ''
+
+Code:
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+Statistics
+
+Question:
+Coin Fairness Test - Facebook Statistics Interview Question
+Say you flip a coin 10 times and observe only one heads. What would be your null hypothesis and p-value for testing whether the coin is fair or not?
+
+Data Dictionary:
+Table name = ''
+N/A
+
+Code:
+H_0 Null hypothesis: The coin flips fairly = 0.5
+H_A Alternative hypothesis: The coin does not flip fairly < 0.5
+n = 10
+Tails = 9 
+Heads = 1 
+Outcomes = 2^10 = 1024
+P-value = 10/1024 = 0.0098
+Significance level = 0.05
+Conclusion: Reject the null hypothesis. The coin does not flip fairly because the p-value < significance level
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+Machine Learning
+
+Question:
+Precision/Recall Tradeoff - BCG Gamma Machine Learning Interview Question
+Describe precision and recall and give their formulas. What is their importance and what is the nature of the tradeoff between the two?
+
+Data Dictionary:
+Table name = ''
+N/A
+
+Code:
+Precision: The total number of positive outcomes including true positives (TP) and false positives (FP). 
+Represented as true positives divided by the sum of true positives and false positives.
+Precision finds positives except false negatives.
+Precision = $TP/(TP+FP)$
+
+Recall: The total number of positive outcomes including true positives (TP) and false negatives (FN).
+Represented as true positives divided by the sum of true positives and false negatives.
+Recall finds all positives and can differentiate between a false positive and a false negative.
+Recall = $TP/(TP+FN)$
+
+When scoring a supervised machine learning model on classification, precision and recall scores help evaluate the effectiveness of the model in determining a desired outcome.
+To look at how the model sorts the true positives, false positives, true negatives, and false negatives, a confusion matrix displays how the model sorts the data.
+If relying on precision score, then there is a likelihood that false positives may not be accounted for and false negatives are excluded.
+If relying on recall score , then the true number of positives including false negatives and excluding false positives is accounted for.
+Depending on the domain context, deciding on whether to rely on precision or recall score can apply differently.
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Average Post Hiatus (Part 1) - Facebook SQL Interview Question
+Given a table of Facebook posts, for each user who posted at least twice in 2021, write a query to find the number of days between each user’s first post of the year and last post of the year in the year 2021. Output the user and number of the days between each user's first and last post.
+
+Data Dictionary:
+Table name = 'posts'
+user_id: integer
+post_id: integer
+post_content: text
+post_date: timestamp
+
+Code:
+Solution #1 (mine)
+SELECT
+    user_id,
+    MAX(post_date::DATE) - MIN(post_date::DATE) AS days_between
+FROM posts
+WHERE post_date BETWEEN '2021-01-01' AND '2021-12-31'
+GROUP BY user_id
+HAVING COUNT(user_id) >= 2
+
+Solution #2
+SELECT 
+	user_id, 
+    MAX(post_date::date)- MIN(post_date::date) AS days_between
+FROM posts
+WHERE DATE_PART('year',post_date::date)=2021 
+GROUP BY user_id
+HAVING COUNT(post_id) > 1
+
+############################
+
+Website:
+StrataScratch - ID 2009
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Twitch - Users With Two Statuses
+Find users who are both a viewer and streamer.
+
+Data Dictionary:
+Table name = 'twitch_sessions'
+session_end: timestamp without timezone
+session_id: bigint
+session_start: timestamp without timezone
+session_type: text
+user_id: bigint
+
+Code:
+SELECT user_id
+FROM twitch_sessions
+WHERE session_type IN ('viewer', 'streamer')
+GROUP BY user_id
+HAVING COUNT(session_type) >=2
+ORDER BY user_id ASC
+
+############################
+
+Website:
+StrataScratch - ID 2011
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Twitch - Session Type Duration
+Calculate the average session duration (in seconds) for each session type?
+
+Data Dictionary:
+Table name = 'twitch_sessions'
+session_end: timestamp without timezone
+session_id: bigint
+session_start: timestamp without timezone
+session_type: text
+user_id: bigint
+
+Code:
+SELECT 
+    AVG(((session_start - session_end) * -1)) AS avg_session_seconds,
+    session_type
+FROM twitch_sessions
+GROUP BY session_type
