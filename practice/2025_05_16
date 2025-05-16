@@ -1,0 +1,161 @@
+Date:
+05/16/2025
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+Python
+
+Question:
+Base 13 Conversion - Capital One Python Interview Question
+Given an integer num, return its string representation in base 13.
+In case you don’t use base 13 that much (who does, right?), here’s a quick rundown: just like base 10 uses digits from 0 to 9. But also for 10, 11 and 12, we use the letters A, B, and C.
+For example:
+9 in base 13 is still "9"
+10 in base 13 is "A"
+11 in base 13 is "B"
+12 in base 13 is "C"
+13 in base 13 is "10"
+14 in base 13 is "11"
+49 in base 13 is "3A" (since 3∗13+10=49)
+69 in base 13 is "54" (since 5∗13+4=69)
+
+Data Dictionary:
+Table name = ''
+N/A
+
+Code:
+Solution #1 (iterative)
+def convertToBase13(num):
+    if num == 0:
+        return "0"
+    
+    # Digits for base 13
+    base13_digits = "0123456789ABC"
+    digits = ""
+    positive = abs(num)
+    
+    while positive > 0:
+        ### Append digits/letter
+        digits += base13_digits[positive % 13]
+        positive = positive // 13
+    
+    # Reverse the string at the end
+    reversed_digits = digits[::-1]
+    if num < 0:
+        return "-" + reversed_digits
+    else:
+        return reversed_digits
+
+Solution #2 (iterative) "best"
+def convertToBase13(num):
+    if num == 0:
+        return "0"
+    
+    base13_digits = "0123456789ABC"
+    digits_arr = []
+    positive = abs(num)
+    
+    while positive > 0:
+        # Append to list
+        digits_arr.append(base13_digits[positive % 13])  
+        positive = positive // 13
+    
+    reversed_digits = digits_arr[::-1]
+    # Join list into a string
+    result = ''.join(reversed_digits)  
+    
+    if num < 0:
+        return "-" + result
+    else:
+        return result
+
+Solution #3 (recursive)
+def convertToBase13(num):
+    base13_digits = "0123456789ABC"
+    
+    def convertPositiveToBase13(positive_number):
+        if positive_number < 13:
+            return base13_digits[positive_number]  # Return single digit
+        else:
+            return convertPositiveToBase13(positive_number // 13) + base13_digits[positive_number % 13]
+    
+    if num < 0:
+        return "-" + convertPositiveToBase13(abs(num))
+    else:
+        return convertPositiveToBase13(num)
+        
+############################
+
+Website:
+StrataScratch - ID 2024
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Apple - Unique Users Per Client Per Month
+Write a query that returns the number of unique users per client per month.
+
+Data Dictionary:
+Table name = 'fact_events'
+client_id: text (string)
+customer_id: text (string)
+event_id: bigint (integer)
+event_type: text (string)
+id: bigint (integer)
+time_id: date (string -> datetime)
+user_id: text (string)
+
+Code:
+Solution #1 (mine)
+/* Preview data */
+SELECT * FROM fact_events LIMIT 10;
+
+/* User, clients, month */
+SELECT 
+    user_id,
+    client_id,
+    EXTRACT(MONTH FROM time_id) AS month
+FROM fact_events
+ORDER BY 1, 3;
+
+/* Number of unique users per client */
+SELECT 
+    COUNT(DISTINCT user_id) as unique_users,
+    client_id
+FROM fact_events
+GROUP BY client_id;
+
+/* Number of unique users per client per month */
+SELECT 
+    COUNT(DISTINCT user_id) as unique_users,
+    client_id,
+    EXTRACT(MONTH FROM time_id) AS month
+FROM fact_events
+GROUP BY 2, 3
+ORDER BY 3;
+
+Solution #2
+SELECT
+    client_id,
+    DATE_TRUNC('month', time_id) AS month,
+    COUNT(DISTINCT user_id) AS unique_users
+FROM
+    fact_events
+GROUP BY
+    client_id,
+    month
+ORDER BY
+    month;
+
+############################
