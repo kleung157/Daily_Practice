@@ -1,0 +1,172 @@
+Date: 05/19/2025
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+Python
+
+Question:
+Same Stripes - ServiceNow Python Interview Question
+You are given an m x n matrix. Your task is to determine if the matrix has diagonal stripes where all elements in each diagonal from top-left to bottom-right are of the same stripe—that is, they are identical.
+In this context, each diagonal stripe runs from the top-left corner to the bottom-right corner of the matrix. Check if every diagonal stripe consists entirely of the same number.
+Return True if all diagonal stripes are of the same stripe, otherwise return False.
+
+Data Dictionary:
+Table name = ''
+N/A
+
+Code:
+Matrix = m x n
+True = diagonal stripes are same stripe
+False = diagonal stripes are not
+
+Code example inputs:
+Input: matrix = [[42, 7, 13, 99], [6, 42, 7, 13], [1, 6, 42, 7]]
+Output: True
+0 0 0 False N/A {0:42} 
+0 1 -1 False N/A {0:42, -1:7}
+0 2 - 2 False N/A {0:42, -1:7, -2:13}
+0 3 -3 False N/A {0:42, -1:7, -2:13, -3:99}
+1 0 1 False N/A {0:42, -1:7, -2:13, -3:99, 1:6}
+1 1 0 True (42=42) continue
+1 2 -1 True (7=7) continue
+1 3 -2 True (13=13) continue
+2 0 2 False N/A {0:42, -1:7, -2:13, -3:99, 1:6, 2:1}
+2 1 1 True (6=6) continue
+2 2 0 True (42=42) continue
+2 3 -1 True (7=7) continue
+True
+
+Input: matrix = [[8, 23], [69, 1]]
+Output: False
+0 0 0 False N/A {0:8}
+0 1 -1 False N/A {0:8, -1:23}
+1 0 1 False N/A {0:8, -1:23, 1:69}
+1 1 0 True (8 =! 1) return
+False
+
+Solution #1
+def is_same_stripes(matrix):
+    diagonals = {}
+    for i in range(len(matrix)):
+        for j in range(len(matrix[0])):
+            '''
+            Store elements in their respective diagonal
+            '''
+            if i - j in diagonals and diagonals[i - j] != matrix[i][j]:
+                return False    # Return False if a mismatch is found
+            else:
+                # Store the first element of this diagonal
+                diagonals[i - j] = matrix[i][j]
+    return True # Return True if all diagonal elements match
+
+Solution #2 (space optimized approach)
+def is_same_stripes(matrix):
+	# Start from the second row
+    for i in range(1, len(matrix)):  
+    	# Start from the second column
+        for j in range(1, len(matrix[i])):  
+            if matrix[i][j] != matrix[i-1][j-1]:
+                return False            
+    return True
+
+############################
+
+Website:
+StrataScratch
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+WHole Foods Market - Products Report Summary
+Find the number of unique transactions and total sales for each of the product categories in 2017. Output the product categories, number of transactions, and total sales in descending order. The sales column represents the total cost the customer paid for the product so no additional calculations need to be done on the column.
+Only include product categories that have products sold.
+
+Data Dictionary:
+1. Table name = 'wfm_transactions'
+customer_id: integer
+product_id: integer
+sales: integer
+store_id: integer
+transaction_id: date
+transaction_id: integer
+2. Table name = 'wfm_products'
+product_brand: string
+product_category: string
+product_description: string
+product_id: string
+
+Code:
+Solution #1
+/* Preview SELECT data */
+SELECT * FROM wfm_transactions;
+SELECT * FROM wfm_products;
+
+/* JOIN data, check full outer and inner join */
+SELECT
+    t.customer_id,
+    t.product_id,
+    t.sales,
+    t.store_id,
+    t.transaction_date,
+    t.transaction_id,
+    product_brand,
+    product_category,
+    product_description
+FROM wfm_transactions AS t
+JOIN wfm_products AS p
+    ON t.product_id = p.product_id
+
+/* CTE JOIN AS wfm_pt */
+WITH wfm_pt AS (
+    SELECT
+        t.customer_id,
+        t.product_id,
+        t.sales,
+        t.store_id,
+        t.transaction_date,
+        t.transaction_id,
+        product_brand,
+        product_category,
+        product_description
+    FROM wfm_transactions AS t
+    JOIN wfm_products AS p
+        ON t.product_id = p.product_id
+)
+
+/* Product categories with products sold, unique transcations, total sales, 2017, DESC  */
+WITH wfm_pt AS (
+    SELECT
+        t.customer_id,
+        t.product_id,
+        t.sales,
+        t.store_id,
+        t.transaction_date,
+        t.transaction_id,
+        product_brand,
+        product_category,
+        product_description
+    FROM wfm_transactions AS t
+    JOIN wfm_products AS p
+        ON t.product_id = p.product_id
+)
+SELECT 
+    product_category,
+    COUNT(DISTINCT transaction_id) AS unique_transactions,
+    SUM(sales) AS total_sales
+FROM wfm_pt
+WHERE EXTRACT(YEAR FROM transaction_date) = '2017'
+GROUP BY 1
+HAVING COUNT(product_id) > 0
+ORDER BY 3 DESC
+############################
