@@ -125,7 +125,7 @@ SELECT
     p.product_description
 FROM wfm_transactions AS t
 JOIN wfm_products AS p
-    ON t.product_id = p.product_id
+    ON t.product_id = p.product_id;
 
 /* CTE JOIN AS wfm_pt */
 WITH wfm_pt AS (
@@ -142,7 +142,7 @@ WITH wfm_pt AS (
     FROM wfm_transactions AS t
     JOIN wfm_products AS p
         ON t.product_id = p.product_id
-)
+);
 
 /* Product categories with products sold, unique transcations, total sales, 2017, DESC  */
 WITH wfm_pt AS (
@@ -168,5 +168,23 @@ FROM wfm_pt
 WHERE EXTRACT(YEAR FROM transaction_date) = '2017'
 GROUP BY 1
 HAVING COUNT(product_id) > 0
-ORDER BY 3 DESC
+ORDER BY 3 DESC;
+
+Solution #2:
+SELECT
+    wp.product_category,
+    COUNT(DISTINCT wt.transaction_id) AS number_of_transactions,
+    SUM(wt.sales) AS total_sales
+FROM
+    wfm_transactions wt
+JOIN
+    wfm_products wp ON wt.product_id = wp.product_id
+WHERE
+    STRFTIME('%Y', wt.transaction_date) = '2017'
+GROUP BY
+    wp.product_category
+HAVING
+    COUNT(wt.product_id) > 0 -- Ensure only categories with products sold are included
+ORDER BY
+    total_sales DESC;
 ############################
