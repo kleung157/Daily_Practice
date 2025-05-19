@@ -120,9 +120,9 @@ SELECT
     t.store_id,
     t.transaction_date,
     t.transaction_id,
-    product_brand,
-    product_category,
-    product_description
+    p.product_brand,
+    p.product_category,
+    p.product_description
 FROM wfm_transactions AS t
 JOIN wfm_products AS p
     ON t.product_id = p.product_id
@@ -136,9 +136,9 @@ WITH wfm_pt AS (
         t.store_id,
         t.transaction_date,
         t.transaction_id,
-        product_brand,
-        product_category,
-        product_description
+        p.product_brand,
+        p.product_category,
+        p.product_description
     FROM wfm_transactions AS t
     JOIN wfm_products AS p
         ON t.product_id = p.product_id
@@ -153,9 +153,9 @@ WITH wfm_pt AS (
         t.store_id,
         t.transaction_date,
         t.transaction_id,
-        product_brand,
-        product_category,
-        product_description
+        p.product_brand,
+        p.product_category,
+        p.product_description
     FROM wfm_transactions AS t
     JOIN wfm_products AS p
         ON t.product_id = p.product_id
