@@ -1,0 +1,390 @@
+Date: 05/21/2025
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+Python
+
+Question:
+Factorial Formula - Microsoft Python Interview Question
+Given a number n, write a formula that returns n!
+In case you forgot the factorial formula,
+n!=n∗(n−1)∗(n−2)∗.....2∗1.
+For example, 
+5!=5∗4∗3∗2∗1=120 so we'd return 120.
+Assume is n is a non-negative integer.
+
+Data Dictionary:
+Table name = ''
+N/A
+
+Explanation:
+Solution #1
+range(1, 4+1)
+range(1, 5)
+answer = answer * 1
+1 * 1 = 1
+2 * 1 = 2
+3 * 2 = 6
+4 * 6 = 24
+
+Solution #2
+n = 4
+4 * factorial(3)
+3 * factorial(2)
+2 * factorial(1)
+1 * factorial(0)
+0 = 1
+1 * factorial(0) = 1
+2 * factorial(1) = 2
+3 * factorial(2) = 6
+4 * factorial(3) = 24
+
+Code:
+Solution #1 (iterative approach)
+def factorial(n): 
+    answer = 1
+    for i in range(1, n+1):
+        answer = answer * i
+    return answer
+
+Solution #2 (recursive approach)
+def factorial(n):
+    if n == 0:
+        return 1
+    else:
+        return n * factorial(n - 1)
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+Python
+
+Question:
+Intersection of Two Lists - Amazon Python Interview Question
+Write a function to get the intersection of two lists.
+For example, if A = [1, 2, 3, 4, 5], and B = [0, 1, 3, 7] then you should return [1, 3].
+
+Data Dictionary:
+Table name = ''
+N/A
+
+Code:
+Solution #1
+def intersection(a, b):
+    intersection_list = []
+    for value in a:
+        if value in b:
+            intersection_list.append(value)
+    return intersection_list
+
+Solution #2 (list comprehension)
+def intersection(a, b):
+    intersection_list = [value for value in a if value in b]
+    return intersection_list
+    
+Solution #3 (faster runtime)
+def intersection(a, b):
+    set_a = set(a)
+    set_b = set(b)
+    if len(set_a) < len(set_b):
+        return [x for x in set_a if x in set_b]
+    else:
+        return [x for x in set_b if x in set_a]
+
+Solution #4 (intersection() function)
+def intersection(a, b):
+    return list(set(a).intersection(b))
+
+
+############################
+
+Website:
+StrataScratch - ID 2043 
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Uber - Employees' Without Annual Review
+Return all employees who have never had an annual review. 
+Your output should include the employee's first name, last name, hiring date, and termination date. 
+List the most recently hired employees first
+
+Data Dictionary:
+Table name = 'uber_employees'
+first_name: text(str)
+hire_date: date(str)
+id: bigint(int)
+last_name: text(str)
+salary: bigint(int)
+termination_date: date(str)
+Table name = 'uber_annual_review'
+emp_id: bigint(int)
+id: bigint(int)
+review_date: date(str)
+
+Code:
+Solution #1
+/* SELECT to preview data */
+SELECT * FROM uber_employees LIMIT 5;
+SELECT * FROM uber_annual_review LIMIT 5;
+
+/* JOIN to combine data, check inner and outer */
+SELECT
+    e.first_name,
+    e.hire_date,
+    e.id,
+    e.last_name,
+    e.salary,
+    e.termination_date,
+    a.emp_id,
+    a.review_date
+FROM uber_employees AS e
+FULL OUTER JOIN uber_annual_review AS a
+    ON e.id = a.emp_id;
+
+/* CTE JOIN AS uber_ea */
+WITH uber_ea AS (
+    SELECT
+        e.first_name,
+        e.hire_date,
+        e.id,
+        e.last_name,
+        e.salary,
+        e.termination_date,
+        a.emp_id,
+        a.review_date
+    FROM uber_employees AS e
+    FULL OUTER JOIN uber_annual_review AS a
+        ON e.id = a.emp_id
+);
+
+/* first name, last name, hire date, termination date, no review, most recent */
+WITH uber_ea AS (
+    SELECT
+        e.first_name,
+        e.hire_date,
+        e.id,
+        e.last_name,
+        e.salary,
+        e.termination_date,
+        a.emp_id,
+        a.review_date
+    FROM uber_employees AS e
+    FULL OUTER JOIN uber_annual_review AS a
+        ON e.id = a.emp_id
+)
+SELECT
+    first_name,
+    last_name,
+    hire_date,
+    termination_date
+FROM uber_ea
+WHERE review_date IS NULL
+    OR termination_date < review_date
+ORDER BY 3 DESC;
+
+############################
+
+Website:
+StrataScratch - ID 2049
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Uber - Total Order Per Status Per Service
+Uber is interested in identifying gaps in their business. 
+Calculate the count of orders for each status of each service. 
+Your output should include the service name, status of the order, and the number of orders.
+
+Data Dictionary:
+Table name = 'uber_orders'
+monetary_value: double precision(float)
+number_of_orders: bigint(int)
+order_date: date(str)
+service_name: text(str)
+status_of_order: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM uber_orders;
+
+/* Service name, status of order, number of orders */
+SELECT
+    service_name,
+    status_of_order,
+    COUNT(number_of_orders) AS number_of_orders
+FROM uber_orders
+GROUP BY 1, 2
+ORDER BY 1, 2 ASC;
+
+############################
+
+Website:
+StrataScratch - ID 2051
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Asana - Monthly Active Users
+Find the monthly active users for January 2021 for each account. 
+Your output should have account_id and the monthly count for that account.
+
+Data Dictionary:
+Table name = 'sf_events'
+account_id: varchar(str)
+record_date: date(str)
+user_id: varchar(str)
+
+Code:
+/* SELECT to preview data */ 
+SELECT * FROM sf_events;
+
+/* Monthly active users, account, January 2021 */
+SELECT 
+    account_id,
+    COUNT(DISTINCT user_id) AS number_of_users
+FROM sf_events
+WHERE EXTRACT(YEAR FROM record_date) = '2021'
+    AND EXTRACT(MONTH FROM record_date) = '1'
+GROUP BY 1
+ORDER BY 1;
+
+############################
+
+Website:
+StrataScratch - ID 2052
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Asana - User Growth Rate
+Find the growth rate of active users for Dec 2020 to Jan 2021 for each account. 
+The growth rate is defined as the number of users in January 2021 divided by the number of users in Dec 2020. Output the account_id and growth rate.
+
+Data Dictionary:
+Table name = 'sf_events'
+account_id: varchar(str)
+record_date: date(str)
+user_id: varchar(str)
+
+Code:
+Solution #1 (mine)
+/* SELECT to preview data */ 
+SELECT * FROM sf_events;
+
+/* CTE users in Jan 2021 */
+WITH users_jan AS (
+    SELECT
+        account_id,
+        COUNT(DISTINCT user_id) AS num_users_jan
+    FROM sf_events
+    WHERE EXTRACT(YEAR FROM record_date) = '2021'
+        AND EXTRACT(MONTH FROM record_date) = '1'
+    GROUP BY 1
+);
+
+/* CTE users in Dec 2020 */
+WITH users_dec AS (
+    SELECT 
+        account_id,
+        COUNT(DISTINCT user_id) AS num_users_dec
+    FROM sf_events
+    WHERE EXTRACT(YEAR FROM record_date) = '2020'
+        AND EXTRACT(MONTH FROM record_date) = '12'
+    GROUP BY 1
+);
+
+/* Growth rate = users in Jan 2021 / user in Dec 2020 */
+/* Growth rate of active users Dec 2020 to Jan 2021 for each account */
+WITH users_jan AS (
+    SELECT 
+        account_id,
+        COUNT(DISTINCT user_id) AS num_users_jan
+    FROM sf_events
+    WHERE EXTRACT(YEAR FROM record_date) = '2021'
+        AND EXTRACT(MONTH FROM record_date) = '1'
+    GROUP BY 1
+),
+    users_dec AS (
+    SELECT 
+        account_id,
+        COUNT(DISTINCT user_id) AS num_users_dec
+    FROM sf_events
+    WHERE EXTRACT(YEAR FROM record_date) = '2020'
+        AND EXTRACT(MONTH FROM record_date) = '12'
+    GROUP BY 1
+)
+SELECT
+    COALESCE(d.account_id, j.account_id) AS account_id,
+    (j.num_users_jan / d.num_users_dec) AS growth_rate
+FROM users_jan AS j
+JOIN users_dec AS d
+    ON j.account_id = d.account_id
+ORDER BY 2 DESC;
+
+Solution #2
+WITH
+  users_jan AS (
+    SELECT
+      account_id,
+      COUNT(DISTINCT user_id) AS num_users_jan
+    FROM
+      sf_events
+    WHERE
+      EXTRACT(YEAR FROM record_date) = '2021' AND EXTRACT(MONTH FROM record_date) = '1'
+    GROUP BY
+      1
+  ),
+  users_dec AS (
+    SELECT
+      account_id,
+      COUNT(DISTINCT user_id) AS num_users_dec
+    FROM
+      sf_events
+    WHERE
+      EXTRACT(YEAR FROM record_date) = '2020' AND EXTRACT(MONTH FROM record_date) = '12'
+    GROUP BY
+      1
+  )
+SELECT
+  COALESCE(d.account_id, j.account_id) AS account_id, -- This is where COALESCE is used
+  (j.num_users_jan / d.num_users_dec) AS growth_rate
+FROM
+  users_jan AS j
+JOIN -- This is an INNER JOIN by default
+  users_dec AS d
+ON
+  j.account_id = d.account_id
+ORDER BY
+  2 DESC;
+  
+############################
