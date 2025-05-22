@@ -1,0 +1,105 @@
+Date: 05/22/2025
+
+############################
+
+Website:
+StrataScratch - ID 2056
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Amazon - Number of Shipments Per Month
+Write a query that will calculate the number of shipments per month. 
+The unique key for one shipment is a combination of shipment_id and sub_id. 
+Output the year_month in format YYYY-MM and the number of shipments in that month.
+
+Data Dictionary:
+Table name = 'amazon_shipment'
+shipment_date: date(str)
+shipment_id: bigint(int)
+sub_id: bigint(int)
+weight: bigint(int)
+
+Code:
+Solution #1
+/* SELECT to preview data */
+SELECT * FROM amazon_shipment;
+
+/* One shipment = COUNT(DISTINCT(shipment_id,sub_id) */
+SELECT
+    COUNT(DISTINCT(shipment_id, sub_id)) AS num_of_shipments
+FROM amazon_shipment;
+
+/* Number of shipments per month (year_month YYYY-MM)*/
+SELECT
+    TO_CHAR(shipment_date, 'YYYY-MM') AS year_month,
+    COUNT(DISTINCT(shipment_id, sub_id)) AS num_of_shipments
+FROM amazon_shipment
+GROUP BY 1
+ORDER BY 1 DESC;
+
+Solution #2
+SELECT
+    TO_CHAR(shipment_date, 'YYYY-MM') AS year_month,
+    COUNT(DISTINCT shipment_id || '-' || sub_id) AS num_of_shipments
+FROM amazon_shipment
+GROUP BY 1
+ORDER BY 1 DESC;
+
+############################
+
+Website:
+StrataScratch - ID 2057
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Amazon - Weight For First Shipment
+Write a query to find the weight for each shipment's earliest shipment date. 
+Output the shipment id along with the weight.
+
+Data Dictionary:
+Table name = 'amazon_shipment'
+shipment_date: date(str)
+shipment_id: bigint(int)
+sub_id: bigint(int)
+weight: bigint(int)
+
+Code:
+Solution #1
+/* SELECT to preview data */
+SELECT * FROM amazon_shipment;
+
+/* ROW_NUMBER to rank dates of shipments */
+SELECT 
+    shipment_id,
+    weight,
+    shipment_date,
+    ROW_NUMBER() OVER(PARTITION BY shipment_id ORDER BY shipment_date ASC) as row_number
+FROM amazon_shipment;
+
+/* Weight for each shipment's earliest shipment date */
+/* shipment_id, weight */
+WITH rank_shipments AS (
+    SELECT 
+        shipment_id,
+        weight,
+        shipment_date,
+        ROW_NUMBER() OVER(PARTITION BY shipment_id ORDER BY shipment_date ASC) as row_number
+    FROM amazon_shipment
+)
+SELECT
+    shipment_id,
+    weight
+FROM rank_shipments
+WHERE row_number = 1;
+
+############################
