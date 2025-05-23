@@ -104,6 +104,7 @@ search_query: text(str)
 user_id: (bigint)
 
 Code:
+Solution #1 (mine)
 /* SELECT to preview data */
 SELECT * FROM fb_searches;
 
@@ -168,7 +169,7 @@ search_query: text(str)
 user_id: (bigint)
 
 Code:
-Solution #1(mine)
+Solution #1 (mine)
 /* SELECT to preview data */
 SELECT * FROM fb_searches;
 
