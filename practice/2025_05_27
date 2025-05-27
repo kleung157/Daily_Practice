@@ -1,0 +1,328 @@
+Date: 05/27/2025
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+Python
+
+Question:
+Fizz Buzz Sum - Google Python Interview Question
+Write a function fizz_buzz_sum to find the sum of all multiples of 3 or 5 below a target value.
+For example, if the target value was 10, the multiples of 3 or 5 below 10 are 3, 5, 6, and 9.
+Because 3+5+6+9=23, our function would return 23.
+
+Data Dictionary:
+Table name = ''
+N/A
+
+Code:
+def fizz_buzz_sum(target):
+    sum = 0
+    for i in range(target):
+        if (i % 3 == 0) or (i % 5 == 0):
+            sum += i
+    return sum
+
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+Python
+
+Question:
+Compound Interest - Fintech Python Interview Question
+For this Fintech company, you need to build a compound interest calculator, using the four variables below as input:
+
+Principal: This is the starting amount you put into the account. 
+It’s the base amount that will start earning interest right away.
+
+Interest Rate: This is the percentage of your current balance that the bank adds to your account as interest each year. 
+For example, a 5% interest rate means the bank will add 5% of your balance to your account every year.
+
+Annual Contribution: This is a fixed amount you add to your investment at the end of each year, like a regular deposit you decide to make. 
+Each time you make this contribution, it increases your balance, which in turn, increases the amount of interest you earn next year (since interest is calculated on the new, larger balance).
+
+Years to Invest: This is how long your money stays in the account, compounding annually. 
+The longer you invest, the more times your balance grows, not only from the interest but also from the additional contributions.
+
+Using these four values, calculate the final amount you’ll have after the specified number of years, with annual compounding. In other words, at the end of each year, you’ll earn interest on your current balance, then make an additional contribution.
+Return the answer rounded to two decimal places.
+
+Input:
+principal	rate	contribution	years
+500	10	50	3
+Output: 831.00
+Explanation:
+Year 1: Starting with 500, it grows by 10% (interest = 10% of 500 = 50), totaling 550. Adding 50 as an additional contribution results in 600.
+Year 2: 600 grows by 10% (interest = 10% of 600 = 60), totaling 660. Adding 50, we reach 710.
+Year 3: 710 grows by 10% (interest = 10% of 710 = 71), totaling 781. Adding 50 results in 831.
+
+Input:
+principal	rate	contribution	years
+1000	20	100	10
+Output: 8,787.60
+
+Data Dictionary:
+Table name = ''
+N/A
+
+Code:
+Solution #1 (looping iteration)
+def compound_interest(principal, rate, contribution, years):
+    total = principal
+    for year in range(years):
+        total += total * (rate / 100)
+        total += contribution
+    return round(total, 2)
+    
+Solution #2 (compound interest formula)
+def compound_interest(principal, rate, contribution, years):
+    r = rate / 100
+    initial_compound = principal * ((1+r) ** years)
+    contribution_compound = contribution * (((1 + r) ** years - 1) / r)
+    total = initial_compound + contribution_compound
+    return round(total, 2)
+    
+############################
+
+Website:
+StrataScratch - ID 2069
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Meta - Sales with Valid Promotion
+The marketing manager wants you to evaluate how well the previously ran advertising campaigns are working.
+Particularly, they are interested in the promotion IDs from the online_promotions table.
+Find the percentage of orders with promotion IDs from the online_promotions table applied.
+
+Data Dictionary:
+Table name = 'online_promotions'
+promotion_id: bigint(int)
+Table name = 'online_orders'
+cost_in_dollars: bigint(int)
+customer_id: bigint(int)
+date_sold: date(str)
+product_id: bigint(int)
+promotion_id: bigint(int)
+units_sold: bigint(int)
+
+Code:
+Solution #1
+/* SELECT to preview data */
+SELECT * FROM online_promotions;
+SELECT * FROM online_orders;
+
+/* JOIN online_promotions and online_orders */
+SELECT 
+    op.promotion_id,
+    oo.promotion_id,
+    oo.product_id,
+    oo.cost_in_dollars,
+    oo.customer_id,
+    oo.date_sold,
+    oo.units_sold
+FROM online_promotions AS op
+FULL OUTER JOIN online_orders AS oo
+ON op.promotion_id = oo.promotion_id;
+
+/* percentage of orders with promotion IDs from online_promotions */
+SELECT 
+    CAST(COUNT(op.promotion_id) AS DECIMAL(10,2)) * 100 / COUNT(oo.promotion_id) AS percentage_of_orders_with_promotions
+FROM online_promotions AS op
+FULL OUTER JOIN online_orders AS oo
+ON op.promotion_id = oo.promotion_id;
+
+Solution #2
+SELECT
+    CAST(COUNT(oo.promotion_id) AS DECIMAL) * 100 / (SELECT COUNT(*) FROM online_orders) AS percentage_rows_with_promotions
+FROM
+    online_orders oo
+INNER JOIN
+    online_promotions op ON oo.promotion_id = op.promotion_id;
+    
+############################
+
+Website:
+StrataScratch - ID 2072
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Google - Active Users Per Platform
+For each platform (e.g. Windows, iPhone, iPad etc.), calculate the number of users. 
+Consider unique users and not individual sessions. 
+Output the name of the platform with the corresponding number of users.
+
+Data Dictionary:
+Table name = 'user_session'
+platform: text(str)
+session_endtime: timestamp(str)
+session_id: bigint(int)
+session_starttime: timestamp(str)
+user_id: text(str)
+
+Code:
+Solution #1
+/* SELECT to preview data */
+SELECT * FROM user_sessions;
+
+/* platform with number of  unique users */
+SELECT
+    platform,
+    COUNT(DISTINCT user_id) as num_unique_users
+FROM user_sessions
+GROUP BY 1
+ORDER BY 1 ASC;
+
+############################
+
+Website:
+StrataScratch - ID 2080
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Meta - Mobile and Web Logins
+Count the number of unique users per day who logged in from both a mobile device and web. 
+Output the date and the corresponding number of users.
+
+Data Dictionary:
+Table name = 'mobile_logs'
+log_date: date(str)
+user_id: text(str)
+Table name = 'web_logs'
+log_date: date(str)
+user_id: text(str)
+
+Code:
+Solution #1
+/* SELECT to preview data */
+SELECT * FROM mobile_logs;
+SELECT * FROM web_logs;
+
+/* JOIN mobile_logs and web_logs */
+SELECT *
+FROM mobile_logs AS ml
+JOIN web_logs AS wl 
+    ON ml.user_id = wl.user_id
+    AND ml.log_date = wl.log_date;
+    
+/* COUNT DISTINCT number of unique users logged in mobile and web, date */
+SELECT
+    wl.log_date,
+    COUNT(DISTINCT ml.user_id) AS num_users_mobile_web
+FROM mobile_logs AS ml
+JOIN web_logs AS wl 
+    ON ml.user_id = wl.user_id
+    AND ml.log_date = wl.log_date
+GROUP BY 1
+ORDER BY 1 ASC;
+
+############################
+
+Website:
+StrataScratch - ID 2083
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+CVS Health - Pending Claims
+Count how many claims submitted in December 2021 are still pending. 
+A claim is pending when it has neither an acceptance nor rejection date.
+
+Data Dictionary:
+Table name = 'cvs_claims'
+account_id: text(str)
+claim_id: bigint(int)
+date_accepted: date(str)
+date_rejected: date(str)
+date_submitted: date(str)
+
+Code:
+Solution #1 (clarity)
+/* SELECT to preview data */
+SELECT * FROM cvs_claims;
+
+/* pending = neither acceptance nor rejection date */
+/* COUNT claims submitted Dec 2021 and pending */
+SELECT
+    COUNT(*) as num_claims_pending
+FROM cvs_claims
+WHERE date_accepted IS NULL
+    AND date_rejected IS NULL
+    AND EXTRACT(YEAR FROM date_submitted) = '2021'
+    AND EXTRACT(MONTH FROM date_submitted) = '12';
+
+Solution #2 (optimization for >= and <=)
+SELECT
+    COUNT(claim_id) AS number_of_pending_claims
+FROM
+    cvs_claims
+WHERE
+    date_submitted >= '2021-12-01' AND date_submitted <= '2021-12-31'
+    AND date_accepted IS NULL
+    AND date_rejected IS NULL;
+    
+############################
+
+Website:
+StrataScratch - ID 2091
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Google - Latest Login Date
+For each video game player, find the latest date when they logged in.
+
+Data Dictionary:
+Table name = 'players_logins'
+login_date: date(str)
+player_id: bigint(int)
+
+Code:
+Solution #1
+/* SELECT to preview data */
+SELECT * FROM players_logins;
+
+/* Unique player, latest date logged in */
+SELECT
+    player_id,
+    MAX(login_date) AS latest_login_date
+FROM players_logins
+GROUP BY 1
+ORDER BY 1 ASC;
+
+############################
