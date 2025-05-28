@@ -1,0 +1,382 @@
+Date: 05/28/2025
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+Python
+
+Question:
+Triangular Sum - TikTok Python Interview Question
+You are given an integer array nums, where each element in it is a single digit (0-9).
+The triangular sum of nums is the value of the only element present in nums after the following process terminates:
+    Let nums comprise of n elements. If n == 1, end the process. Otherwise, create a new integer array newNums of length n - 1.
+    For each index i, assign the value of newNums[i] as (nums[i] + nums[i+1]) % 10, where % denotes the modulo operator.
+    Replace the array nums with newNums.
+    Repeat the entire process starting from step 1.
+Return the triangular sum of nums.
+
+Test Case #1:
+Input: nums = [1, 3, 5, 7]
+Iteration #1: Form newNums = [(1 + 3) % 10, (3 + 5) % 10, (5 + 7) % 10] = [4, 8, 2].
+Iteration #2: Form newNums = [(4 + 8) % 10, (8 + 2) % 10] = [2, 0].
+Iteration #3: Form newNums = [(2 + 0) % 10] = [2].
+The triangular sum of nums is 2.
+
+Test Case #2:
+Input: nums = [9, 7, 5, 3]
+Iteration #1: Form newNums = [(9 + 7) % 10, (7 + 5) % 10, (5 + 3) % 10] = [6, 2, 8].
+Iteration #2: Form newNums = [(6 + 2) % 10, (2 + 8) % 10] = [8, 0].
+Iteration #3: Form newNums = [(8 + 0) % 10] = [8].
+The triangular sum of nums is 8.
+
+Data Dictionary:
+Table name = ''
+N/A
+
+Code:
+Solution #1 (iterative approach with while loop)
+def triangular_sum(nums):
+    while len(nums) > 1:
+        next_nums = []
+        for i in range(1, len(nums)):
+           next_nums.append((nums[i-1] + nums[i]) % 10)
+        nums = next_nums
+    return nums[0]
+
+Solution #2 (recursive approach with base case)
+def triangular_sum(nums):
+    if len(nums) == 1:
+        return nums[0]
+        
+    next_nums = []
+    for i in range(1, len(nums)):
+        next_nums.append((nums[i-1] + nums[i]) % 10)
+    
+    return triangular_sum(next_nums)
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Duplicate Job Listings - LinkedIn SQL Interview Question
+Assume you're given a table containing job postings from various companies on the LinkedIn platform. 
+Write a query to retrieve the count of companies that have posted duplicate job listings.
+Definition: Duplicate job listings are defined as two job listings within the same company that share identical titles and descriptions.
+
+Data Dictionary:
+Table name = 'job_listings'
+job_id: integer(int)
+company_id: intger(int)
+title: string(str)
+description: string(str)
+
+Code:
+Solution #1
+/* SELECT to preview data */
+SELECT * FROM job_listings;
+
+/* CTE job_count */
+/* Duplicate = two job listings with same company, title and description */
+/* Count of companies with duplcate job listings */
+WITH job_count_cte AS (
+    SELECT 
+        COUNT(job_id) as job_count,
+        company_id,
+        title,
+        description
+    FROM job_listings
+    GROUP BY 2, 3, 4
+)
+SELECT 
+    COUNT(DISTINCT company_id) as duplicate_companies
+FROM job_count_cte
+WHERE job_count > 1;
+
+Solution #2
+SELECT COUNT(DISTINCT company_id) AS duplicate_companies
+FROM (
+  SELECT 
+    company_id, 
+    title, 
+    description, 
+    COUNT(job_id) AS job_count
+  FROM job_listings
+  GROUP BY company_id, title, description
+) AS job_count_cte
+WHERE job_count > 1;
+
+############################
+
+Website:
+StrataScratch - ID 2100
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Google - Salary by Education
+Given the education levels and salaries of a group of individuals, find what is the average salary for each level of education.
+
+Data Dictionary:
+Table name = 'google_salaries'
+department: text(str)
+education: text(str)
+first_name: text(str)
+id: bigint(int)
+last_name: text(str)
+salary: bigint(int)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM google_salaries;
+
+/* AVG salary, education_level */
+SELECT 
+    AVG(salary) as average_salary,
+    education AS education_level
+FROM google_salaries
+GROUP BY 2
+ORDER BY 1 DESC;
+
+############################
+
+Website:
+StrataScratch - ID 2107
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Apple - Primary Key violation
+Write a query to return all Customers (cust_id) who are violating primary key constraints in the Customer Dimension (dim_customer) i.e. those Customers who are present more than once in the Customer Dimension.
+For example if cust_id 'C123' is present thrice then the query should return two columns, value in first should be 'C123', while value in second should be 3
+
+Data Dictionary:
+Table name = 'dim_customer'
+cust_city: text(str)
+cust_dob: date(str)
+cust_id: text(str)
+cust_name: text(str)
+cust_pin_code: bigint(int)
+
+Code:
+Solution #1
+/* SELECT to preview data */
+SELECT * FROM dim_customer;
+
+/* violation = customers_id > 1 */
+/*cust_id, violations */
+SELECT
+    cust_id,
+    COUNT(cust_id) AS violations
+FROM dim_customer
+GROUP BY 1
+HAVING COUNT(cust_id) > 1
+ORDER BY 1 ASC;
+
+############################
+
+Website:
+StrataScratch - ID 2109
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Salesforce - Products with No Sales
+Write a query to get a list of products that have not had any sales. 
+Output the ID and market name of these products.
+
+Data Dictionary:
+Table name = 'fct_customer_sales'
+cust_id: text(str)
+order_date: date(str)
+order_id: text(str)
+order_value: bigint(int)
+prod_sku_id: text(str)
+Table name = 'dim_product'
+market_name: text(str)
+prod_brand: text(str)
+prod_sku_id: text(str)
+prod_sku_name: text(str)
+
+Code:
+Solution #1 (JOIN clause)
+/* SELECT to preview data */
+SELECT * FROM fct_customer_sales;
+SELECT * FROM dim_product;
+
+/* JOIN tables */
+SELECT *
+FROM fct_customer_sales as fcs
+FULL OUTER JOIN dim_product as dp
+    ON fcs.prod_sku_id = dp.prod_sku_id
+    
+/* list of products with no sales */
+/* ID, market name */
+SELECT 
+    dp.prod_sku_id,
+    dp.market_name
+FROM fct_customer_sales as fcs
+FULL OUTER JOIN dim_product as dp
+    ON fcs.prod_sku_id = dp.prod_sku_id
+WHERE fcs.prod_sku_id IS NULL;
+
+Solution #2 (NOT EXISTS clause)
+SELECT
+    dp.prod_sku_id,
+    dp.market_name
+FROM
+    dim_product AS dp
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM fct_customer_sales AS fcs
+    WHERE fcs.prod_sku_id = dp.prod_sku_id
+);
+
+############################
+
+Website:
+StrataScratch - ID 2116
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Shopify - Shipped by Speedy Express
+How many orders were shipped by Speedy Express in total?
+
+Data Dictionary:
+Table name = 'shopify_orders'
+carrier_id: double precision(flt)
+created_at: timestamp(str)
+order_amount: bigint(int)
+order_id: bigint(int)
+payment_method: text(str)
+resp_employee_id: bigint(int)
+shop_id: bigint(int)
+total_items: bigint(int)
+user_id: bigint(int)
+Table name = 'shopify_carriers'
+id: bigint(int)
+name: text(str)
+
+Code:
+Solution #1
+/* SELECT to preview data */
+SELECT * FROM shopify_orders;
+SELECT * FROM shopify_carriers;
+
+/* JOIN tables */
+SELECT *
+FROM shopify_orders AS so
+JOIN shopify_carriers AS sc
+    ON so.carrier_id = sc.id;
+    
+/* Total orders by Speedy Express */
+SELECT 
+    COUNT(*) AS total_orders_by_speedy_express
+FROM shopify_orders AS so
+JOIN shopify_carriers AS sc
+    ON so.carrier_id = sc.id
+WHERE sc.name = 'Speedy Express';
+
+############################
+
+Website:
+StrataScratch - ID 2119
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Meta - Most Lucrative Products
+You have been asked to find the 5 most lucrative products (including ties) in terms of total revenue for the first half of 2022 (from January to June inclusive).
+Output their IDs and the total revenue. 
+There may be more than 5 rows in the output since you are including ties.
+
+Data Dictionary:
+Table name = 'online_orders'
+cost_in_dollars: bigint(int)
+customer_id: bigint(int)
+date_sold: date(str)
+product_id: bigint(int)
+promotion_id: bigint(int)
+units_sold: bigint(int)
+
+Code:
+Solution #1
+/* SELECT to preview data */
+SELECT * FROM online_orders;
+
+/* Top 5 lucrative products (include ties) by total revenue from Jan to Jun 2022 */
+/* product_id, total_revenue */
+SELECT 
+    product_id,
+    SUM(cost_in_dollars * units_sold) AS total_revenue
+FROM online_orders
+WHERE date_sold BETWEEN '2022-01-01' AND '2022-06-30'
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 5;
+
+Solution #2 (dense_rank() for ties)
+WITH ProductRevenue AS (
+    SELECT
+        product_id,
+        SUM(units_sold * cost_in_dollars) AS total_revenue
+    FROM
+        online_orders
+    WHERE
+        date_sold >= '2022-01-01' AND date_sold <= '2022-06-30'
+    GROUP BY
+        product_id
+),
+RankedProducts AS (
+    SELECT
+        product_id,
+        total_revenue,
+        DENSE_RANK() OVER (ORDER BY total_revenue DESC) as rnk
+    FROM
+        ProductRevenue
+)
+SELECT
+    product_id,
+    total_revenue
+FROM
+    RankedProducts
+WHERE
+    rnk <= 5
+ORDER BY
+    total_revenue DESC;
+    
+############################
