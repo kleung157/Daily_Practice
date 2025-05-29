@@ -1,0 +1,333 @@
+Date: 05/29/2025
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Cities With Completed Trades - Robinhood SQL Interview Question
+Assume you're given the tables containing completed trade orders and user details in a Robinhood trading system.
+Write a query to retrieve the top three cities that have the highest number of completed trade orders listed in descending order.
+Output the city name and the corresponding number of completed trade orders.
+
+Data Dictionary:
+Table name = 'trades'
+order_id: integer(int)
+user_id: integer(int)
+quantity: integer(int)
+status: string ('Completed', 'Canceled') (str)
+date: timestamp(str)
+price: decimal(5, 2) (flt)
+Table name = 'users'
+user_id: integer(int)
+city: string(str)
+email: string(str)
+signup_date: datetime(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM trades;
+SELECT * FROM users;
+
+/* JOIN tables */
+SELECT *
+FROM trades AS t
+JOIN users AS u
+    ON t.user_id = u.user_id;
+    
+/* Top 3 cities with highest number of completed trade orders in DESC order */
+/* city, status (completed) */
+SELECT 
+    u.city,
+    COUNT(t.status) AS total_orders
+FROM trades AS t
+JOIN users AS u
+    ON t.user_id = u.user_id
+WHERE status = 'Completed'
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 3;
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+Python
+
+Question:
+Contains Duplicate - Apple Python Interview Question
+Given an list of integers called input, return True if any value appears at least twice in the array. Return False if every element in the input list is distinct.
+For example, if the input list was [1,3,5,7,1], then return True because the number 1 shows up twice.
+However, if the input was [1,3,5,7] then return False, because every element of the list is distinct.
+
+Data Dictionary:
+Table name = ''
+N/A
+
+Code:
+Solution #1 (for loop)
+def contains_duplicate(input):
+    for i in range(len(input)-1):
+        for j in range(i+1, len(input)):
+            if input[i] == input[j]:
+                return True
+    return False
+
+Solution #2 (sorting)
+def contains_duplicate(input):
+    input.sort()
+    for i in range(len(input)-1):
+        if (input[i] == input[i+1]):
+            return True
+    return False
+    
+Solution #3 (dictionary)
+def contains_duplicate(input):
+    seen = {}
+    for i in input:
+        if i in seen:
+            return True
+        seen[i] = True
+    return False
+
+############################
+
+Website:
+StrataScratch - ID 2126
+
+Difficulty:
+Easdy
+
+Question Type:
+SQL
+
+Question:
+Noom - Account Registrations
+Find the number of account registrations according to the signup date. 
+Output the year months (YYYY-MM) and their corresponding number of registrations.
+
+Data Dictionary:
+Table name = 'noom_signups'
+plan_id: bigint(int)
+signup_id: text(str)
+started_at: date(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM noom_signups;
+
+/* number of registrations according to signup date */
+/* YYYY-MM, number of registrations */
+SELECT
+    TO_CHAR(started_at, 'YYYY-MM') AS signup_date,
+    COUNT(signup_id) AS account_registrations_count
+FROM noom_signups
+GROUP BY 1
+ORDER BY 1 DESC;
+
+############################
+
+Website:
+StrataScratch - ID 2127
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Amazon - Sales Revenue
+
+Data Dictionary:
+Table name = 'amazon_sales'
+order_date: date(str)
+order_id: text(str)
+order_total: bigint(int)
+
+Code:
+Solution #1 (common and recommended)
+/* SELECT to preview data */
+SELECT * FROM amazon_sales;
+
+/* Sales revenue for 2021 */
+/* SUM order_total */
+SELECT 
+    SUM(order_total) AS sales_revenue_2021
+FROM amazon_sales
+WHERE EXTRACT(YEAR FROM order_date) = '2021'
+
+Solution #2 (performance and index friendly)
+SELECT
+    SUM(order_total) AS total_revenue_2021
+FROM
+    amazon_sales
+WHERE
+    order_date >= '2021-01-01' AND order_date <= '2021-12-31';
+    
+############################
+
+Website:
+StrataScratch - ID 2129
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Meta - Post Likes
+
+Data Dictionary:
+Table name = 'fb_posts'
+no_of_likes: bigint(int)
+post_date: date(str)
+post_id: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM fb_posts;
+
+/* average number of likes */
+/* AVG no_of_likes */
+SELECT
+    AVG(no_of_likes) AS average_num_of_likes_for_user
+FROM fb_posts;
+
+############################
+
+Website:
+StrataScratch - ID 2141
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Amazon - Most Recent Employee Login Details
+Amazon's information technology department is looking for information on employees' most recent logins.
+The output should include all information related to each employee's most recent login
+
+Data Dictionary:
+Table name = 'worker_logins'
+city: text(str)
+country: text(str)
+device_type: text(str)
+id: bigint(int)
+ip_address: text(str)
+login_timestamp: timestamp(str)
+region: text(str)
+worker_id: bigint(int)
+
+Code:
+Solution #1
+/* SELECT to preview data */
+SELECT * FROM worker_logins;
+
+/* ROW_NUMBER() login date */
+SELECT
+    worker_id,
+    login_timestamp,
+    ip_address,
+    country,
+    region,
+    city,
+    device_type,
+    ROW_NUMBER() OVER(PARTITION BY worker_id ORDER BY login_timestamp DESC) AS login_rank
+FROM worker_logins;
+
+/* Information on most recent logins */
+/* CTE, All columns, recent login */
+WITH recent_logins AS (
+    SELECT
+        worker_id,
+        login_timestamp,
+        ip_address,
+        country,
+        region,
+        city,
+        device_type,
+        ROW_NUMBER() OVER(PARTITION BY worker_id ORDER BY login_timestamp DESC) AS login_rank
+    FROM worker_logins
+)
+SELECT *
+FROM recent_logins
+WHERE login_rank = 1;
+
+############################
+
+Website:
+StrataScratch - ID 2142
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Amazon - Third Heaviest Shipment
+You've been asked by Amazon to find the shipment_id and weight of the third heaviest shipment.
+Output the shipment_id, and total_weight for that shipment_id.
+In the event of a tie, do not skip ranks.
+
+Data Dictionary:
+Table name = 'amazon_shipment'
+shipment_date: date(str)
+shipment_id: bigint(str)
+sub_id: bigint(int)
+weight: bigint(int)
+
+Code:
+Solution #1 (if top 3 and choosing 3rd)
+/* SELECT to preview data */
+SELECT * FROM amazon_shipment;
+
+/* shipment_id and weight of third heaviest shipment, don't skip ranks with ties */
+/* shipment_id, total_weight */
+SELECT
+    shipment_id,
+    SUM(weight) AS total_weight
+FROM amazon_shipment
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 1 OFFSET 2;
+
+Solution #2 (taking into account ranking ties)
+WITH shipment_total_weight AS (
+    SELECT
+        shipment_id,
+        SUM(weight) AS total_weight
+    FROM amazon_shipment
+    GROUP BY 1
+),
+ranked_shipment AS (
+    SELECT
+        shipment_id,
+        total_weight,
+        DENSE_RANK() OVER(ORDER BY total_weight DESC) AS weight_rank
+    FROM shipment_total_weight
+)
+SELECT
+    shipment_id,
+    total_weight,
+    weight_rank
+FROM ranked_shipment
+WHERE weight_rank = 3;
+
+############################
