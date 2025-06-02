@@ -1,0 +1,364 @@
+Date: 06/02/2025
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Average Review Ratings - Amazon SQL Interview Question
+Given the reviews table, write a query to retrieve the average star rating for each product, grouped by month. 
+The output should display the month as a numerical value, product ID, and average star rating rounded to two decimal places. 
+Sort the output first by month and then by product ID.
+Explanation
+Product 50001 received two ratings of 4 and 3 in the month of June (6th month), resulting in an average star rating of 3.5.
+
+Data Dictionary:
+Table name = 'reviews'
+review_id: integer(int)
+user_id: integer(int)
+submit_date: datetime(str)
+product_id: integer(int)
+stars: integer(int)
+
+Code:
+Solution #1
+/* SELECT to preview data */
+SELECT * FROM reviews;
+
+/* Average star rating each product, grouped by month */
+/* submit_date (month), product_id, AVG stars (2 decimals) */
+SELECT
+    EXTRACT(MONTH FROM submit_date) AS mth,
+    product_id AS product,
+    CAST(AVG(stars) AS DECIMAL(10,2)) AS avg_stars
+FROM reviews
+GROUP BY 1, 2;
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Well Paid Employees - FAANG SQL Interview Question
+Companies often perform salary analyses to ensure fair compensation practices. 
+One useful analysis is to check if there are any employees earning more than their direct managers.
+As a HR Analyst, you're asked to identify all employees who earn more than their direct managers. 
+The result should include the employee's ID and name.
+Example:
+The output shows that Olivia Smith earns $7,000, surpassing her manager, William David who earns $6,800.
+
+Data Dictionary:
+Table name = 'employee'
+employee_id: integer(int)
+name: string(str)
+salary: integer(int)
+department_id: integer(int)
+manager_id: integer(int)
+
+Code:
+Solution #1 (CTE)
+/* SELECT to preview data */
+SELECT * FROM employee;
+
+/* Employees earning more than managers */
+/* employee_id, name */
+WITH employees AS (
+    SELECT
+        e.employee_id,
+        e.name,
+        e.salary,
+        e.manager_id
+    FROM employee AS e
+    WHERE e.employee_id != e.manager_id
+        AND e.manager_id NOTNULL
+),
+managers AS (
+    SELECT
+        m.employee_id,
+        m.name,
+        m.salary,
+        m.manager_id
+    FROM employee AS m
+    WHERE m.employee_id = m.manager_id
+        OR manager_id ISNULL
+)
+SELECT
+    e.employee_id,
+    e.name AS employee_name
+FROM employees AS e, managers AS m
+WHERE e.salary > m.salary
+    AND e.manager_id = m.employee_id;
+
+Solution #2 (inner join)
+SELECT 
+  mgr.employee_id AS manager_id,
+  mgr.name AS manager_name,
+  mgr.salary AS manager_salary,
+  emp.employee_id AS employee_id,
+  emp.name AS employee_name,
+  emp.salary AS employee_salary
+FROM employee AS mgr
+INNER JOIN employee AS emp
+  ON mgr.employee_id = emp.manager_id
+WHERE emp.salary > mgr.salary;
+
+Solution #3 (inner join + concise relevancy)
+SELECT 
+  emp.employee_id AS employee_id,
+  emp.name AS employee_name
+FROM employee AS mgr
+INNER JOIN employee AS emp
+  ON mgr.employee_id = emp.manager_id
+WHERE emp.salary > mgr.salary;
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+Python
+
+Question:
+Given two strings s and t, return True if the two strings are anagrams of each other, otherwise return False.
+An anagram is a word or phrase formed by rearranging the letters of a different word or phrase, using all the original letters exactly once.
+You can assume both of the strings will contain lowercase alphabet characters.
+Example #1
+Input: s = "listen", t = "silent"
+Output: True
+Example #2
+Input: s = "astronomer", t = "moonstarer"
+Output: True
+Example #3
+Input: s = "lemur", t = "lemer"
+Output: False
+
+Data Dictionary:
+Table name = ''
+N/A
+
+Code:
+Solution #1 (not correct but an attempt)
+def is_anagram(s, t):
+    s = {}
+    t = {}
+    for i in range(len(s)):
+        for j in range(len(t)):
+            s.append(s[i])
+            j.append(j[i])
+    if sorted(s) == sorted(t):
+        return True
+    else:
+        return False
+        
+Solution #2 (sorting approach)
+def is_anagram(s, t):
+    if sorted(s) == sorted(t):
+    	return True
+    else:
+    	return False
+
+Solution #3 (counting frequency with dictionary)
+def is_anagram(s, t):
+    freq_s = {}
+    freq_t = {}
+
+    for char in s:
+        if char in freq_s:
+            freq_s[char] += 1
+        else:
+            freq_s[char] = 1
+    
+    for char in t:
+        if char in freq_t:
+            freq_t[char] += 1
+        else:
+            freq_t[char] = 1
+
+    if freq_s == freq_t:
+    	return True
+    else:
+    	return False
+
+Solution $4 (optimal single dictionary)
+def is_anagram(s, t):
+    freq = {}
+    
+    for char in s:
+        if char in freq:
+            freq[char] += 1
+        else:
+            freq[char] = 1
+
+    for char in t:
+        if char in freq:
+            freq[char] -= 1
+        else:
+        	# Since it's not in `s`, set it to -1 directly
+            freq[char] = -1  
+
+    for count in freq.values():
+        if count != 0:
+            return False
+            
+    return True
+
+############################
+
+Website:
+StrataScratch - ID 2163
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Google - Sorting Movies By Duration Time
+You have been asked to sort movies according to their duration in descending order.
+Your output should contain all columns sorted by the movie duration in the given dataset.
+
+Data Dictionary:
+Table name = 'movie_catalogue'
+duration: text(str)
+rating: text(str)
+release_year: bigint(int)
+show_id: text(str)
+title: text(str)
+
+Code:
+Soluton #1
+/* SELECT to preview data */
+SELECT * FROM movie_catalogue;
+
+/* sort movies by duration in DESC */
+/* all columns, ORDER by duration DESC */
+SELECT
+    CAST(REGEXP_REPLACE(duration, '[^0-9]', '', 'g') AS INTEGER) AS duration_time, 
+    rating,
+    release_year,
+    show_id,
+    title
+FROM movie_catalogue
+ORDER BY 1 DESC;
+
+Solution #2 (filter rows that don't convert)
+SELECT
+    CAST(REGEXP_REPLACE(duration, '[^0-9]', '', 'g') AS INTEGER) AS duration_time,
+    rating,
+    release_year,
+    show_id,
+    title
+FROM movie_catalogue
+WHERE REGEXP_REPLACE(duration, '[^0-9]', '', 'g') <> '' -- Excludes empty strings
+ORDER BY 1 DESC;
+
+Solution #3 (Convert to NULL if conversion fails)
+SELECT
+    CAST(
+        CASE
+            WHEN REGEXP_REPLACE(duration, '[^0-9]', '', 'g') = '' THEN NULL
+            ELSE REGEXP_REPLACE(duration, '[^0-9]', '', 'g')
+        END
+    AS INTEGER) AS duration_time,
+    rating,
+    release_year,
+    show_id,
+    title
+FROM movie_catalogue
+ORDER BY 1 DESC NULLS LAST; -- NULLS LAST is PostgreSQL/Oracle specific for sorting NULLs at the end
+
+############################
+
+Website:
+StrataScratch - ID 2166
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Amadeus - Sorting by Second Character
+You've been asked to arrange a column of random IDs in ascending alphabetical order based on their second character.
+
+Data Dictionary:
+Table name = 'random_id'
+id: text(str)
+
+Code:
+Solution #1
+/* SELECT to preview data */
+SELECT * FROM random_id;
+
+/* Arrange IDs in ASC based on second character */
+SELECT 
+    id
+FROM random_id
+WHERE LENGTH(id) >= 2
+ORDER BY SUBSTRING(id, 2, 1) ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9598
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+General Assembly - Find non-HS SAT scores
+Find SAT scores of students whose high school names do not end with 'HS'.
+
+Data Dictionary:
+Table name = 'sat_scores'
+average_sat: double precision(flt)
+hrs_studied: double precision(flt)
+id: bigint(int)
+love: double precision(flt)
+sat_math: double precision(flt)
+sat_verbal: double precision(flt)
+sat_writing: double precision(flt)
+school: text(str)
+student_id: double precision(flt)
+teacher: text(str)
+
+Code:
+Solution #1
+/* SELECT to preview data */
+SELECT * FROM sat_scores;
+
+/* SAT scores of students whose highschool names do not end with 'HS' */
+SELECT
+    average_sat,
+    sat_math,
+    sat_verbal,
+    sat_writing,
+    school,
+    student_id
+FROM sat_scores
+WHERE school NOT LIKE '%HS';
+
+############################
