@@ -1,0 +1,684 @@
+Date: 06/04/2025
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Second Day Confirmation - TikTok SQL Interview Question
+Assume you're given tables with information about TikTok user sign-ups and confirmations through email and text. 
+New users on TikTok sign up using their email addresses, and upon sign-up, each user receives a text message confirmation to activate their account.
+Write a query to display the user IDs of those who did not confirm their sign-up on the first day, but confirmed on the second day.
+Definition:
+action_date refers to the date when users activated their accounts and confirmed their sign-up through text messages.
+Explanation:
+Only User 1052 confirmed their sign-up on the second day.
+The dataset you are querying against may have different input & output - this is just an example!
+
+Data Dictionary:
+Table name = 'emails'
+email_id: integer(int)
+user_id: integer(int)
+signup_date: datetime(str)
+Table name = 'texts'
+text_id: integer(int)
+email_id: integer(int)
+signup_action: string('Confirmed', 'Not confirmed')(str)
+action_date: datetime(str)
+
+Code:
+Solution #1
+/* SELECT to preview data */
+SELECT * FROM emails;
+SELECT * FROM texts;
+
+/* JOIN tables */
+SELECT
+    e.email_id,
+    e.user_id,
+    e.signup_date,
+    t.text_id,
+    t.email_id,
+    t.signup_action,
+    t.action_date
+FROM emails AS e
+JOIN texts AS t 
+    ON e.email_id = t.email_id;
+
+/* action_date = date when users activated accounts confirmed sign up through text message */
+/* user_id of those who did not confirm sign up on first day but confirmed second day */
+SELECT DISTINCT
+    e.user_id
+FROM emails AS e
+JOIN texts AS t 
+    ON e.email_id = t.email_id
+WHERE t.signup_action = 'Confirmed' 
+    AND t.action_date = e.signup_date + INTERVAL '1 day';
+    
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Is Palindrome - SQL Python Interview Question
+Given a string phrase, return True if it is a palindrome, otherwise return False.
+A palindrome is a string that reads the same forward and backward. It is also case-insensitive and ignores all non-alphanumeric characters.
+Challenge: Try solving this without using extra memory. Specifically, solve it without making a copy of phrase.
+Clarifications:
+phrase is made up of only: letters, numbers, spaces, and standard punctuation/symbols
+Example #1
+Input: phrase = "Taco cat."
+Output: True
+Explanation: Considering only alphanumeric characters and converting to lowercase, "tacocat" is a palindrome.
+Example #2
+Input: phrase = "I love SQL <3"
+Output: False
+Explanation: Considering only alphanumeric characters and converting to lowercase, "ilovesql3" is not even close.
+
+Data Dictionary:
+Table name = ''
+N/A
+
+Code:
+Attempt:
+def isPalindrome(phrase):
+    phrase = phrase.lower()
+    word = phrase[::-1].lower()
+    if phrase == word and sorted(phrase) == sorted(word):
+        return True
+    return False
+  
+Solution #1
+def isPalindrome(phrase):
+    left = 0
+    right = len(phrase)-1
+    
+    while left < right:
+        if not phrase[left].isalnum():
+            left = left+1
+            continue
+        if not phrase[right].isalnum():
+            right = right-1
+            continue
+        if phrase[left].lower() == phrase[right].lower():
+            left = left+1
+            right = right-1
+        else:
+            return False
+    
+    return True
+    
+############################
+
+Website:
+StrataScratch - ID 9617
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Airbnb - Find all searches for accomodaitons with an equal number of bedrooms bathrooms
+Find all searches for accommodations where the number of bedrooms is equal to the number of bathrooms.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+accomodates: bigint(int)
+amenities: text(str)
+bathrooms: bigint(int)
+bed_type: text(str)
+bedrooms: bigint(int)
+beds: bigint(int)
+cancellation_policy: text(str)
+city: text(str)
+cleaning_fee: boolean(str)
+host_identity_verified: text(str)
+host_response_rate: text(str)
+host_since: date(str)
+id: bigint(int)
+neighbourhood: text(str)
+number_of_reviews: bigint(int)
+price: double precision(flt)
+property_type: text(str)
+review_scores_rating: double precision (flt)
+room_type: text(str)
+zipcode: bigint(int)
+
+Code:
+Solution #1
+/* SELECT to preview data */
+SELECT * FROM airbnb_search_details;
+
+/* All searches number of bedrooms equals number of bathrooms */
+SELECT
+    accommodates,
+    amenities,
+    bathrooms,
+    bed_type,
+    bedrooms,
+    beds,
+    cancellation_policy,
+    city,
+    cleaning_fee,
+    host_identity_verified,
+    host_response_rate,
+    host_since,
+    id,
+    neighbourhood,
+    number_of_reviews,
+    price,
+    property_type,
+    review_scores_rating,
+    room_type,
+    zipcode
+FROM airbnb_search_details
+WHERE bedrooms = bathrooms;
+
+############################
+
+Website:
+StrataScratch - ID 9618
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Airbnb - Find searches for Los Angeles neighborhoods
+Find distinct searches for Los Angeles neighborhoods. Output neighborhoods and remove duplicates.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+accomodates: bigint(int)
+amenities: text(str)
+bathrooms: bigint(int)
+bed_type: text(str)
+bedrooms: bigint(int)
+beds: bigint(int)
+cancellation_policy: text(str)
+city: text(str)
+cleaning_fee: boolean(str)
+host_identity_verified: text(str)
+host_response_rate: text(str)
+host_since: date(str)
+id: bigint(int)
+neighbourhood: text(str)
+number_of_reviews: bigint(int)
+price: double precision(flt)
+property_type: text(str)
+review_scores_rating: double precision (flt)
+room_type: text(str)
+zipcode: bigint(int)
+
+Code:
+Solution #1
+/* SELECT to preview data */
+SELECT * FROM airbnb_search_details;
+
+/* DISTINCT Los Angeles neighborhoods, remove duplicates */
+/* neighborhoods */
+SELECT
+    DISTINCT neighbourhood
+FROM airbnb_search_details
+WHERE city = 'LA'
+    AND neighbourhood IS NOT NULL;
+
+############################
+
+Website:
+StrataScratch - ID 9620
+
+Difficulty: 
+Easy
+
+Question Type:
+SQL
+
+Question:
+Airbnb - Find the search details for villas and houses with wireless internet access
+Find the search details for villas and houses with wireless internet access.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+accomodates: bigint(int)
+amenities: text(str)
+bathrooms: bigint(int)
+bed_type: text(str)
+bedrooms: bigint(int)
+beds: bigint(int)
+cancellation_policy: text(str)
+city: text(str)
+cleaning_fee: boolean(str)
+host_identity_verified: text(str)
+host_response_rate: text(str)
+host_since: date(str)
+id: bigint(int)
+neighbourhood: text(str)
+number_of_reviews: bigint(int)
+price: double precision(flt)
+property_type: text(str)
+review_scores_rating: double precision (flt)
+room_type: text(str)
+zipcode: bigint(int)
+
+Code:
+Solution #1
+/* SELECT to preview data */
+SELECT * FROM airbnb_search_details;
+
+/* Search details for villas and houses with wireless internet access */
+SELECT
+    accommodates,
+    amenities,
+    bathrooms,
+    bed_type,
+    bedrooms,
+    beds,
+    cancellation_policy,
+    city,
+    cleaning_fee,
+    host_identity_verified,
+    host_response_rate,
+    host_since,
+    id,
+    neighbourhood,
+    number_of_reviews,
+    price,
+    property_type,
+    review_scores_rating,
+    room_type,
+    zipcode
+FROM airbnb_search_details
+WHERE LOWER(amenities) LIKE '%wireless internet%'
+    AND (property_type = 'House' OR property_type = 'Villa');
+
+Solution #2
+SELECT
+    accommodates,
+    amenities,
+    bathrooms,
+    bed_type,
+    bedrooms,
+    beds,
+    cancellation_policy,
+    city,
+    host_identity_verified,
+    host_response_rate,
+    host_since,
+    id,
+    neighbourhood,
+    number_of_reviews,
+    price,
+    property_type,
+    review_scores_rating,
+    room_type,
+    zipcode
+FROM airbnb_search_details
+WHERE LOWER(amenities) LIKE '%wireless internet%'
+  AND property_type IN ('House', 'Villa');
+  
+############################
+
+Website:
+StrataScratch - ID 9620
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Airbnb - Find searches with no data for the host_response_rate column
+Find all search details where data is missing from the host_response_rate column.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+accomodates: bigint(int)
+amenities: text(str)
+bathrooms: bigint(int)
+bed_type: text(str)
+bedrooms: bigint(int)
+beds: bigint(int)
+cancellation_policy: text(str)
+city: text(str)
+cleaning_fee: boolean(str)
+host_identity_verified: text(str)
+host_response_rate: text(str)
+host_since: date(str)
+id: bigint(int)
+neighbourhood: text(str)
+number_of_reviews: bigint(int)
+price: double precision(flt)
+property_type: text(str)
+review_scores_rating: double precision (flt)
+room_type: text(str)
+zipcode: bigint(int)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM airbnb_search_details;
+
+/* All search where data is missing from host_response_rate */
+SELECT
+    accommodates,
+    amenities,
+    bathrooms,
+    bed_type,
+    bedrooms,
+    beds,
+    cancellation_policy,
+    city,
+    cleaning_fee,
+    host_identity_verified,
+    host_response_rate,
+    host_since,
+    id,
+    neighbourhood,
+    number_of_reviews,
+    price,
+    property_type,
+    review_scores_rating,
+    room_type,
+    zipcode
+FROM airbnb_search_details
+WHERE host_response_rate IS NULL;
+
+############################
+
+Website:
+StrataScratch - ID 9621
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Airbnb - Find all searches for San Francisco with a flexible cancellation policy and a review score rating
+Find all searches for San Francisco with a flexible cancellation policy and a review score rating. 
+Sort the results by the review score in the descending order.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+accomodates: bigint(int)
+amenities: text(str)
+bathrooms: bigint(int)
+bed_type: text(str)
+bedrooms: bigint(int)
+beds: bigint(int)
+cancellation_policy: text(str)
+city: text(str)
+cleaning_fee: boolean(str)
+host_identity_verified: text(str)
+host_response_rate: text(str)
+host_since: date(str)
+id: bigint(int)
+neighbourhood: text(str)
+number_of_reviews: bigint(int)
+price: double precision(flt)
+property_type: text(str)
+review_scores_rating: double precision (flt)
+room_type: text(str)
+zipcode: bigint(int)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM airbnb_search_details;
+
+/* All searches for San Francisco with flexible cancellation policy and review score rating */
+/* Sort results by review score in DESC order */
+SELECT
+    accommodates,
+    amenities,
+    bathrooms,
+    bed_type,
+    bedrooms,
+    beds,
+    cancellation_policy,
+    city,
+    cleaning_fee,
+    host_identity_verified,
+    host_response_rate,
+    host_since,
+    id,
+    neighbourhood,
+    number_of_reviews,
+    price,
+    property_type,
+    review_scores_rating,
+    room_type,
+    zipcode
+FROM airbnb_search_details
+WHERE city = 'SF'
+    AND cancellation_policy = 'flexible'
+    AND review_scores_rating IS NOT NULL
+ORDER BY review_scores_rating DESC;
+
+############################
+
+Website:
+StrataScratch - ID 9622
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Airbnb - Number Of Bathrooms And Bedrooms
+Find the average number of bathrooms and bedrooms for each city’s property types. 
+Output the result along with the city name and the property type.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+accomodates: bigint(int)
+amenities: text(str)
+bathrooms: bigint(int)
+bed_type: text(str)
+bedrooms: bigint(int)
+beds: bigint(int)
+cancellation_policy: text(str)
+city: text(str)
+cleaning_fee: boolean(str)
+host_identity_verified: text(str)
+host_response_rate: text(str)
+host_since: date(str)
+id: bigint(int)
+neighbourhood: text(str)
+number_of_reviews: bigint(int)
+price: double precision(flt)
+property_type: text(str)
+review_scores_rating: double precision (flt)
+room_type: text(str)
+zipcode: bigint(int)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM airbnb_search_details;
+
+/* Average number of bathrooms and bedrooms for each city property types */
+/* AVG bathroom, AVG bedroom, city name, property type */
+SELECT
+    AVG(bathrooms) AS avg_bathrooms,
+    AVG(bedrooms) AS avg_bedrooms,
+    city,
+    property_type
+FROM airbnb_search_details
+GROUP BY city, property_type
+ORDER BY city, property_type ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9625
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Airbnb - Cheapest Properties
+Find the price of the cheapest property for every city.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+accomodates: bigint(int)
+amenities: text(str)
+bathrooms: bigint(int)
+bed_type: text(str)
+bedrooms: bigint(int)
+beds: bigint(int)
+cancellation_policy: text(str)
+city: text(str)
+cleaning_fee: boolean(str)
+host_identity_verified: text(str)
+host_response_rate: text(str)
+host_since: date(str)
+id: bigint(int)
+neighbourhood: text(str)
+number_of_reviews: bigint(int)
+price: double precision(flt)
+property_type: text(str)
+review_scores_rating: double precision (flt)
+room_type: text(str)
+zipcode: bigint(int)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM airbnb_search_details;
+
+/* Price of cheapest property for every city */
+SELECT
+    city,
+    MIN(price) as cheapest_property_price
+FROM airbnb_search_details
+GROUP BY city
+ORDER BY city ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9626
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Airbnb - Find all neighborhoods present in this dataset
+Find all neighbourhoods present in this dataset.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+accomodates: bigint(int)
+amenities: text(str)
+bathrooms: bigint(int)
+bed_type: text(str)
+bedrooms: bigint(int)
+beds: bigint(int)
+cancellation_policy: text(str)
+city: text(str)
+cleaning_fee: boolean(str)
+host_identity_verified: text(str)
+host_response_rate: text(str)
+host_since: date(str)
+id: bigint(int)
+neighbourhood: text(str)
+number_of_reviews: bigint(int)
+price: double precision(flt)
+property_type: text(str)
+review_scores_rating: double precision (flt)
+room_type: text(str)
+zipcode: bigint(int)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM airbnb_search_details;
+
+/* All neighbourhoods present in this dataset */
+SELECT
+    DISTINCT neighbourhood
+FROM airbnb_search_details
+WHERE neighbourhood IS NOT NULL
+ORDER BY neighbourhood ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9627
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Airbnb - 3 Bed Minimum
+Find the average number of beds in each neighborhood that has at least 3 beds in total.
+Output results along with the neighborhood name and sort the results based on the number of average beds in descending order.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+accomodates: bigint(int)
+amenities: text(str)
+bathrooms: bigint(int)
+bed_type: text(str)
+bedrooms: bigint(int)
+beds: bigint(int)
+cancellation_policy: text(str)
+city: text(str)
+cleaning_fee: boolean(str)
+host_identity_verified: text(str)
+host_response_rate: text(str)
+host_since: date(str)
+id: bigint(int)
+neighbourhood: text(str)
+number_of_reviews: bigint(int)
+price: double precision(flt)
+property_type: text(str)
+review_scores_rating: double precision (flt)
+room_type: text(str)
+zipcode: bigint(int)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM airbnb_search_details;
+
+/* Average number of beds in each neighborhood that has at least 3 beds in total */
+/* AVG beds, neighbourhood, sort by num of avg beds DESC */
+SELECT
+    AVG(beds) as avg_beds,
+    neighbourhood
+FROM airbnb_search_details
+WHERE neighbourhood IS NOT NULL
+GROUP BY neighbourhood
+HAVING SUM(beds) >= 3
+ORDER BY avg_beds DESC;
+
+############################
