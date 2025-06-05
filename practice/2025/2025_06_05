@@ -1,0 +1,396 @@
+Date: 06/05/2025
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+IBM db2 Product Analytics - IBM SQL Interview Question
+IBM is analyzing how their employees are utilizing the Db2 database by tracking the SQL queries executed by their employees. The objective is to generate data to populate a histogram that shows the number of unique queries run by employees during the third quarter of 2023 (July to September). Additionally, it should count the number of employees who did not run any queries during this period.
+Display the number of unique queries as histogram categories, along with the count of employees who executed that number of unique queries.
+The output indicates that 191 employees did not run any queries, 46 employees ran exactly 1 unique queries, 12 employees ran 2 unique queries, and so on.
+
+Data Dictionary:
+Table name = 'queries'
+employee_id: integer(int)
+query_id: integer(int)
+query_starttime: datetime(str)
+execution_time: integer(int)
+Table name = 'employees'
+employee_id: integer(int)
+full_name: string(str)
+gender: string(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM queries;
+SELECT * FROM employees;
+
+/* JOIN tables by employee id */
+SELECT 
+    e.employee_id,
+    e.full_name,
+    e.gender,
+    q.employee_id,
+    q.query_id,
+    q.query_starttime,
+    q.execution_time
+FROM employees as e
+LEFT JOIN queries AS q 
+    ON e.employee_id = q.employee_id;
+
+/* Histogram with number of unique queries run by employees during 3rd quarter (July to Sept) */
+/* Count number of employees who did not run any queries during same period */
+/* Unique queries as histogram categories, count of employees executed said queries */
+
+WITH employee_queries AS (
+SELECT 
+    e.employee_id,
+    COALESCE(COUNT(DISTINCT q.query_id), 0) AS unique_queries
+FROM employees as e
+LEFT JOIN queries AS q 
+    ON e.employee_id = q.employee_id
+        AND EXTRACT(QUARTER FROM query_starttime) = 3
+GROUP BY e.employee_id
+)
+SELECT 
+    unique_queries,
+    COUNT(employee_id) AS employee_count
+FROM employee_queries
+GROUP BY unique_queries
+ORDER BY unique_queries;
+
+Solution #2 (CASE WHEN no COALESCE)
+WITH EmployeeQ3UniqueCounts AS (
+    SELECT
+        e.employee_id,
+        COUNT(DISTINCT CASE
+                          WHEN EXTRACT(YEAR FROM q.query_starttime) = 2023
+                           AND EXTRACT(QUARTER FROM q.query_starttime) = 3
+                          THEN q.query_id
+                          ELSE NULL
+                      END) AS unique_queries_q3
+    FROM employees AS e
+    LEFT JOIN queries AS q
+        ON e.employee_id = q.employee_id
+    GROUP BY
+        e.employee_id
+)
+SELECT
+    unique_queries_q3 AS Number_of_Unique_Queries_Executed,
+    COUNT(employee_id) AS Number_of_Employees
+FROM
+    EmployeeQ3UniqueCounts
+GROUP BY
+    unique_queries_q3
+ORDER BY
+    unique_queries_q3;
+    
+Solution #3 (Filter queries before aggregation then COALESCE)
+WITH Q3UniqueQueries AS (
+    SELECT
+        employee_id,
+        COUNT(DISTINCT query_id) AS unique_queries_count
+    FROM
+        queries
+    WHERE
+        EXTRACT(YEAR FROM query_starttime) = 2023
+        AND EXTRACT(QUARTER FROM query_starttime) = 3 -- Filter queries BEFORE aggregation
+    GROUP BY
+        employee_id
+)
+SELECT
+    COALESCE(Q3UniqueQueries.unique_queries_count, 0) AS Number_of_Unique_Queries_Executed,
+    COUNT(employees.employee_id) AS Number_of_Employees
+FROM
+    employees
+LEFT JOIN -- Use LEFT JOIN to keep all employees
+    Q3UniqueQueries
+ON
+    employees.employee_id = Q3UniqueQueries.employee_id
+GROUP BY
+    COALESCE(Q3UniqueQueries.unique_queries_count, 0)
+ORDER BY
+    Number_of_Unique_Queries_Executed;
+    
+############################
+
+Website:
+StrataScratch - ID 9628
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Airbnb - Reviews Bins on Reviews Number
+To better understand how the number of reviews affects accommodation prices, classify each listing based on its number of reviews (use column number_of_reviews) into the following categories:
+•  0 reviews: "NO"
+•  1 to 5 reviews: "FEW"
+•  6 to 15 reviews: "SOME"
+•  16 to 40 reviews: "MANY"
+•  More than 40 reviews: "A LOT"
+For each record, output the price along with the corresponding category that describes its review count.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+accomodates: bigint(int)
+amenities: text(str)
+bathrooms: bigint(int)
+bed_type: text(str)
+bedrooms: bigint(int)
+beds: bigint(int)
+cancellation_policy: text(str)
+city: text(str)
+cleaning_fee: boolean(str)
+host_identity_verified: text(str)
+host_response_rate: text(str)
+host_since: date(str)
+id: bigint(int)
+neighbourhood: text(str)
+number_of_reviews: bigint(int)
+price: double precision(flt)
+property_type: text(str)
+review_scores_rating: double precision (flt)
+room_type: text(str)
+zipcode: bigint(int)
+
+Code:
+Solution #1
+/* SELECT to preview data */
+SELECT * FROM airbnb_search_details;
+
+/* number of review affect accomodation prices */
+/* classify listing based on number of reviews */
+/* 0 = NO, 1-5 = FEW, 6-15 = SOME, 16-40 = MANY, >40 = A LOT */
+/* listing category, price */
+SELECT
+    price,
+    CASE
+        WHEN number_of_reviews = 0 THEN 'NO'
+        WHEN number_of_reviews <= 5 THEN 'FEW'
+        WHEN number_of_reviews <= 15 THEN 'SOME'
+        WHEN number_of_reviews <= 40 THEN 'MANY'
+        ELSE 'A LOT'
+    END AS num_reviews
+FROM airbnb_search_details
+ORDER by price ASC;
+
+Solution #2
+SELECT
+    price,
+    CASE
+        WHEN number_of_reviews = 0 THEN 'NO'
+        WHEN number_of_reviews BETWEEN 1 AND 5 THEN 'FEW'
+        WHEN number_of_reviews BETWEEN 6 AND 15 THEN 'SOME'
+        WHEN number_of_reviews BETWEEN 16 AND 40 THEN 'MANY'
+        WHEN number_of_reviews > 40 THEN 'A LOT'
+        ELSE 'UNKNOWN' -- Good practice to include an ELSE for unhandled cases, if any
+    END AS review_category
+FROM
+    airbnb_search_details;
+
+############################
+
+Website:
+StrataScratch - ID 9631
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Airbnb - Find neighborhoods that have properties with a parking space and no cleaning fees
+Find all neighborhoods that have properties with a parking space and don't charge for cleaning fees.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+accomodates: bigint(int)
+amenities: text(str)
+bathrooms: bigint(int)
+bed_type: text(str)
+bedrooms: bigint(int)
+beds: bigint(int)
+cancellation_policy: text(str)
+city: text(str)
+cleaning_fee: boolean(str)
+host_identity_verified: text(str)
+host_response_rate: text(str)
+host_since: date(str)
+id: bigint(int)
+neighbourhood: text(str)
+number_of_reviews: bigint(int)
+price: double precision(flt)
+property_type: text(str)
+review_scores_rating: double precision (flt)
+room_type: text(str)
+zipcode: bigint(int)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM airbnb_search_details;
+
+/* All neighborhoods that have properties with parking space and no charge for cleaning fees */
+SELECT
+    DISTINCT neighbourhood
+FROM airbnb_search_details
+WHERE cleaning_fee = 'FALSE'
+    AND LOWER(amenities) LIKE '%parking%'
+    AND neighbourhood IS NOT NULL
+ORDER BY neighbourhood ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9640
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Airbnb - Find the average number of searches from each user
+Find the average number of searches made by each user and present the result with their corresponding user id.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+ds: date(str)
+ds_checkin: date(str)
+ds_checkout: date(str)
+filter_neighborhoods: text(str)
+filter_price_max: double precision(flt)
+filter_price_min: double precision(flt)
+filter_room_types: text(str)
+id_user: text(str)
+n_guests_max: bigint(int)
+n_guests_min: bigint(int)
+n_nights: double precision(flt)
+n_searches: bigint(int)
+origin_country: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM airbnb_searches;
+
+/* Average number of searches by each user, present the result with corresponding user id*/
+/* AVG n_searches, id_user */
+SELECT
+    id_user,
+    AVG(n_searches) AS avg_searches
+FROM airbnb_searches
+GROUP BY id_user
+ORDER BY avg_searches ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9641
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Airbnb - Find the number of users that have done a search
+How many unique users have performed a search?
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+ds: date(str)
+ds_checkin: date(str)
+ds_checkout: date(str)
+filter_neighborhoods: text(str)
+filter_price_max: double precision(flt)
+filter_price_min: double precision(flt)
+filter_room_types: text(str)
+id_user: text(str)
+n_guests_max: bigint(int)
+n_guests_min: bigint(int)
+n_nights: double precision(flt)
+n_searches: bigint(int)
+origin_country: text(str)
+
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM airbnb_searches;
+
+/* How many unique users that performed a search */
+/* COUNT DISTINCT id_user */
+SELECT
+    COUNT(DISTINCT id_user) AS users_with_searches
+FROM airbnb_searches
+WHERE n_searches > 0;
+
+############################
+
+Website:
+StrataScratch - ID 9648
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+ESPN - Drafted Into NFL
+How many athletes were drafted into NFL from 2013 NFL Combine? 
+The pickround column specifies if the athlete was drafted into the NFL. 
+A value of 0 means that the athlete was not drafted into the NFL.
+
+Data Dictionary:
+Table name = 'nfl_combine'
+arms: double precision(flt)
+bench: bigint(int)
+broad: bigint(int)
+college: text(str)
+firstname: text(str)
+fortyyd: double precision(flt)
+hands: double precision(flt)
+heightfeet: bigint(int)
+heightinches: double precision(flt)
+heightinchestotal: double precision(flt)
+lastname: text(str)
+name: text(str)
+pick: text(str)
+pickround: bigint(int)
+picktotal: bigint(int)
+position: text(str)
+round: bigint(int)
+tenyd: double precision(flt)
+threecone: double precision(flt)
+twentyss: double precision(flt)
+twentyyd: double precision(flt)
+vertical: double precision(flt)
+weight: bigint(int)
+year: bigint(int)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM nfl_combine;
+
+/* How many athletes drafted into NFL from 2013 NFL combine */
+/* Pickround specifies athlete being drafted, 0 means not drafted */
+SELECT 
+    COUNT(DISTINCT name) AS athletes_drafted 
+FROM nfl_combine
+WHERE year = 2013
+    AND pickround > 0;
+
+############################
