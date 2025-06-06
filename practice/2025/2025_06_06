@@ -1,0 +1,458 @@
+Date: 06/06/2025
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Cards Issued Difference - JPMorgan SQL Interview Question
+Your team at JPMorgan Chase is preparing to launch a new credit card, and to gain some insights, you're analyzing how many credit cards were issued each month.
+Write a query that outputs the name of each credit card and the difference in the number of issued cards between the month with the highest issuance cards and the lowest issuance.
+Arrange the results based on the largest disparity.
+
+Data Dictionary:
+Table name = 'monthly_cards_issued'
+card_name: string(str)
+issued_amount: integer(int)
+issue_month: integer(int)
+issue_year: integer(int)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM monthly_cards_issued;
+
+/* How many credit cards issued each month */
+/* Name of credit card */
+/* Difference in number of cards issued each month with the highest issuance cards and lowest issuance */
+/* Arrange sults based on largest disparity */
+SELECT 
+    card_name,
+    MAX(issued_amount) - MIN(issued_amount) AS difference
+FROM monthly_cards_issued
+GROUP BY card_name
+ORDER BY difference DESC;
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Compressed Mean - Alibaba SQL Interview Question
+You're trying to find the mean number of items per order on Alibaba, rounded to 1 decimal place using tables which includes information on the count of items in each order (item_count table) and the corresponding number of orders for each item count (order_occurrences table).
+There are a total of 500 orders with one item per order, 1000 orders with two items per order, and 800 orders with three items per order."
+Explanation
+Let's calculate the arithmetic average:
+Total items = (1*500) + (2*1000) + (3*800) + (4*1000) = 8900
+Total orders = 500 + 1000 + 800 + 1000 = 3300
+Mean = 8900 / 3300 = 2.7
+
+Data Dictionary:
+Table name = 'items_per_order'
+item_count: integer(int)
+order_occurrences: integer(int)
+
+Code:
+Solution #1 (CAST)
+/* SELECT to preview data */
+SELECT * FROM items_per_order;
+
+/* Mean number of items per order, rounded to 1 decimal */
+SELECT 
+    CAST(
+        SUM(order_occurrences * item_count) 
+        /SUM(order_occurrences) AS DECIMAL (10,1)
+        ) AS mean
+FROM items_per_order;
+
+Solution #2 (convert to DECIMAL and use ROUND)
+SELECT 
+    ROUND(
+        SUM(item_count::DECIMAL * order_occurrences) 
+        /SUM(order_occurrences)
+        ,1) AS mean
+FROM items_per_order;
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Pharmacy Analytics (Part 1) - CVS Health SQL Interview Question
+CVS Health is trying to better understand its pharmacy sales, and how well different products are selling. Each drug can only be produced by one manufacturer.
+Write a query to find the top 3 most profitable drugs sold, and how much profit they made. Assume that there are no ties in the profits. Display the result from the highest to the lowest total profit.
+Definition:
+cogs stands for Cost of Goods Sold which is the direct cost associated with producing the drug.
+Total Profit = Total Sales - Cost of Goods Sold
+Explanation:
+Zyprexa made the most profit (of $84,576.53) followed by Varicose Relief (of $80,926.64) and Surmontil (of $79,815.3).
+
+Data Dictionary:
+Table name = 'pharmacy_sales'
+product_id: integer(int)
+units_sold: integer(int)
+total_sales: decimal(flt)
+cogs: decimal(flt)
+manufacturer: varchar(str)
+drug: varchar(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM pharmacy_sales;
+
+/* Pharmacy sales, how well products are selling */
+/* Each drug produced by only one manufacturer */
+/* Top 3 most profitable drugs, how much profit, no ties, highest to lowest order */
+/* cogs = Cost of Goods Sold */
+/* Total Profit = Total Sales - Cost of Goods Sold */
+SELECT
+    DISTINCT drug,
+    (total_sales - cogs) AS total_profit
+FROM pharmacy_sales
+ORDER BY total_profit DESC
+LIMIT 3;
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Pharmacy Analytics (Part 2) - CVS Health SQL Interview Question
+CVS Health is analyzing its pharmacy sales data, and how well different products are selling in the market. Each drug is exclusively manufactured by a single manufacturer.
+Write a query to identify the manufacturers associated with the drugs that resulted in losses for CVS Health and calculate the total amount of losses incurred.
+Output the manufacturer's name, the number of drugs associated with losses, and the total losses in absolute value. Display the results sorted in descending order with the highest losses displayed at the top.
+Explanation:
+The first three rows indicate that some drugs resulted in losses. 
+Among these, Biogen had the highest losses, followed by AbbVie and Eli Lilly. 
+However, the Medi-Chord drug manufactured by Biogen reported a profit and was excluded from the result.
+
+Data Dictionary:
+Table name = 'pharmacy_sales'
+product_id: integer(int)
+units_sold: integer(int)
+total_sales: decimal(flt)
+cogs: decimal(flt)
+manufacturer: varchar(str)
+drug: varchar(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM pharmacy_sales;
+
+/* Pharmacy sales, how well products are selling */
+/* Each drug produced by only one manufacturer */
+/* Manufacturers with drugs resulting in losses, total amount of losses */
+/* Manufacturer, num of drugs with losses, total losses in abs value, DESC */
+SELECT
+    manufacturer,
+    COUNT(drug) AS drug_count,
+    ABS(SUM(total_sales - cogs)) AS total_losses
+FROM pharmacy_sales
+WHERE (total_sales - cogs) < 0
+GROUP BY manufacturer
+ORDER BY total_losses DESC;
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Pharmacy Analytics (Part 3) - CVS Health SQL Interview Question
+CVS Health wants to gain a clearer understanding of its pharmacy sales and the performance of various products.
+Write a query to calculate the total drug sales for each manufacturer. Round the answer to the nearest million and report your results in descending order of total sales. In case of any duplicates, sort them alphabetically by the manufacturer name.
+Since this data will be displayed on a dashboard viewed by business stakeholders, please format your results as follows: "$36 million".
+Explanation
+The total sales for Biogen is $4 million ($2,041,758.41 + $500,101.61 + $1,084,258.00 = $3,626,118.02) and for Eli Lilly is $3 million ($293,452.54 + $2,521,023.73 = $2,814,476.27).
+
+Data Dictionary:
+Table name = 'pharmacy_sales'
+product_id: integer(int)
+units_sold: integer(int)
+total_sales: decimal(flt)
+cogs: decimal(flt)
+manufacturer: varchar(str)
+drug: varchar(str)
+
+Code:
+Solution #1
+/* SELECT to preview data */
+SELECT * FROM pharmacy_sales;
+
+/* Pharmacy sales and performance of products */
+/* Total drug sales for each manufacturer, round to nearest million, DESC sales */
+/* For duplicates, sort alphabetically by manufacturer */
+/* Format per example "$36 million" */
+SELECT
+    manufacturer,
+    CONCAT('$', ROUND(SUM(total_sales) / 1000000), ' million') AS sale
+FROM pharmacy_sales
+GROUP BY manufacturer
+ORDER BY SUM(total_sales) DESC;
+
+Solution #2 (USE CTE, can use || inplace of , and CONCAT)
+WITH drug_sales AS (
+  SELECT 
+    manufacturer, 
+    SUM(total_sales) as sales 
+  FROM pharmacy_sales 
+  GROUP BY manufacturer
+) 
+SELECT 
+  manufacturer, 
+  ('$' || ROUND(sales / 1000000) || ' million') AS sales_mil 
+FROM drug_sales 
+ORDER BY sales DESC, manufacturer;
+
+############################
+
+Website:
+StrataScratch - ID 9649
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Apple - Count the number of accounts used for logins in 2016
+How many accounts have performed a login in the year 2016?
+
+Data Dictionary:
+Table name = 'product_logins'
+account_id: bigint(int)
+employer_key: text(str)
+login_date: date(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM product_logins;
+
+/* Number of accounts performing login in 2016 */
+SELECT
+    COUNT(DISTINCT account_id) AS login_count
+FROM product_logins
+WHERE EXTRACT(YEAR FROM login_date) = 2016;
+
+############################
+
+Website:
+StrataScratch - ID 9653
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Apple - MacBookPro User Event Count
+Count the number of user events performed by MacBookPro users.
+Output the result along with the event name.
+Sort the result based on the event count in the descending order.
+
+Data Dictionary:
+Table name = 'playbook_events'
+device: text(str)
+event_name: text(str)
+event_type: text(str)
+location: text(str)
+occured_at: timestamp(str)
+user_id: bigint(int)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM playbook_events;
+
+/* COUNT number of user events performed by MacBookPro users */
+/* Results with event_name, sort based on event count DESC */
+SELECT
+    COUNT(*) AS event_count,
+    event_name
+FROM playbook_events
+WHERE LOWER(device) LIKE '%macbook pro%'
+GROUP BY event_name
+ORDER BY event_count DESC;
+
+############################
+
+Website:
+StrataScratch - ID 9656
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+ESPN - Find the average height of a quarterback
+What is the average height of quarterbacks?
+
+Data Dictionary:
+Table name = 'nfl_combine'
+arms: double precision(flt)
+bench: bigint(int)
+broad: bigint(int)
+college: text(str)
+firstname: text(str)
+fortyyd: double precision(flt)
+hands: double precision(flt)
+heightfeet: bigint(int)
+heightinches: double precision(flt)
+heightinchestotal: double precision(flt)
+lastname: text(str)
+name: text(str)
+pick: text(str)
+pickround: bigint(int)
+picktotal: bigint(int)
+position: text(str)
+round: bigint(int)
+tenyd: double precision(flt)
+threecone: double precision(flt)
+twentyss: double precision(flt)
+twentyyd: double precision(flt)
+vertical: double precision(flt)
+weight: bigint(int)
+year: bigint(int)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM nfl_combine;
+
+/* AVG height of quarterbacks */
+SELECT
+    AVG(heightfeet) AS avg_heightfeet,
+    AVG(heightinches) AS avg_heightinches,
+    AVG(heightinchestotal) AS avg_heightinchestotal
+FROM nfl_combine
+WHERE position = 'QB';
+
+############################
+
+Website:
+StrataScratch - ID 9660
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+General Assembly - Count the number of students lectured by each teacher
+Count the number of students lectured by each teacher.
+Output the result along with the name of the teacher.
+
+Data Dictionary:
+Table name = 'sat_scores'
+average_sat: double precision(flt)
+hrs_studied: double precision(flt)
+id: bigint(int)
+love: double precision(flt)
+sat_math: double precision(flt)
+sat_verbal: double precision(flt)
+sat_writing: double precision(flt)
+school: text(str)
+student_id: double precision(flt)
+teacher: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM sat_scores;
+
+/* COUNT number of students lectured by each teacher */
+/* Result, name of teacher */
+SELECT
+    COUNT(DISTINCT student_id) AS student_count,
+    teacher
+FROM sat_scores
+GROUP BY teacher
+ORDER BY teacher ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9662
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Forbes - List all companies working in the financial sector with headquarters in Europe or Asia
+List all companies working in the financial sector with headquarters in Europe or Asia.
+
+Data Dictionary:
+Table name = 'forbes_global_2010_2014'
+assets: double precision(flt)
+company: text(str)
+continent: text(str)
+country: text(str)
+industry: text(str)
+marketvalue: double precision(flt)
+profits: double precision(flt)
+rank: bigint(int)
+sales: double precision(flt)
+sector: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM forbes_global_2010_2014;
+
+/* List companies in financial sector with headquarters in Europe or Asia */
+/* company, sector, continent */
+SELECT
+    company,
+    sector,
+    continent
+FROM forbes_global_2010_2014
+WHERE sector = 'Financials'
+    AND continent IN ('Asia', 'Europe')
+ORDER BY company ASC;
+
+/* Final iteration */
+SELECT
+    company
+FROM forbes_global_2010_2014
+WHERE sector = 'Financials'
+    AND continent IN ('Asia', 'Europe')
+ORDER BY company ASC;
+
+############################
