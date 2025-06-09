@@ -1,0 +1,468 @@
+Date: 06/09/2025
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+Machine Learning
+
+Question:
+Assumptions of Linear Regression - McKinsey Machine Learning Interview Question
+What are the assumptions underlying linear regression?
+
+Data Dictionary:
+Table name = ''
+N/A
+
+Code:
+The assumptions of linear regression are the following:
+Linearity: The relationship between the feature variable X and target label variable Y must be linear. Variables in the relationship are continuous and not categorical variables.
+Homoscedasticity: Variance of the residuals is constant.
+Independence: The data observations must be independent of one another.
+Normality: Distribution of the y variable should be a normal distribution.
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Patient Support Analysis (Part 1) - UnitedHealth SQL Interview Question
+UnitedHealth Group (UHG) has a program called Advocate4Me, which allows policy holders (or, members) to call an advocate and receive support for their health care needs – whether that's claims and benefits support, drug coverage, pre- and post-authorisation, medical records, emergency assistance, or member portal services.
+Write a query to find how many UHG policy holders made three, or more calls, assuming each call is identified by the case_id column.
+
+Data Dictionary:
+Table name = 'callers'
+policy_holder_id: integer(int)
+case_id: varchar(str)
+call_category: varchar(str)
+call_date: timestamp(str)
+call_duration_secs: integer(int)
+
+Code:
+Solution #1 (CTE)
+/* SELECT to preview data */
+SELECT * FROM callers;
+
+/* How many policy holders made >= 3 calls, each call identified by case_id */
+SELECT
+    policy_holder_id,
+    COUNT(case_id)
+FROM callers
+GROUP BY 1
+HAVING COUNT(case_id) >= 3
+ORDER BY 1
+
+/* How many policy holders made >= 3 calls, each call identified by case_id */
+/* Final iteration */
+WITH calls_three_or_more AS (
+    SELECT
+        policy_holder_id,
+        COUNT(case_id)
+    FROM callers
+    GROUP BY 1
+    HAVING COUNT(case_id) >= 3
+    ORDER BY 1
+)
+SELECT COUNT(DISTINCT policy_holder_id) AS policy_holder_count
+FROM calls_three_or_more;
+
+Solution #2 (subquery, nested query)
+SELECT COUNT(policy_holder_id) AS policy_holder_count
+FROM (
+  SELECT
+    policy_holder_id,
+    COUNT(case_id) AS call_count
+  FROM callers
+  GROUP BY policy_holder_id
+  HAVING COUNT(case_id) >= 3
+) AS call_records;
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+User's Third Transaction - Uber SQL Interview Question
+Assume you are given the table below on Uber transactions made by users. 
+Write a query to obtain the third transaction of every user. 
+Output the user id, spend and transaction date.
+
+Data Dictionary:
+Table name = 'transaction'
+user_id: integer(int)
+spend: decimal(flt)
+transaction_date: timestamp(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM transactions;
+
+/* Third transaction of every user */
+/* User_id, spend, transaction_date */
+SELECT
+    user_id,
+    spend,
+    transaction_date,
+    RANK() OVER(PARTITION BY user_id ORDER BY transaction_date ASC) AS transaction_rank
+FROM transactions
+ORDER BY user_id, transaction_date;
+
+/* Final iteration */
+WITH ranked_transactions AS (
+    SELECT
+        user_id,
+        spend,
+        transaction_date,
+        RANK() OVER(PARTITION BY user_id ORDER BY transaction_date ASC) AS transaction_rank
+    FROM transactions
+    ORDER BY user_id, transaction_date
+)
+SELECT 
+    user_id,
+    spend,
+    transaction_date
+FROM ranked_transactions
+WHERE transaction_rank = 3;
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Second Highest Salary - FAANG SQL Interview Question
+Imagine you're an HR analyst at a tech company tasked with analyzing employee salaries. 
+Your manager is keen on understanding the pay distribution and asks you to determine the second highest salary among all employees.
+It's possible that multiple employees may share the same second highest salary. 
+In case of duplicate, display the salary only once.
+Example:
+The output represents the second highest salary among all employees. In this case, the second highest salary is $2,230.
+
+Data Dictionary:
+Table name = 'employee'
+employee_id: integer(int)
+name: string(str)
+salary: integer(int)
+department_id: integer(int)
+manager_id: integer(int)
+
+Code:
+Solution #1 (LIMIT OFFSET for small to medium datasets performance)
+/* SELECT to preview data */
+SELECT * FROM employee;
+
+/* Second highest salary among employees, display duplicate salaries only once */
+SELECT
+    DISTINCT salary
+FROM employee
+ORDER BY salary DESC;
+
+/* Final iteration */
+SELECT
+    DISTINCT salary AS second_highest_salary
+FROM employee
+ORDER BY salary DESC
+LIMIT 1 OFFSET 1;
+
+Solution #2 (CTE MAX)
+WITH highest_salary_cte AS (
+  SELECT MAX(salary) AS highest_salary
+  FROM employee
+)
+SELECT MAX(salary) AS second_highest_salary
+FROM employee
+WHERE salary < (
+    SELECT highest_salary
+    FROM employee
+);
+
+Solution #3 (DENSE_RANK for large datasets optimal performance)
+WITH ranked_salaries AS (
+SELECT
+    DISTINCT salary,
+    DENSE_RANK() OVER(ORDER BY salary DESC) as salary_rank
+FROM employee
+ORDER BY salary DESC
+)
+SELECT 
+    salary AS second_highest_salary
+FROM ranked_salaries
+WHERE salary_rank = 2;
+
+############################
+
+Website:
+StrataScratch - ID 9663
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Forbes - Most Profitable Financial Company
+Find the most profitable company from the financial sector.
+Output the result along with the continent.
+
+Data Dictionary:
+Table name = 'forbes_global_2010_2014'
+assets: double precision(flt)
+company: text(str)
+continent: text(str)
+country: text(str)
+industry: text(str)
+marketvalue: double precision(flt)
+profits: double precision(flt)
+rank: bigint(int)
+sales: double precision(flt)
+sector: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM forbes_global_2010_2014;
+
+/* Most profitable company from financial sector */
+/* Result, continent */
+SELECT 
+    company,
+    continent,
+    profits,
+    sector
+FROM forbes_global_2010_2014
+WHERE sector = 'Financials'
+ORDER BY profits DESC;
+
+/* Final iteration */
+SELECT 
+    company,
+    continent
+FROM forbes_global_2010_2014
+WHERE sector = 'Financials'
+ORDER BY profits DESC
+LIMIT 1;
+
+############################
+
+Website:
+StrataScratch - ID 9664
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Forbes - Finding the highest market value for each sector. 
+Which sector is it best to invest in? Output the result along with the sector name. 
+Order the result based on the highest market value in descending order.
+
+Data Dictionary:
+Table name = 'forbes_global_2010_2014'
+assets: double precision(flt)
+company: text(str)
+continent: text(str)
+country: text(str)
+industry: text(str)
+marketvalue: double precision(flt)
+profits: double precision(flt)
+rank: bigint(int)
+sales: double precision(flt)
+sector: text(str)
+
+Code:
+Solution #1 (Highest = MAX)
+/* SELECT to preview data */
+SELECT * FROM forbes_global_2010_2014;
+
+/* Highest market value for each sector */
+/* marketvalue, sector, order by highest marketvalue DESC */
+SELECT
+    MAX(marketvalue),
+    sector
+FROM forbes_global_2010_2014
+GROUP BY sector;
+
+/* Final iteration */
+SELECT
+    MAX(marketvalue) AS marketvalue_max,
+    sector
+FROM forbes_global_2010_2014
+GROUP BY sector
+ORDER BY marketvalue_max DESC;
+
+############################
+
+Website:
+StrataScratch - ID 9665
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Forbes - Count the number of companies in the IT sector in each country
+Count the number of companies in the Information Technology sector in each country.
+Output the result along with the corresponding country name.
+Order the result based on the number of companies in the descending order.
+
+Data Dictionary:
+Table name = 'forbes_global_2010_2014'
+assets: double precision(flt)
+company: text(str)
+continent: text(str)
+country: text(str)
+industry: text(str)
+marketvalue: double precision(flt)
+profits: double precision(flt)
+rank: bigint(int)
+sales: double precision(flt)
+sector: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM forbes_global_2010_2014;
+
+/* Count number of companies in Information Technology sector in each country */
+/* Output: Result, country, order by result DESC */
+SELECT
+    company,
+    country
+FROM forbes_global_2010_2014
+WHERE sector = 'Information Technology';
+
+/* Final iteration */
+SELECT
+    COUNT(company) AS companies_count,
+    country
+FROM forbes_global_2010_2014
+WHERE sector = 'Information Technology'
+GROUP BY country
+ORDER BY companies_count DESC;
+
+############################
+
+Website:
+StrataScratch - ID 9666
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Forbes - Find the industry which has the lowest average sales compared to all industries
+Find the industry with lowest average sales. 
+Output that industry.
+
+Data Dictionary:
+Table name = 'forbes_global_2010_2014'
+assets: double precision(flt)
+company: text(str)
+continent: text(str)
+country: text(str)
+industry: text(str)
+marketvalue: double precision(flt)
+profits: double precision(flt)
+rank: bigint(int)
+sales: double precision(flt)
+sector: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM forbes_global_2010_2014;
+
+/* Industry with lowest average sales */
+/* Output: industry */
+SELECT 
+    industry,
+    AVG(sales) as sales_avg
+FROM forbes_global_2010_2014
+GROUP BY industry
+ORDER BY sales_avg ASC;
+
+/* Final iteration */
+SELECT 
+    industry,
+    AVG(sales) as sales_avg
+FROM forbes_global_2010_2014
+GROUP BY industry
+ORDER BY sales_avg ASC
+LIMIT 1;
+
+############################
+
+Website:
+StrataScratch - ID 9667
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Google - Count users that speak English, German, French or Spanish
+How many users speak English, German, French or Spanish?
+Note: Users who speak more than one language are counted only once.
+
+Data Dictionary:
+Table name = 'playbook_users'
+activated_at: date(str)
+company_id: bigint(int)
+created_at: timestamp(str)
+language: text(str)
+state: text(str)
+user_id: bigint(int)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM playbook_users;
+
+/* How many users speak English, German, French, or Spanish */
+/* Users who speak > 1 language counted only once */
+/* Output: user_id */
+SELECT
+    COUNT(DISTINCT user_id) as user_count,
+    language
+FROM playbook_users
+WHERE language IN ('english', 'german', 'french', 'spanish')
+GROUP BY language
+ORDER BY user_count ASC;
+
+/* Final iteration */
+SELECT
+    COUNT(DISTINCT user_id) as user_count
+FROM playbook_users
+WHERE language IN ('english', 'german', 'french', 'spanish');
+
+############################
