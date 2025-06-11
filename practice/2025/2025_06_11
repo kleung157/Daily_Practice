@@ -1,0 +1,356 @@
+Date: 06/11/2025
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Tweets' Rolling Averages - Twitter SQL Interview Question
+Given a table of tweet data over a specified time period, calculate the 3-day rolling average of tweets for each user. Output the user ID, tweet date, and rolling averages rounded to 2 decimal places.
+Notes:
+A rolling average, also known as a moving average or running mean is a time-series technique that examines trends in data over a specified period of time.
+In this case, we want to determine how the tweet count for each user changes over a 3-day period.
+
+Data Dictionary:
+Table name = 'tweets'
+user_id: integer(int)
+tweet_date: timestamp(str)
+tweet_count: integer(int)
+
+Code:
+Solution #1(For 3-day rolling average use ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)
+/* SELECT to preview data */
+SELECT * FROM tweets;
+
+/* 3-day rolling average of tweets for each user */
+/* How tweet count for each user changes over a 3-day period */
+/* Output: user_id, tweet_date, rolling_avg_3d(round to 2 decimal) */
+SELECT
+    user_id,
+    tweet_date,
+    tweet_count,
+    ROUND(
+        AVG(tweet_count) OVER(PARTITION BY user_id ORDER BY tweet_date)
+        , 2) AS rolling_avg_3d
+FROM tweets;
+
+/* Final iteration */
+SELECT
+    user_id,
+    tweet_date,
+    ROUND(AVG(tweet_count) OVER(
+        PARTITION BY user_id
+        ORDER BY tweet_date
+        ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+    ), 2) AS rolling_avg_3d
+FROM tweets;
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Medium
+
+Question Type:
+Statistics
+
+Question:
+Consecutive Fives - Akuna Capital Statistics Interview Question
+Say you’re rolling a fair six-sided die. 
+What is the expected number of rolls until you get two consecutive 5s?
+
+Data Dictionary:
+Table name = ''
+N/A
+
+Code:
+Solution #1
+Fair 6-sided die.
+
+- Probability of a 5: 1/6
+- Probability of not a 5: 5/6
+- Probability of two consecutive 5's: 1/6 * 1/6 = 1/36
+- Probability of not two consecutive 5's: 5/6 * 5/6 = 25/36
+
+Expected number of rolls for two consecutive 5s.
+
+For roll_1:
+- roll_1 = 1/6(1 + roll_2) + 5/6(1 + roll_1)
+- roll_1 = 1/6 + 1/6(roll_2) + 5/6 + 5/6(roll_1)
+- roll_1 * 6 = (1 + 1/6(roll_2) + 5/6(roll_1) ) * 6
+- 6(roll_1) = 6 + roll_2 + 5(roll_1)
+- roll_1 = 6 + roll_2
+
+For roll_2:
+- roll_2 = 1/6(1 + 0) + 5/6(1 + roll_1)
+- roll_2 = 1/6 + 0 + 5/6 + 5/6(roll_1)
+- roll_2 = 1 + 5/6(roll_1)
+
+For roll_1 and roll_2 equations:
+- roll_1 = 6 + roll_2
+- roll_2 = 1 + 5/6(roll_1)
+
+Combine equations to solve for number of rolls for two consecutive 5s:
+- roll_1 = 6 + (1 + 5/6(roll_1))
+- roll_1 = 6 + 1 + 5/6(roll_1)
+- roll_1 = 7 + 5/6(roll_1)
+- 6/6(roll_1) - 5/6(roll_1) = 7
+- 6 * (1/6(roll_1)) = 7 * 6
+- roll_1 = 42 rolls
+
+############################
+Practice:
+(Three consecutive 5s)
+For roll_1:
+- roll_1 = 1/6(1 + roll_2) + 5/6(1 + roll_1)
+- roll_1 = 1/6 + 1/6(roll_2) + 5/6 + 5/6(roll_1)
+- roll_1 = 1 + 1/6(roll_2) + 5/6(roll_1)
+- roll_1 = 6 + roll_2
+For roll_2:
+- roll_2 = 1/6(1 + roll_3) + 5/6(1 + roll_1)
+- roll_2 = 1/6 + 1/6(roll_3) + 5/6 + 5/6(roll_1)
+- roll_2 = 1 + 1/6(roll_3) + 5/6(roll_1)
+For roll_3:
+- roll_3 = 1/6(1 + 0) + 5/6(1 + roll_1)
+- roll_3 = 1/6 + 0 + 5/6 + 5/6(roll_1)
+- roll_3 = 1 + 5/6(roll_1)
+Equations:
+1. roll_1 = 1 + 1/6(roll_2) + 5/6(roll_1) OR - roll_1 = 6 + roll_2
+2. roll_2 = 1 + 1/6(roll_3) + 5/6(roll_1)
+3. roll_3 = 1 + 5/6(roll_1)
+Combine equations 2 and 3:
+- roll_2 = 1 + 1/6(1 + 5/6(roll_1) + 5/6(roll_1)
+- roll_2 = 1 + 1/6 + 5/36(roll_1) + 5/6(roll_1)
+- roll_2 = 7/6 + 35/36(roll_1)
+Combine previous combined equation 2/3 and equation 1
+- roll_1 = 6 + 7/6 + 35/36(roll_1)
+- roll_1 = 43/6 + 35/36(roll_1)
+- 1/36(roll_1) * 36 = 43/6 * 36
+- roll_1 = 1548/6
+- roll_1 = 258 rolls
+
+############################
+
+Website:
+StrataScratch - ID 9675
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+British Airways - Flights With No Delay
+Find all US flight details which had no delay (use only arr_delay column for filtering).
+
+Data Dictionary:
+Table name = 'us_flights'
+actual_elapsed_time: double precision(flt)
+arr_delay: bigint(int)
+cancelled: bigint(int)
+carier_delay: double precision(flt)
+dest: text(str)
+distance: bigint(int)
+flight_date: date(str)
+flight_num: bigint(int)
+late_aircraft_delay: double precision(flt)
+nas_delay: double precision(flt)
+origin: text(str)
+security_delay: double precision(flt)
+unique_carrier: text(str)
+weather_delay: double precision(flt)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM us_flights;
+
+/* All US flight details with no delays (use only arr_delay column for filtering) */
+SELECT *
+FROM us_flights
+WHERE arr_delay <= 0
+ORDER By arr_delay DESC;
+
+/* Final iteration */
+SELECT 
+    actual_elapsed_time,
+    arr_delay,
+    cancelled,
+    carier_delay,
+    dest,
+    distance,
+    flight_date,
+    flight_num,
+    late_aircraft_delay,
+    nas_delay,
+    origin,
+    security_delay,
+    unique_carrier,
+    weather_delay
+FROM us_flights
+WHERE arr_delay <= 0
+ORDER By arr_delay DESC;
+
+############################
+
+Website:
+StrataScratch - ID 9676
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Delta Airlines - Find the average distance traveled from each origin airport.
+Find the average distance an airplane travels from each origin airport.
+Output the result along with the corresponding origin.
+
+Data Dictionary:
+Table name = 'us_flights'
+actual_elapsed_time: double precision(flt)
+arr_delay: bigint(int)
+cancelled: bigint(int)
+carier_delay: double precision(flt)
+dest: text(str)
+distance: bigint(int)
+flight_date: date(str)
+flight_num: bigint(int)
+late_aircraft_delay: double precision(flt)
+nas_delay: double precision(flt)
+origin: text(str)
+security_delay: double precision(flt)
+unique_carrier: text(str)
+weather_delay: double precision(flt)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM us_flights;
+
+/* Average distance airplane travels from each origin airport */
+/* Output: result, corresponding origin */
+SELECT
+    AVG(distance) as distance_avg,
+    origin
+FROM us_flights
+GROUP BY origin
+ORDER by origin ASC;
+
+/* Final iteration */
+SELECT
+    AVG(distance) as distance_avg,
+    origin
+FROM us_flights
+GROUP BY origin
+ORDER by origin ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9677
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Virgin - Count the number of cancelled flights by American Airlines (AA).
+Count the number of cancelled flights by American Airlines (AA).
+
+Data Dictionary:
+Table name = 'us_flights'
+actual_elapsed_time: double precision(flt)
+arr_delay: bigint(int)
+cancelled: bigint(int)
+carier_delay: double precision(flt)
+dest: text(str)
+distance: bigint(int)
+flight_date: date(str)
+flight_num: bigint(int)
+late_aircraft_delay: double precision(flt)
+nas_delay: double precision(flt)
+origin: text(str)
+security_delay: double precision(flt)
+unique_carrier: text(str)
+weather_delay: double precision(flt)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM us_flights;
+
+/* Count number of cancelled flights by American Airlines(AA) */
+SELECT
+    COUNT(cancelled) AS canceled_flight_count
+FROM us_flights
+WHERE unique_carrier = 'AA'
+    AND cancelled > 0;
+
+/* Final iteration */
+SELECT
+    COUNT(cancelled) AS canceled_flight_count
+FROM us_flights
+WHERE unique_carrier = 'AA'
+    AND cancelled > 0;
+
+############################
+
+Website:
+StrataScratch - ID 9679
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Forbes - Find the profit to sales ratio of Royal Dutch Shell
+What is the profit to sales ratio (profit/sales) of Royal Dutch Shell?
+Output the result along with the company name.
+
+Data Dictionary:
+Table name = 'forbes_global_2010_2014'
+assets: double precision(flt)
+company: text(str)
+continent: text(str)
+country: text(str)
+industry: text(str)
+marketvalue: double precision(flt)
+profits: double precision(flt)
+rank: bigint(int)
+sales: double precision(flt)
+sector: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM forbes_global_2010_2014;
+
+/* Profit to sales ratio (profit/sales) of Royal Dutch Shell */
+/* Output: result, company */
+SELECT
+    company,
+    profits,
+    sales
+FROM forbes_global_2010_2014
+WHERE company = 'Royal Dutch Shell';
+
+/* Final iteration */
+SELECT
+    (profits / sales) AS profits_to_sales_ratio,
+    company
+FROM forbes_global_2010_2014
+WHERE company = 'Royal Dutch Shell';
+
+############################
