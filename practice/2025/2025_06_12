@@ -1,0 +1,459 @@
+Date: 06/12/2025
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Highest-Grossing Items - Amazon SQL Interview Question
+Assume you're given a table containing data on Amazon customers and their spending on products in different category, write a query to identify the top two highest-grossing products within each category in the year 2022. 
+The output should include the category, product, and total spend.
+Explanation:
+Within the "appliance" category, the top two highest-grossing products are "refrigerator" and "washing machine."
+In the "electronics" category, the top two highest-grossing products are "vacuum" and "wireless headset."
+
+Data Dictionary:
+Table name = 'product_spend'
+category: string(str)
+product: string(str)
+user_id: integer(int)
+spend: decimal(flt)
+transaction:date: timestamp(str)
+
+Code:
+Solution #1 (with CTE)
+/* SELECT to preview data */
+SELECT * FROM product_spend;
+
+/* Two two highest-selling gross products within each category in 2022 */
+/* Output: Category, product, total spend */
+/* Iter 1 */
+SELECT
+    category,
+    product,
+    SUM(spend) as total_spend
+FROM product_spend
+WHERE EXTRACT(YEAR FROM transaction_date) = 2022
+GROUP BY category, product
+ORDER BY total_spend DESC;
+
+/* Iter 2 */
+SELECT
+    category,
+    product,
+    spend,
+    transaction_date,
+    RANK() OVER(PARTITION BY category ORDER BY spend DESC) AS gross_rank
+FROM product_spend
+WHERE EXTRACT(YEAR FROM transaction_date) = 2022
+
+WITH ranked_gross AS (
+    SELECT
+        category,
+        product,
+        spend,
+        RANK() OVER(PARTITION BY category ORDER BY spend DESC) AS gross_rank
+    FROM product_spend
+    WHERE EXTRACT(YEAR FROM transaction_date) = 2022
+)
+SELECT
+    category,
+    product,
+    spend AS total_spend
+FROM ranked_gross
+WHERE gross_rank <= 2;
+
+/* Iter 3 */
+SELECT
+    category,
+    product,
+    SUM(spend) as total_spend,
+    RANK() OVER(PARTITION BY category ORDER BY SUM(spend) DESC) AS gross_rank
+FROM product_spend
+WHERE EXTRACT(YEAR FROM transaction_date) = 2022
+GROUP BY category, product
+ORDER BY total_spend DESC;
+
+/* Final iteration */
+WITH ranked_gross AS (
+    SELECT
+        category,
+        product,
+        SUM(spend) as total_spend,
+        RANK() OVER(
+            PARTITION BY category 
+            ORDER BY SUM(spend) DESC
+            ) AS gross_rank
+    FROM product_spend
+    WHERE EXTRACT(YEAR FROM transaction_date) = 2022
+    GROUP BY category, product
+)
+SELECT
+    category,
+    product,
+    total_spend
+FROM ranked_gross
+WHERE gross_rank <= 2
+ORDER BY category, gross_rank ASC;
+
+Solution #2 (subquery)
+SELECT 
+  category, 
+  product, 
+  total_spend 
+FROM (
+  SELECT 
+    category, 
+    product, 
+    SUM(spend) AS total_spend,
+    RANK() OVER (
+      PARTITION BY category 
+      ORDER BY SUM(spend) DESC) AS ranking 
+  FROM product_spend
+  WHERE EXTRACT(YEAR FROM transaction_date) = 2022
+  GROUP BY category, product
+) AS ranked_spending
+WHERE ranking <= 2 
+ORDER BY category, ranking;
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Top Three Salaries - FAANG SQL Interview Question
+As part of an ongoing analysis of salary distribution within the company, your manager has requested a report identifying high earners in each department. 
+A 'high earner' within a department is defined as an employee with a salary ranking among the top three salaries within that department.
+You're tasked with identifying these high earners across all departments. 
+Write a query to display the employee's name along with their department name and salary. 
+In case of duplicates, sort the results of department name in ascending order, then by salary in descending order. 
+If multiple employees have the same salary, then order them alphabetically.
+Note: Ensure to utilize the appropriate ranking window function to handle duplicate salaries effectively.
+The output displays the high earners in each department.
+- In the Data Analytics deaprtment, James Anderson leads with a salary of $4,000, followed by Emma Thompson earning $3,800, and Daniel Rodriguez with $2,230.
+- In the Data Science department, both Noah Johnson and William Davis earn $6,800, with Noah listed before William due to alphabetical ordering.
+
+Data Dictionary:
+Table name = 'employee'
+employee_id: integer(int)
+name: string(str)
+salary: integer(int)
+department_id: integer(int)
+manager_id: integer(int)
+Table name = 'department'
+department_id: integer(int)
+department_name: string(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM employee;
+SELECT * FROM department;
+
+/* JOIN tables */
+SELECT 
+    d.department_id,
+    d.department_name,
+    e.employee_id,
+    e.name,
+    e.salary,
+    e.department_id,
+    e.manager_id
+FROM employee as e 
+JOIN department as d
+    ON e.department_id = d.department_id;
+    
+/* High earners in each department */
+/* 'High earner' = employee with salary ranking top 3 with department */
+/* For duplicates, sort result of department name, salary DESC */
+/* For multiple employees with same salary, order alphabetically */
+/* Output: name, department_name, salary */
+SELECT 
+    d.department_name,
+    e.name,
+    e.salary,
+    DENSE_RANK() OVER(
+    PARTITION BY d.department_name 
+    ORDER BY e.salary DESC
+    ) AS salary_rank
+FROM employee as e 
+JOIN department as d
+    ON e.department_id = d.department_id
+ORDER BY
+    department_name ASC,
+    salary DESC,
+    name ASC
+
+/* Final iteration */
+WITH ranked_salary AS (
+    SELECT 
+        department_name,
+        name,
+        salary,
+        DENSE_RANK() OVER(
+        PARTITION BY department_name 
+        ORDER BY salary DESC
+        ) AS salary_rank
+    FROM employee as e 
+    JOIN department as d
+        ON e.department_id = d.department_id
+    ORDER BY
+        department_name ASC,
+        salary DESC,
+        name ASC
+)
+SELECT
+    department_name,
+    name,
+    salary
+FROM ranked_salary
+WHERE salary_rank <= 3;
+
+/* Correct indentations and format */
+WITH ranked_salary AS (
+    SELECT 
+        d.department_name,
+        e.name,
+        e.salary,
+        DENSE_RANK() OVER(
+        PARTITION BY d.department_name 
+        ORDER BY e.salary DESC
+        ) AS salary_rank
+    FROM employee as e 
+    JOIN department as d
+        ON e.department_id = d.department_id
+)
+SELECT
+    department_name,
+    name,
+    salary
+FROM ranked_salary
+WHERE salary_rank <= 3
+ORDER BY
+    department_name ASC,
+    salary DESC,
+    name ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9681
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Forbes - Highest Market Value Per Sector
+Find the highest market value for each sector.
+Output the sector name along with the result.
+
+Data Dictionary:
+Table name = 'forbes_global_2010_2014'
+assets: double precision(flt)
+company: text(str)
+continent: text(str)
+country: text(str)
+industry: text(str)
+marketvalue: double precision(flt)
+profits: double precision(flt)
+rank: bigint(int)
+sales: double precision(flt)
+sector: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM forbes_global_2010_2014;
+
+/* Highest market value for each sector */
+/* Output: sector, result */
+SELECT
+    sector,
+    MAX(marketvalue) as marketvalue_max
+FROM forbes_global_2010_2014
+GROUP BY sector
+ORDER by sector ASC;
+
+/* Final iteration */
+SELECT
+    sector,
+    MAX(marketvalue) as marketvalue_max
+FROM forbes_global_2010_2014
+GROUP BY sector
+WHERE marketvalue IS NOT NULL
+ORDER by sector ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9682
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Forbes - Find industries that make a profit
+Find all industries with a positive average profit. For those industries extract their lowest sale.
+Output the industry along with the corresponding lowest sale and average profit.
+Sort the output based on the lowest sales in ascending order.
+
+Data Dictionary:
+Table name = 'forbes_global_2010_2014'
+assets: double precision(flt)
+company: text(str)
+continent: text(str)
+country: text(str)
+industry: text(str)
+marketvalue: double precision(flt)
+profits: double precision(flt)
+rank: bigint(int)
+sales: double precision(flt)
+sector: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM forbes_global_2010_2014;
+
+/* For industries with a positive average profit, extract lowest sale */
+/* Output: industry, MIN(sales), AVG(profits), sort by sales ASC */
+SELECT
+    industry,
+    MIN(sales) AS sales_min,
+    AVG(profits) AS profits_avg
+FROM forbes_global_2010_2014
+GROUP BY industry
+HAVING AVG(profits) > 0
+ORDER BY sales_min ASC;
+
+/* Final iteration */
+SELECT
+    industry,
+    MIN(sales) AS sales_min,
+    AVG(profits) AS profits_avg
+FROM forbes_global_2010_2014
+WHERE sales IS NOT NULL
+    AND profits IS NOT NULL
+GROUP BY industry
+HAVING AVG(profits) > 0
+ORDER BY sales_min ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9685
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Google - Companies With Chinese Speakers
+Find companies that have at least 2 Chinese speaking users.
+
+Data Dictionary:
+Table name = 'playbook_users'
+activated_at: date(datetime)
+company_id: bigint(int)
+created_at: timestamp(datetime)
+language: text(str)
+state: text(str)
+user_id: bigint(int)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM playbook_users;
+
+/* Companies that have at least 2 Chinese speaking users */
+SELECT
+    company_id,
+    COUNT(language) AS language_count
+FROM playbook_users
+WHERE language = 'chinese'
+GROUP BY company_id
+HAVING COUNT(language) >= 2;
+
+/* Final iteration */
+SELECT
+    company_id
+FROM playbook_users
+WHERE language = 'chinese'
+GROUP BY company_id
+HAVING COUNT(language) >= 2;
+
+############################
+
+Website:
+StrataScratch - ID 9687
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Netflix - Find details of oscar winners between 2001 and 2009
+Find the details of oscar winners between 2001 and 2009.
+
+Data Dictionary:
+Table name = 'oscar_nominees'
+category: text(str)
+id: bigint(int)
+movie: text(str)
+nominee: text(str)
+winner: boolean(bool)
+year: bigint(int)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM oscar_nominees;
+
+/* Details of oscar winners between 2001 and 2009 */
+SELECT 
+    category,
+    movie,
+    nominee,
+    year
+FROM oscar_nominees
+WHERE year BETWEEN 2001 AND 2009
+    AND winner = 'TRUE'
+ORDER BY 
+    year DESC,
+    category ASC;
+
+/* Final iteration */
+SELECT 
+    category,
+    movie,
+    nominee,
+    year
+FROM oscar_nominees
+WHERE year BETWEEN 2001 AND 2009
+    AND winner = TRUE
+ORDER BY 
+    year DESC,
+    category ASC;
+
+############################
+
+############################
