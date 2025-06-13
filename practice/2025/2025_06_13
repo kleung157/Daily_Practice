@@ -1,0 +1,393 @@
+Date: 06/13/2025
+
+############################
+
+Website:
+DataLemur
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Signup Activation Rate - TikTok SQL Interview Question
+New TikTok users sign up with their emails. 
+They confirmed their signup by replying to the text confirmation to activate their accounts. 
+Users may receive multiple text messages for account confirmation until they have confirmed their new account.
+A senior analyst is interested to know the activation rate of specified users in the emails table. 
+Write a query to find the activation rate. Round the percentage to 2 decimal places.
+Definitions:
+emails table contain the information of user signup details.
+texts table contains the users' activation information.
+Assumptions:
+The analyst is interested in the activation rate of specific users in the emails table, which may not include all users that could potentially be found in the texts table.
+For example, user 123 in the emails table may not be in the texts table and vice versa.
+Explanation:
+67% of users have successfully completed their signup and activated their accounts. 
+The remaining 33% have not yet replied to the text to confirm their signup.
+
+Data Dictionary:
+Table name = 'emails'
+email_id: integer(int)
+user_id: intger(int)
+signup_date: datetime(dt)
+Table name = 'texts'
+text_id: integer(int)
+email_id: integer(int)
+signup_action: varchar(str)
+
+Code:
+Solution #1
+/* SELECT to preview data */
+SELECT * FROM emails;
+SELECT * FROM texts;
+
+/* JOIN tables */
+SELECT 
+    e.email_id,
+    e.user_id,
+    t.signup_action,
+    t.text_id
+FROM emails as e
+LEFT JOIN texts AS t
+    ON e.email_id = t.email_id
+
+/* Users sign up with emails, confirm signup by replying to text confirmation to 
+activate their accounts. */
+/* Users may recieve multiple text messages for account confirmation until they 
+confirm their new account */
+/* Activation rate of specified user in the emails table. */
+/* Activation rate of specific users in emails table, may not include all users
+that could be found in the texts table */
+/* Output: confirm_rate, round percentage to 2 decimal */
+
+/* Iter 1 */
+SELECT 
+    COUNT(t.signup_action),
+    COUNT(signup_action) FILTER (WHERE signup_action = 'Confirmed'),
+    COUNT(signup_action) FILTER (WHERE signup_action = 'Not Confirmed'),
+    COUNT(signup_action) FILTER (WHERE signup_action ISNULL)
+FROM emails AS e
+LEFT JOIN texts AS t
+    ON e.email_id = t.email_id;
+    
+/* Iter 2 */
+SELECT 
+    COUNT(user_id),
+    COUNT(user_id) FILTER (WHERE signup_action = 'Confirmed'),
+    COUNT(user_id) FILTER (WHERE signup_action = 'Not Confirmed'),
+    COUNT(user_id) FILTER (WHERE signup_action ISNULL)
+FROM emails as e
+LEFT JOIN texts AS t
+    ON e.email_id = t.email_id;
+
+/* Iter 3 */
+SELECT
+    COUNT(user_id),
+    COUNT(user_id) FILTER (WHERE signup_action = 'Confirmed'),
+    COUNT(user_id) FILTER (WHERE signup_action = 'Not Confirmed' OR signup_action IS NULL)
+FROM emails AS e
+LEFT JOIN texts AS t
+    ON e.email_id = t.email_id;;
+
+/* Iter 4 */
+SELECT 
+    ROUND(
+        COUNT(user_id) FILTER (WHERE signup_action = 'Confirmed')::DECIMAL /
+        COUNT(user_id)
+        , 2) AS activation_rate
+FROM emails as e
+LEFT JOIN texts AS t
+    ON e.email_id = t.email_id;
+
+/* Final iteration */
+SELECT 
+    ROUND(
+        COUNT(DISTINCT e.user_id) FILTER (WHERE t.signup_action = 'Confirmed')::DECIMAL /
+        COUNT(DISTINCT e.user_id)
+        , 2) AS activation_rate
+FROM emails as e
+LEFT JOIN texts AS t
+    ON e.email_id = t.email_id;
+
+Solution #2 (better performance)
+SELECT
+    ROUND(COUNT(DISTINCT texts.email_id)::DECIMAL / COUNT(DISTINCT emails.email_id), 2) AS activation_rate
+FROM emails
+LEFT JOIN texts
+    ON emails.email_id = texts.email_id
+    AND texts.signup_action = 'Confirmed';
+
+############################
+
+Website:
+StrataScratch - ID 9688
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+City of Los Angeles - Churro Activity Date
+Find the inspection date and risk category (pe_description) of facilities named 'STREET CHURROS' that received a score below 95.
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+activity_date: date(dt)
+employee_id: text(str)
+facility_address: text(str)
+facility_city: text(str)
+facility_id: text(str)
+facility_name: text(str)
+facility_state: text(str)
+facility_zip: text(str)
+grade: text(str)
+owner_id: text(str)
+owner_name: text(str)
+pe_description: text(str)
+program_element_pe: bigint(int)
+program_name: text(str)
+program_status: text(str)
+record_id: text(str)
+score: bigint(int)
+serial_number: text(str)
+service_code: bigint(int)
+service_description: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM los_angeles_restaurant_health_inspections LIMIT 5;
+
+/* Inspection date and risk category (pe_description) of facilities named
+'STREET CHURROS' that recieved a score below 95 */
+/* Output: activity_date, pe_description */
+SELECT 
+*
+FROM los_angeles_restaurant_health_inspections
+WHERE facility_name = 'STREET CHURROS'
+    AND score < 95;
+    
+/* Final iteration */
+SELECT 
+    activity_date,
+    pe_description
+FROM los_angeles_restaurant_health_inspections
+WHERE facility_name = 'STREET CHURROS'
+    AND score < 95
+ORDER BY activity_date DESC;
+
+############################
+
+Website:
+StrataScratch - ID 9689
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+City of Los Angeles - Inspection For Glassell Coffee Shop
+Find all inspection details made for facilities owned by 'GLASSELL COFFEE SHOP LLC'.
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+activity_date: date(dt)
+employee_id: text(str)
+facility_address: text(str)
+facility_city: text(str)
+facility_id: text(str)
+facility_name: text(str)
+facility_state: text(str)
+facility_zip: text(str)
+grade: text(str)
+owner_id: text(str)
+owner_name: text(str)
+pe_description: text(str)
+program_element_pe: bigint(int)
+program_name: text(str)
+program_status: text(str)
+record_id: text(str)
+score: bigint(int)
+serial_number: text(str)
+service_code: bigint(int)
+service_description: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM los_angeles_restaurant_health_inspections LIMIT 5;
+
+/* Inspection details for facilities owned by 'GLASSELL COFFEE SHOP LLC' */
+/* Output: all columns */
+SELECT *
+FROM los_angeles_restaurant_health_inspections
+WHERE owner_name = 'GLASSELL COFFEE SHOP LLC';
+
+/* Final Iteration */
+SELECT 
+    activity_date,
+    employee_id,
+    facility_address,
+    facility_city,
+    facility_id,
+    facility_name,
+    facility_state,
+    facility_zip,
+    grade,
+    owner_id,
+    owner_name,
+    pe_description,
+    program_element_pe,
+    program_name,
+    program_status,
+    record_id,
+    score,
+    serial_number,
+    service_code,
+    service_description
+FROM los_angeles_restaurant_health_inspections
+WHERE owner_name = 'GLASSELL COFFEE SHOP LLC';
+
+############################
+
+Website:
+StrataScratch - ID 9690
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+City of Los Angeles - Find all routine inspections where high-risk issues were found
+Find all routine inspections where high-risks issues were found.
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+activity_date: date(dt)
+employee_id: text(str)
+facility_address: text(str)
+facility_city: text(str)
+facility_id: text(str)
+facility_name: text(str)
+facility_state: text(str)
+facility_zip: text(str)
+grade: text(str)
+owner_id: text(str)
+owner_name: text(str)
+pe_description: text(str)
+program_element_pe: bigint(int)
+program_name: text(str)
+program_status: text(str)
+record_id: text(str)
+score: bigint(int)
+serial_number: text(str)
+service_code: bigint(int)
+service_description: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM los_angeles_restaurant_health_inspections LIMIT 5;
+
+/* All routine inspections where high-risk issues were found */
+/* service_description, pe_description = HIGH RISK
+/* Output: all columns */
+SELECT
+*
+FROM los_angeles_restaurant_health_inspections
+WHERE service_description = 'ROUTINE INSPECTION'
+    AND pe_description LIKE '%HIGH RISK%';
+
+/* Final iteration */
+SELECT 
+    activity_date,
+    employee_id,
+    facility_address,
+    facility_city,
+    facility_id,
+    facility_name,
+    facility_state,
+    facility_zip,
+    grade,
+    owner_id,
+    owner_name,
+    pe_description,
+    program_element_pe,
+    program_name,
+    program_status,
+    record_id,
+    score,
+    serial_number,
+    service_code,
+    service_description
+FROM los_angeles_restaurant_health_inspections
+WHERE service_description = 'ROUTINE INSPECTION'
+    AND pe_description LIKE '%HIGH RISK%';
+
+############################
+
+Website:
+StrataScratch - ID 9691
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+City of Los Angeles- Facility Zip Codes
+Find all facilities with the zip code 90049, 90034, or 90045.
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+activity_date: date(dt)
+employee_id: text(str)
+facility_address: text(str)
+facility_city: text(str)
+facility_id: text(str)
+facility_name: text(str)
+facility_state: text(str)
+facility_zip: text(str)
+grade: text(str)
+owner_id: text(str)
+owner_name: text(str)
+pe_description: text(str)
+program_element_pe: bigint(int)
+program_name: text(str)
+program_status: text(str)
+record_id: text(str)
+score: bigint(int)
+serial_number: text(str)
+service_code: bigint(int)
+service_description: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM los_angeles_restaurant_health_inspections LIMIT 5;
+
+/* All facilities with zipcodes 90049, 90034, or 90045 */
+/* Output: all facility columns */
+SELECT *
+FROM los_angeles_restaurant_health_inspections
+WHERE facility_zip IN ('90049', '90034', '90045');
+
+/* Final iteration */
+SELECT 
+    facility_address,
+    facility_city,
+    facility_id,
+    facility_name,
+    facility_state,
+    facility_zip
+FROM los_angeles_restaurant_health_inspections
+WHERE facility_zip IN ('90049', '90034', '90045')
+ORDER BY facility_zip DESC;
+
+############################
