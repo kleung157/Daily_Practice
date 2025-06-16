@@ -1,0 +1,535 @@
+Date: 06/16/2025
+
+############################
+
+Website:
+StrataScratch - ID 9693
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+City of Los Angeles - Find the average score for grades A, B, and C
+Find the average score for grades A, B, and C.
+Output the results along with the corresponding grade (ex: 'A', avg(score)).
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+activity_date: date(dt)
+employee_id: text(str)
+facility_address: text(str)
+facility_city: text(str)
+facility_id: text(str)
+facility_name: text(str)
+facility_state: text(str)
+facility_zip: text(str)
+grade: text(str)
+owner_id: text(str)
+owner_name: text(str)
+pe_description: text(str)
+program_element_pe: bigint(int)
+program_name: text(str)
+program_status: text(str)
+record_id: text(str)
+score: bigint(int)
+serial_number: text(str)
+service_code: bigint(int)
+service_description: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM los_angeles_restaurant_health_inspections;
+
+/* Average score for grades A, B, and C*/
+/* Output: AVG score, grade */
+SELECT 
+    grade,
+    AVG(score) as score_avg
+FROM los_angeles_restaurant_health_inspections
+WHERE grade IN ('A', 'B', 'C')
+GROUP BY grade
+ORDER BY grade ASC;
+
+/* Final iteration */
+SELECT 
+    grade,
+    AVG(score) as score_avg
+FROM los_angeles_restaurant_health_inspections
+WHERE grade IN ('A', 'B', 'C')
+GROUP BY grade
+ORDER BY grade ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9696
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+City of Los Angeles - Check if record_id is unique for every row
+Check if record_id is unique for every row.
+Output the total record ids and total unique record ids for comparison.
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+activity_date: date(dt)
+employee_id: text(str)
+facility_address: text(str)
+facility_city: text(str)
+facility_id: text(str)
+facility_name: text(str)
+facility_state: text(str)
+facility_zip: text(str)
+grade: text(str)
+owner_id: text(str)
+owner_name: text(str)
+pe_description: text(str)
+program_element_pe: bigint(int)
+program_name: text(str)
+program_status: text(str)
+record_id: text(str)
+score: bigint(int)
+serial_number: text(str)
+service_code: bigint(int)
+service_description: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM los_angeles_restaurant_health_inspections;
+
+/* Check if record_id is unique for every row*/
+/* Output: Total record ids, total unique record ids*/
+SELECT
+    COUNT(record_id) AS record_id_count,
+    COUNT(DISTINCT record_id) AS unique_record_id_count
+FROM los_angeles_restaurant_health_inspections;
+
+/* Final iteration */
+SELECT
+    COUNT(record_id) AS record_id_count,
+    COUNT(DISTINCT record_id) AS unique_record_id_count
+FROM los_angeles_restaurant_health_inspections;
+
+############################
+
+Website:
+StrataScratch - ID 9697
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+City of Los Angeles - BAKERY' Owned Facilities
+Find the owner_name and the pe_description of facilities owned by 'BAKERY' where low-risk cases have been reported.
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+activity_date: date(dt)
+employee_id: text(str)
+facility_address: text(str)
+facility_city: text(str)
+facility_id: text(str)
+facility_name: text(str)
+facility_state: text(str)
+facility_zip: text(str)
+grade: text(str)
+owner_id: text(str)
+owner_name: text(str)
+pe_description: text(str)
+program_element_pe: bigint(int)
+program_name: text(str)
+program_status: text(str)
+record_id: text(str)
+score: bigint(int)
+serial_number: text(str)
+service_code: bigint(int)
+service_description: text(str)
+
+Code:
+Solution #1 (ILIKE in PostgreSQL, user LOWER() or UPPER() in MYSQL or SQLServer)
+SELECT 
+    owner_name,
+    pe_description
+FROM los_angeles_restaurant_health_inspections
+WHERE owner_name LIKE '%BAKERY%'
+    AND pe_description LIKE '%LOW RISK%';
+    
+/* Final iteration */
+SELECT 
+    owner_name,
+    pe_description
+FROM los_angeles_restaurant_health_inspections
+WHERE owner_name ILIKE '%BAKERY%'
+    AND pe_description ILIKE '%LOW RISK%'
+ORDER BY owner_name ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9702
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+City of Los Angeles - Number Of Unique Facilities And Inspections Per Municipality
+Count the number of unique facilities per municipality zip code along with the number of inspections.
+Output the result along with the number of inspections per each municipality zip code. 
+Sort the result based on the number of inspections in descending order.
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+activity_date: date(dt)
+employee_id: text(str)
+facility_address: text(str)
+facility_city: text(str)
+facility_id: text(str)
+facility_name: text(str)
+facility_state: text(str)
+facility_zip: text(str)
+grade: text(str)
+owner_id: text(str)
+owner_name: text(str)
+pe_description: text(str)
+program_element_pe: bigint(int)
+program_name: text(str)
+program_status: text(str)
+record_id: text(str)
+score: bigint(int)
+serial_number: text(str)
+service_code: bigint(int)
+service_description: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM los_angeles_restaurant_health_inspections;
+
+/* Count number of unique facilities per zip code along with number of inspections */
+/* Output: COUNT DISTINCT facility_id, facility_zip, COUNT record_id,
+ORDER BY number of inspections DESC */
+SELECT 
+    facility_zip,
+    COUNT (DISTINCT facility_id) AS unique_facilities_count,
+    COUNT (record_id) AS inspections_count
+FROM los_angeles_restaurant_health_inspections
+GROUP BY facility_zip
+ORDER BY facility_zip ASC;
+
+/* Final iteration */
+SELECT 
+    facility_zip,
+    COUNT (DISTINCT facility_id) AS unique_facilities_count,
+    COUNT (record_id) AS inspection_count
+FROM los_angeles_restaurant_health_inspections
+GROUP BY facility_zip
+ORDER BY inspection_count DESC;
+
+############################
+
+Website:
+StrataScratch - ID 9703
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+City of Los Angeles - Find the most common grade earned by bakeries
+Find the most common grade earned by bakeries.
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+activity_date: date(dt)
+employee_id: text(str)
+facility_address: text(str)
+facility_city: text(str)
+facility_id: text(str)
+facility_name: text(str)
+facility_state: text(str)
+facility_zip: text(str)
+grade: text(str)
+owner_id: text(str)
+owner_name: text(str)
+pe_description: text(str)
+program_element_pe: bigint(int)
+program_name: text(str)
+program_status: text(str)
+record_id: text(str)
+score: bigint(int)
+serial_number: text(str)
+service_code: bigint(int)
+service_description: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM los_angeles_restaurant_health_inspections;
+/* Find the most common grade by bakeries */
+/* Output: */
+SELECT
+    facility_name,
+    grade,
+    owner_name
+FROM los_angeles_restaurant_health_inspections
+WHERE facility_name ILIKE '%bakery%'
+    OR facility_name ILIKE '%baking%'
+    OR owner_name ILIKE '%bakery%'
+    OR owner_name ILIKE '%baking%'
+ORDER BY grade ASC;
+    
+/* Final iteration */
+SELECT
+    grade,
+    COUNT(grade) AS grade_count
+FROM los_angeles_restaurant_health_inspections
+WHERE facility_name ILIKE '%bakery%'
+    OR facility_name ILIKE '%baking%'
+    OR owner_name ILIKE '%bakery%'
+    OR owner_name ILIKE '%baking%'
+GROUP BY grade
+ORDER BY grade_count DESC
+LIMIT 1;
+
+############################
+
+Website:
+StrataScratch - ID 9704
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+City of Los Angeles - Find the number of inspections per day
+Find the number of inspections per day.
+Output the result along with the date of the activity.
+Order results based on the activity date in the ascending order.
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+activity_date: date(dt)
+employee_id: text(str)
+facility_address: text(str)
+facility_city: text(str)
+facility_id: text(str)
+facility_name: text(str)
+facility_state: text(str)
+facility_zip: text(str)
+grade: text(str)
+owner_id: text(str)
+owner_name: text(str)
+pe_description: text(str)
+program_element_pe: bigint(int)
+program_name: text(str)
+program_status: text(str)
+record_id: text(str)
+score: bigint(int)
+serial_number: text(str)
+service_code: bigint(int)
+service_description: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM los_angeles_restaurant_health_inspections;
+
+/* Number of inspections per day */
+/* Output: COUNT record_id, activity_date, ORDER BY activity_date ASC */
+SELECT
+    activity_date,
+    COUNT(record_id) AS inspection_count
+FROM los_angeles_restaurant_health_inspections
+GROUP BY activity_date
+ORDER BY activity_date ASC;
+    
+/* Final iteration */
+SELECT
+    activity_date,
+    COUNT(record_id) AS inspection_count
+FROM los_angeles_restaurant_health_inspections
+GROUP BY activity_date
+ORDER BY activity_date ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9707
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+City of Los Angeles - Find the average of inspections scores between 91 and 100
+Find the mean of inspections scores between 91 and 100.
+Assuming that the scores are normally distributed.
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+activity_date: date(dt)
+employee_id: text(str)
+facility_address: text(str)
+facility_city: text(str)
+facility_id: text(str)
+facility_name: text(str)
+facility_state: text(str)
+facility_zip: text(str)
+grade: text(str)
+owner_id: text(str)
+owner_name: text(str)
+pe_description: text(str)
+program_element_pe: bigint(int)
+program_name: text(str)
+program_status: text(str)
+record_id: text(str)
+score: bigint(int)
+serial_number: text(str)
+service_code: bigint(int)
+service_description: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM los_angeles_restaurant_health_inspections;
+
+/* Mean inspection scores between 91 and 100, assume normal distribution */
+/* Output: */
+SELECT
+    score
+FROM los_angeles_restaurant_health_inspections
+WHERE score BETWEEN 91 AND 100
+ORDER BY score ASC;
+
+/* Final iteration */
+SELECT
+    AVG(score) as score_avg
+FROM los_angeles_restaurant_health_inspections
+WHERE score BETWEEN 91 AND 100;
+
+############################
+
+Website:
+StrataScratch - ID 9717
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+City of San Francisco - Find all businesses which have low-risk safety violations
+Find all businesses which have low-risk safety violations.
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_address: text(str)
+business_city: text(str)
+business_id: bigint(int)
+business_latitude: double precision(flt)
+business_location: text(str)
+business_longitude: double precision(flt)
+business_name: text(str)
+business_phone_number: double precision(flt)
+business_postal_code: double precision(flt)
+business_state: text(str)
+inspection_date: date(dt)
+inspection_id: text(str)
+inspection_score: double precision(flt)
+inspection_type: text(str)
+risk_category: text(str)
+violation_description: text(str)
+violation_id: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM sf_restaurant_health_violations;
+
+/* Businesses with low-risk safety violations */
+/* Output: business_name */
+SELECT
+    business_name
+FROM sf_restaurant_health_violations
+WHERE risk_category ILIKE '%Low Risk%'
+ORDER BY business_name ASC;
+
+/* Final iteration */
+SELECT
+    DISTINCT business_name
+FROM sf_restaurant_health_violations
+WHERE risk_category ILIKE '%Low Risk%'
+ORDER BY business_name ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9718
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+City of San Francisco - Find all businesses which have a phone number listed
+Find all businesses which have a phone number.
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_address: text(str)
+business_city: text(str)
+business_id: bigint(int)
+business_latitude: double precision(flt)
+business_location: text(str)
+business_longitude: double precision(flt)
+business_name: text(str)
+business_phone_number: double precision(flt)
+business_postal_code: double precision(flt)
+business_state: text(str)
+inspection_date: date(dt)
+inspection_id: text(str)
+inspection_score: double precision(flt)
+inspection_type: text(str)
+risk_category: text(str)
+violation_description: text(str)
+violation_id: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM sf_restaurant_health_violations;
+
+/* Find all businesses which have a phone number*/
+/* Output: business_name */
+SELECT 
+    business_name,
+    business_phone_number
+FROM sf_restaurant_health_violations
+WHERE business_phone_number IS NOT NULL
+ORDER by business_name ASC;
+
+/* Final iteration */
+SELECT 
+    DISTINCT business_name
+FROM sf_restaurant_health_violations
+WHERE business_phone_number IS NOT NULL
+ORDER by business_name ASC;
+
+############################
