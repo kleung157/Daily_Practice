@@ -1,0 +1,442 @@
+Date: 06/17/2025
+
+############################
+
+Website:
+StrataScratch - ID 9719
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+City of San Francisco - Find all business postal codes of restaurants with issues related to the water
+Find all business postal codes of restaurants with issues related to the water (violation description contains substring "water").
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_address: text(str)
+business_city: text(str)
+business_id: bigint(int)
+business_latitude: double precision(flt)
+business_location: text(str)
+business_longitude: double precision(flt)
+business_name: text(str)
+business_phone_number: double precision(flt)
+business_postal_code: double precision(flt)
+business_state: text(str)
+inspection_date: date(dt)
+inspection_id: text(str)
+inspection_score: double precision(flt)
+inspection_type: text(str)
+risk_category: text(str)
+violation_description: text(str)
+violation_id: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM sf_restaurant_health_violations;
+
+/* All business postal codes of restaurants with issues related to water
+violation description contains substring 'water' */
+/* Output: Business_postal_code */
+SELECT
+    DISTINCT business_postal_code
+FROM sf_restaurant_health_violations
+WHERE violation_description ILIKE '%water%';
+
+/* Final iteration */
+SELECT
+    DISTINCT business_postal_code
+FROM sf_restaurant_health_violations
+WHERE violation_description ILIKE '%water%';
+
+############################
+
+Website:
+StrataScratch - ID 9720
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+City of San Francisco - Find the business names that have inspection scores of less than 50
+Find the business names that scored less than 50 in inspections.
+Output the result along with the corresponding inspection date and the score.
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_address: text(str)
+business_city: text(str)
+business_id: bigint(int)
+business_latitude: double precision(flt)
+business_location: text(str)
+business_longitude: double precision(flt)
+business_name: text(str)
+business_phone_number: double precision(flt)
+business_postal_code: double precision(flt)
+business_state: text(str)
+inspection_date: date(dt)
+inspection_id: text(str)
+inspection_score: double precision(flt)
+inspection_type: text(str)
+risk_category: text(str)
+violation_description: text(str)
+violation_id: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM sf_restaurant_health_violations;
+
+/* Business names that scored less than 50 in inspections */
+/* Output: business_name, inspection_date, inspection_score */
+SELECT
+    business_name,
+    inspection_date,
+    inspection_score
+FROM sf_restaurant_health_violations
+WHERE inspection_score < 50
+ORDER BY business_name ASC;
+
+/* Final iteration */
+SELECT
+    DISTINCT business_name,
+    inspection_date,
+    inspection_score
+FROM sf_restaurant_health_violations
+WHERE inspection_score < 50
+ORDER BY business_name ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9721
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+City of San Francisco - Find All Inspections Made On Restaurants
+Find all inspections made on restaurants and output the business name and the inspection score. 
+For this question business is considered as a restaurant if it contains string "restaurant" inside its name.
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_address: text(str)
+business_city: text(str)
+business_id: bigint(int)
+business_latitude: double precision(flt)
+business_location: text(str)
+business_longitude: double precision(flt)
+business_name: text(str)
+business_phone_number: double precision(flt)
+business_postal_code: double precision(flt)
+business_state: text(str)
+inspection_date: date(dt)
+inspection_id: text(str)
+inspection_score: double precision(flt)
+inspection_type: text(str)
+risk_category: text(str)
+violation_description: text(str)
+violation_id: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM sf_restaurant_health_violations;
+
+/* All inspections made on restaurants. Business is considered
+as a restaurant if it contains string 'restaurant' in it's name */
+/* Output: business_name, inspection_score */
+SELECT 
+    business_name,
+    inspection_score
+FROM sf_restaurant_health_violations
+WHERE business_name ILIKE '%restaurant%'
+    AND inspection_score IS NOT NULL
+ORDER BY business_name ASC;
+
+/* Final iteration */
+SELECT 
+    business_name,
+    inspection_score
+FROM sf_restaurant_health_violations
+WHERE business_name ILIKE '%restaurant%'
+    AND inspection_score IS NOT NULL
+ORDER BY business_name ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9728
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+City of San Francisco - Number of violations
+You are given a dataset of health inspections that includes details about violations. 
+Each row represents an inspection, and if an inspection resulted in a violation, the violation_id column will contain a value.
+Count the total number of violations that occurred at 'Roxanne Cafe' for each year, based on the inspection date. 
+Output the year and the corresponding number of violations in ascending order of the year.
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_address: text(str)
+business_city: text(str)
+business_id: bigint(int)
+business_latitude: double precision(flt)
+business_location: text(str)
+business_longitude: double precision(flt)
+business_name: text(str)
+business_phone_number: double precision(flt)
+business_postal_code: double precision(flt)
+business_state: text(str)
+inspection_date: date(dt)
+inspection_id: text(str)
+inspection_score: double precision(flt)
+inspection_type: text(str)
+risk_category: text(str)
+violation_description: text(str)
+violation_id: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM sf_restaurant_health_violations;
+
+/* Violation_id represents an inspection row and contains a value.
+Count total number of violations occured at 'Roxanne Cafe' for each
+year based on inspection date. */
+/* Output: Year, Number of violations, Order by Year ASC */
+SELECT 
+    EXTRACT(YEAR FROM inspection_date) AS Year,
+    violation_id
+FROM sf_restaurant_health_violations
+WHERE business_name = 'Roxanne Cafe'
+ORDER BY Year ASC;
+
+/* Final iteration */
+SELECT 
+    EXTRACT(YEAR FROM inspection_date) AS Year,
+    COUNT(violation_id) AS violation_count
+FROM sf_restaurant_health_violations
+WHERE business_name = 'Roxanne Cafe'
+GROUP BY Year
+ORDER BY Year ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9749
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+City of San Francisco - Find the most dangerous places in SF
+Find the most dangerous places in SF based on the crime count per address and district combination.
+Output the number of incidents alongside the corresponding address and the district.
+Order records based on the number of occurrences in descending order.
+
+Data Dictionary:
+Table name = 'sf_crime_incidents_2014_01'
+address: text(str)
+category: text(str)
+date: date(dt)
+day_of_week: text(str)
+descript: text(str)
+id: bigint(int)
+incidnt_num: double precision(flt)
+lat: double precision(flt)
+location: text(str)
+lon: double precision(flt)
+pd_district: text(str)
+resolution: text(str)
+time: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM sf_crime_incidents_2014_01;
+
+/* Find most dangerous places in SF based on crime count per address
+and district combination. */
+/* Output: Number of incidents, address, district, ORDER by incidences DESC*/
+SELECT 
+    incidnt_num,
+    address
+    pd_district
+FROM sf_crime_incidents_2014_01;
+
+/* Final iteration */
+SELECT 
+    COUNT(incidnt_num) AS incident_count,
+    address,
+    pd_district
+FROM sf_crime_incidents_2014_01
+GROUP BY address, pd_district
+ORDER BY 
+    incident_count DESC,
+    pd_district ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9757
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Audible, Spotify - Find the genres that yielded the highest sales
+Find the genres that yielded the highest sales.
+Output the genre alongside its total sales.
+Order results based on the total sales in descending order.
+
+Data Dictionary:
+Table name = 'global_weekly_charts_2013_2014'
+game: text(str)
+genre: text(str)
+id: bigint(int)
+platform: text(str)
+pos: bigint(int)
+publisher: text(str)
+total: bigint(int)
+week: bigint(int)
+week_ending: date(dt)
+weekly: bigint(int)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM global_weekly_charts_2013_2014;
+
+/* Find genres that yielded the highest sales. */
+/* Output: Genre, total sales, ORDER BY total sales DESC */
+SELECT 
+    genre,
+    total
+FROM global_weekly_charts_2013_2014
+ORDER BY total DESC;
+
+/* Final iteration */
+SELECT 
+    genre,
+    SUM(total) AS total_sum
+FROM global_weekly_charts_2013_2014
+GROUP BY genre
+ORDER BY total_sum DESC;
+
+############################
+
+Website:
+StrataScratch - ID 9758
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Audible, Spotify - Find the best publishers based on total sales
+Find the best publishers based on total sales made by each publisher.
+Output publishers alongside their total sales.
+Order records based on the sales in descending order.
+
+Data Dictionary:
+Table name = 'global_weekly_charts_2013_2014'
+game: text(str)
+genre: text(str)
+id: bigint(int)
+platform: text(str)
+pos: bigint(int)
+publisher: text(str)
+total: bigint(int)
+week: bigint(int)
+week_ending: date(dt)
+weekly: bigint(int)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM global_weekly_charts_2013_2014;
+
+/* Find best publishers based on total sales made by each publisher */
+/* Output: publisher, total sales, order by sales DESC */
+SELECT 
+    publisher,
+    total
+FROM global_weekly_charts_2013_2014
+ORDER BY total DESC;
+
+/* Final iteration */
+SELECT 
+    publisher,
+    SUM(total) as total_sum
+FROM global_weekly_charts_2013_2014
+GROUP BY publisher
+ORDER BY total_sum DESC;
+
+############################
+
+Website:
+StrataScratch - ID 9760
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Airbnb - Find the number of people on Airbnb
+Find the number of people that made a search on Airbnb.
+
+Data Dictionary:
+Table name = 'airbnb_searches'
+ds: date(dt)
+ds_checkin: date(dt)
+ds_checkout: date(dt)
+filter_neighborhoods: text(str)
+filter_price_max: double precision(flt)
+filter_price_min: double precision(flt)
+filter_room_types: text(str)
+id_user: text(str)
+n_guests_max: bigint(int)
+n_guests_min: bigint(int)
+n_nights: double precision(flt)
+n_searches: bigint(int)
+origin_county: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM airbnb_searches;
+
+/* Find number of people that made a search on Airbnb */
+/* Output: id_user */
+SELECT
+    id_user,
+    n_searches
+FROM airbnb_searches;
+
+/* Final iteration */
+SELECT
+    COUNT(DISTINCT id_user) as unique_user_count
+FROM airbnb_searches
+WHERE n_searches IS NOT NULL;
+
+############################
