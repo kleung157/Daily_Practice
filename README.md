@@ -2,3 +2,4 @@
 - Daily practice
 - Exercises from various courses starting from the beginning of my data analyst career.
 - Some of these may include mini projects.
+- Course lecture notes
