@@ -1,0 +1,464 @@
+Date: 06/18/2025
+
+############################
+
+Website:
+StrataScratch - 2002
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+MetLife - Submission Types - 
+Write a query that returns the user ID of all users that have created at least one ‘Refinance’ submission and at least one ‘InSchool’ submission.
+
+Data Dictionary:
+Table name = 'loans'
+id: int64(int)
+user_id: int64(int)
+created_at: datetime64(dt)
+status: object(str)
+type: object(str)
+
+Code:
+# Import libraries
+import pandas as pd
+
+# Preview data
+data = loans
+loans_df = pd.DataFrame(data)
+#print(loans_df.head(5))
+
+# User ids for 'Refinance' and 'InSchool'
+refinance_users = loans_df[loans_df['type'] == 'Refinance']['user_id'].unique()
+inschool_users = loans_df[loans_df['type'] == 'InSchool']['user_id'].unique()
+
+# Intersection of two sets of user ids
+result_user_ids = pd.Series(list(set(refinance_users) & set(inschool_users)))
+
+# Question: Return user_id of all users that have created at least one 'Refinance' submission
+# and at least one 'InSchool' submission
+# Output: user_id
+# Final iteration
+print("User IDS that have created at least one 'Refinance' and at least one 'InSchool' submission")
+result_user_ids
+
+# Check solution
+#print(loans_df[loans_df['user_id'] == 108])
+
+############################
+
+Website:
+StrataScratch - ID 2004
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+Meta - Number of Comments Per User in 30 days before 2020-02-10
+Return the total number of comments received for each user in the 30 or less days before 2020-02-10. 
+Don't output users who haven't received any comment in the defined time period.
+
+Data Dictionary:
+Table name = 'fb_comments_count'
+user_id: int64(int)
+created_at: datetime64(dt)
+number_of_comments: int64(int)
+
+Code:
+Solution #1
+# Import libraries
+import pandas as pd
+
+# Preview data
+data = fb_comments_count
+df = pd.DataFrame(fb_comments_count)
+#print(df.head(5))
+
+# Ensure correct date format 
+df['created_at'] = pd.to_datetime(df['created_at'])
+
+# Filter DataFrame for specific date range
+filtered_df = df[
+    (df['created_at'] <= '2020-02-10') &
+    (df['created_at'] >= '2020-01-11')
+]
+
+# Group by 'user_id' and sum 'number_of_comments'
+total_comments_per_user = filtered_df.groupby('user_id')['number_of_comments'].sum()
+total_comments_per_user_df = total_comments_per_user.reset_index()
+
+# Question: Return total number of comments recieved for each user in the 30 or less days before
+# 2020-02-10. Don't output users who haven't recieved any comments in defined time period.
+# Output: 
+# Final iteration
+print("Total number of comments recieved for each user in the 30 or less days before 2020-02-10.")
+total_comments_per_user_df
+
+# Check solution
+#print(filtered_df)
+
+Solution #2
+import pandas as pd
+
+# 1. Create a sample DataFrame (replace this with your actual 'fb_comments_count' data)
+# Ensure 'created_at' is datetime type
+data = {
+    'user_id': [101, 102, 101, 103, 102, 101, 104, 105, 103, 106, 107, 108, 101],
+    'created_at': [
+        '2020-02-09', '2020-02-01', '2020-01-15', '2020-01-10',
+        '2020-02-10', '2020-01-20', '2020-02-05', '2020-01-25',
+        '2020-02-11', '2020-01-01', '2019-12-30', '2020-02-08', '2020-02-10' # User 108 within range
+    ],
+    'number_of_comments': [5, 10, 3, 2, 8, 7, 12, 4, 6, 1, 9, 15, 2]
+}
+df = pd.DataFrame(data)
+
+# Ensure 'created_at' is in datetime format
+df['created_at'] = pd.to_datetime(df['created_at'])
+
+print("Original DataFrame:")
+print(df)
+print("-" * 30)
+
+# 2. Define the end date and calculate the start date for the 30-day period
+end_date = pd.to_datetime('2020-02-10')
+start_date = end_date - pd.Timedelta(days=30)
+
+print(f"Filtering comments between {start_date.strftime('%Y-%m-%d')} and {end_date.strftime('%Y-%m-%d')}")
+print("-" * 30)
+
+# 3. Filter the DataFrame for the specified date range
+# We use .between() for cleaner date range filtering.
+# Inclusive=True (default) means it includes comments on the start_date and end_date.
+# The problem states "30 or less days before 2020-02-10", so '2020-02-10' is the upper bound.
+# The 30 days before '2020-02-10' would be '2020-01-11'.
+filtered_df = df[df['created_at'].between(start_date, end_date)]
+
+# 4. Group by user_id and sum the number_of_comments
+# Since we filtered first, only users with comments in the period will be included.
+total_comments_per_user = filtered_df.groupby('user_id')['number_of_comments'].sum()
+
+# Reset index to make 'user_id' a regular column if desired, otherwise it will be the index
+total_comments_per_user = total_comments_per_user.reset_index()
+
+# The problem states "Don't output users who haven't received any comment in the defined time period."
+# The groupby().sum() operation naturally handles this, as users with zero comments in the filtered_df
+# won't appear in the `total_comments_per_user` Series/DataFrame.
+
+print("Total number of comments received for each user in the 30 or less days before 2020-02-10:")
+print(total_comments_per_user)
+
+############################
+
+Website:
+StrataScratch - ID 9765
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Meta - List all interactions of user wth id 4 on either day 0 or 2
+List all interactions of user with id 4 on either day 0 or 2.
+
+Data Dictionary:
+Table name = 'facebook_user_interactions'
+day: bigint(int)
+user1: bigint(int)
+user2: bigint(int)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM facebook_user_interactions LIMIT 10;
+
+/* Question: List all interactions of user with id 4 on either day 0 or 2 */
+/* Output: All columns */
+SELECT
+    day,
+    user1,
+    user2
+FROM facebook_user_interactions
+WHERE user1 = 4 
+    OR user2 = 4
+    AND DAY = 0 
+    OR DAY = 2;
+
+/* Final iteration */
+SELECT
+    day,
+    user1,
+    user2
+FROM facebook_user_interactions
+WHERE (user1 = 4 OR user2 = 4)
+    AND (DAY = 0 OR DAY = 2);
+
+############################
+
+Website:
+StrataScratch - ID 9766
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Meta - Find the complaint id for the processed complaints of type 1
+Find the complaint id for the processed complaints of type 1.
+
+Data Dictionary:
+Table name = 'facebook_complaints'
+complaint_id: bigint(int)
+processed: boolean(bool)
+type: bigint(int)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM facebook_complaints;
+
+/* Question: Find complaint id for processed complaints of type 1 */
+/* Output: complaint_id */
+SELECT 
+    complaint_id,
+    processed,
+    type
+FROM facebook_complaints
+WHERE processed = TRUE
+    AND type = 1;
+
+/* Final iteration */
+SELECT 
+    complaint_id
+FROM facebook_complaints
+WHERE processed = TRUE
+    AND type = 1;
+
+############################
+
+Website:
+StrataScratch - ID 9767
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Meta - Find all messages which have references to either user 2 or 3
+Find all messages which have references to either user 2 or 3.
+
+Data Dictionary:
+Table name = 'facebook_messages_sent'
+message_id: bigint(int)
+sender: bigint(int)
+text: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM facebook_messages_sent LIMIT 10;
+
+/* Question: Find all messages that have references to either user 2 or 3 */
+/* Output: text */
+SELECT
+    message_id,
+    sender,
+    text
+FROM facebook_messages_sent
+WHERE text ILIKE '%User 2%'
+    OR text ILIKE '%User 3%';
+
+/* Final iteration */
+SELECT
+    message_id
+FROM facebook_messages_sent
+WHERE text ILIKE '%User 2%'
+    OR text ILIKE '%User 3%';
+
+############################
+
+Website:
+StrataScratch - ID 9768
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Meta - Posts with 'nba' substring in keyword
+Find all posts with a keyword that contains 'nba' substring. For such rows output all columns.
+
+Data Dictionary:
+Table name = 'facebook_posts'
+post_date: date(dt)
+post_id: bigint(int)
+post_keywords: text(str)
+post_text: text(str)
+poster: bigint(int)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM facebook_posts LIMIT 10;
+
+/* Question: All posts with a keyword that contains 'nba' substring. */
+/* Output: All columns */
+SELECT
+    post_date,
+    post_id,
+    post_keywords,
+    post_text,
+    poster
+FROM facebook_posts
+WHERE post_keywords ILIKE '%nba%';
+
+/* Final iteration */
+SELECT
+    post_date,
+    post_id,
+    post_keywords,
+    post_text,
+    poster
+FROM facebook_posts
+WHERE post_keywords ILIKE '%nba%';
+
+############################
+
+Website:
+StrataScratch - ID 9769
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Meta - Find all users who liked a post
+Find all users who liked one or more posts
+
+Data Dictionary:
+Table name = 'facebook_reactions'
+date_day: bigint(int)
+friend: bigint(int)
+post_id: bigint(int)
+poster: bigint(int)
+reaction: text(str)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM facebook_reactions LIMIT 10;
+
+/* Question: Find all users who liked one or more posts */
+/* Output: friend */
+SELECT
+    friend,
+    reaction
+FROM facebook_reactions
+WHERE reaction = 'like'
+ORDER BY friend ASC;
+
+/* Final iteration */
+SELECT
+    DISTINCT friend
+FROM facebook_reactions
+WHERE reaction = 'like'
+ORDER BY friend ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9770
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Meta - Find the number of views each post has
+Find the number of views each post has.
+Output the post id along with the number of views.
+Order records by post id in ascending order.
+
+Data Dictionary:
+Table name = 'facebook_post_views'
+post_id: bigint(int)
+viewer_id: bigint(int)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM facebook_post_views LIMIT 10;
+
+/* Question: Find number of views each post has. */
+/* Output: post_id, viewer_id, ORDER BY post_id ASC */
+SELECT
+    post_id,
+    viewer_id
+FROM facebook_post_views
+ORDER BY post_id ASC;
+
+/* Final iteration */
+SELECT
+    post_id,
+    COUNT(viewer_id) AS viewer_count 
+FROM facebook_post_views
+GROUP BY post_id
+ORDER BY post_id ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9771
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Meta - Find all actions which occurred more than once in the weblog
+Find all actions which occurred more than once in the weblog.
+
+Data Dictionary:
+Table name = 'facebook_web_log'
+action: text(str)
+timestamp: timestamp(dt)
+user_id: bigint(int)
+
+Code:
+/* SELECT to preview data */
+SELECT * FROM facebook_web_log LIMIT 10;
+
+/* Question: Find all actions which occured more than once in the weblog */
+/* Output: action */
+SELECT
+    action,
+    COUNT(action) AS action_count
+FROM facebook_web_log
+GROUP BY action
+HAVING COUNT(action) > 1
+ORDER BY action_count ASC;
+
+/* Final iteration */
+SELECT
+    action
+FROM facebook_web_log
+GROUP BY action
+HAVING COUNT(action) > 1
+ORDER BY action ASC;
+
+############################
