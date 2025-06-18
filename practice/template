@@ -17,3 +17,26 @@ Table name = ''
 Code:
 
 ############################
+
+SQL Code Format:
+/* SELECT to preview data */
+
+/* Question: */
+/* Output: */
+
+/* Final iteration */
+
+############################
+
+Python Pandas Code Format:
+# Import libraries
+
+# Preview data
+
+# Question:
+# Output:
+# Final iteration
+
+# Check solution
+
+############################
