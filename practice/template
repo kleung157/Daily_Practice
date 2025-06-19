@@ -24,6 +24,8 @@ SQL Code Format:
 
 /* SELECT to preview data */
 
+/* Iteration */
+
 /* Final iteration */
 
 ############################
@@ -36,7 +38,7 @@ Python Pandas Code Format:
 
 # Preview data
 
-# Steps
+# Iteration
 
 # Final iteration
 
