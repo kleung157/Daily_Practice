@@ -321,7 +321,7 @@ WHERE industry = 'Major Banks';
 
 ############################
 
-IBM: Skills Network Lab Exercises:
+IBM: Skills Network Lab Exercises: Joins
 
 /* Preview data */
 SELECT * FROM DEPARTMENTS LIMIT 5;
@@ -430,7 +430,7 @@ ORDER BY DEP_NAME ASC;
 
 ############################
 
-IBM: Skills Network Lab Exercises:
+IBM: Skills Network Lab Exercises: Joins Part 2
 
 /* Preview data. */
 SELECT * FROM chicago_crime LIMIT 5;
@@ -451,7 +451,7 @@ WHERE cc.COMMUNITY_AREA_NUMBER = '18';
 /* List all crimes that took place at a school. Include case number,
 crime type and community name. */
 SELECT 
-    cc.CASE_NUMBER,
+    DISTINCT cc.CASE_NUMBER,
     cc.PRIMARY_TYPE,
     csd.COMMUNITY_AREA_NAME
 FROM chicago_crime AS cc
@@ -481,3 +481,155 @@ WHERE csd.COMMUNITY_AREA_NAME IN ('Oakland', 'Armour Square', 'Edgewater', 'CHIC
 ORDER BY COMMUNITY_AREA_NUMBER DESC;
 
 ############################
+
+IBM: Skills Network Lab Exercises: Joins, Views, Stored Procedures, Transactions
+/* Preview data. */
+SELECT * FROM chicago_crime LIMIT 5;
+SELECT * FROM chicago_public_schools LIMIT 5;
+SELECT * FROM chicago_socioeconomic_data LIMIT 5;
+
+/* Write and execute a SQL query to list the school names, community names
+and average attendance for communities with a hardship index of 98. */
+SELECT
+    cps.AVERAGE_STUDENT_ATTENDANCE,
+    cps.COMMUNITY_AREA_NAME,
+    cps.NAME_OF_SCHOOL
+FROM chicago_public_schools AS cps
+JOIN chicago_socioeconomic_data AS csd
+    ON cps.COMMUNITY_AREA_NUMBER = csd.COMMUNITY_AREA_NUMBER
+WHERE csd.HARDSHIP_INDEX = '98';
+
+/* Write and execute a SQL query to list all crimes that took place at a school.
+Include case number, crime type and community name. */
+SELECT
+    cc.CASE_NUMBER,
+    cc.PRIMARY_TYPE,
+    cps.COMMUNITY_AREA_NAME
+FROM chicago_crime AS cc
+JOIN chicago_public_schools AS cps
+    ON cc.COMMUNITY_AREA_NUMBER = cps.COMMUNITY_AREA_NUMBER
+WHERE cc.LOCATION_DESCRIPTION LIKE '%SCHOOL%';
+
+/* Write and execute a SQL statement to create a view showing the columns listed
+in the following table, with new column names as shown in the second column */
+CREATE VIEW cps_view (
+    School_Name, 
+    Safety_Rating, 
+    Family_Rating, 
+    Environment_Rating, 
+    Instruction_Rating, 
+    Leaders_Rating, 
+    Teachers_Rating
+) AS
+    SELECT 
+        NAME_OF_SCHOOL,
+        Safety_Icon,
+        Family_Involvement_Icon,
+        Environment_Icon,
+        Instruction_Icon,
+        Leaders_Icon,
+        Teachers_Icon
+    FROM chicago_public_schools;
+SELECT * FROM cps_view;
+
+
+/* Write the structure of a query to create or replace a stored procedure called UPDATE_LEADERS_SCORE that takes a in_School_ID parameter as an integer and a in_Leader_Score parameter as an integer. */
+/* Inside your stored procedure, write a SQL statement to update the Leaders_Score field in the CHICAGO_PUBLIC_SCHOOLS table for the school identified by in_School_ID to the value in the in_Leader_Score parameter. */
+/* Inside your stored procedure, write a SQL IF statement to update the Leaders_Icon field in the CHICAGO_PUBLIC_SCHOOLS table for the school identified by in_School_ID using the following information. */
+/* Write a query to call the stored procedure, passing a valid school ID and a leader score of 50, to check that the procedure works as expected. */
+Score lower limit	Score upper limit	Icon
+80	99	Very strong
+60	79	Strong
+40	59	Average
+20	39	Weak
+0	19	Very weak
+
+Code: 
+DELIMITER //
+
+CREATE PROCEDURE UPDATE_LEADERS_SCORE (
+    IN School_ID INT,
+    IN Leaders_Score INT
+)
+BEGIN
+    IF Leaders_Score BETWEEN 80 AND 99 THEN
+        UPDATE chicago_public_schools
+        SET Leaders_Icon = 'Very strong'
+        WHERE School_ID = School_ID;
+    ELSEIF Leaders_Score BETWEEN 60 AND 79 THEN
+        UPDATE chicago_public_schools
+        SET Leaders_Icon = 'Strong'
+        WHERE School_ID = School_ID;
+    ELSEIF Leaders_Score BETWEEN 40 AND 59 THEN
+        UPDATE chicago_public_schools
+        SET Leaders_Icon = 'Average'
+        WHERE School_ID = School_ID;
+    ELSEIF Leaders_Score BETWEEN 20 AND 39 THEN
+        UPDATE chicago_public_schools
+        SET Leaders_Icon = 'Weak'
+        WHERE School_ID = School_ID;
+    ELSEIF Leaders_Score BETWEEN 0 AND 19 THEN
+        UPDATE chicago_public_schools
+        SET Leaders_Icon = 'Very weak'
+        WHERE School_ID = School_ID;
+    END IF;
+
+END //
+
+DELIMITER ;
+
+CALL UPDATE_LEADERS_SCORE(610038, 50);
+
+SELECT * 
+FROM chicago_public_schools
+WHERE School_ID = 610038;
+
+/* Update your stored procedure definition. Add a generic ELSE clause to the IF statement that rolls back the current work if the score did not fit any of the preceding categories. */
+/* Update your stored procedure definition again. Add a statement to commit the current unit of work at the end of the procedure. */
+/* Write and run one query to check that the updated stored procedure works as expected when you use a valid score of 38.
+Write and run another query to check that the updated stored procedure works as expected when you use an invalid score of 101. */
+Code:
+
+DELIMITER //
+CREATE PROCEDURE UPDATE_LEADERS_SCORE (
+    IN School_ID INT,
+    IN Leaders_Score INT
+)
+BEGIN
+    IF Leaders_Score BETWEEN 80 AND 99 THEN
+        UPDATE chicago_public_schools
+        SET Leaders_Icon = 'Very strong'
+        WHERE School_ID = School_ID;
+    ELSEIF Leaders_Score BETWEEN 60 AND 79 THEN
+        UPDATE chicago_public_schools
+        SET Leaders_Icon = 'Strong'
+        WHERE School_ID = School_ID;
+    ELSEIF Leaders_Score BETWEEN 40 AND 59 THEN
+        UPDATE chicago_public_schools
+        SET Leaders_Icon = 'Average'
+        WHERE School_ID = School_ID;
+    ELSEIF Leaders_Score BETWEEN 20 AND 39 THEN
+        UPDATE chicago_public_schools
+        SET Leaders_Icon = 'Weak'
+        WHERE School_ID = School_ID;
+    ELSEIF Leaders_Score BETWEEN 0 AND 19 THEN
+        UPDATE chicago_public_schools
+        SET Leaders_Icon = 'Very weak'
+        WHERE School_ID = School_ID;
+    ELSE
+        ROLLBACK;
+    END IF;
+END //
+DELIMITER ;
+
+CALL UPDATE_LEADERS_SCORE(610038, 38);
+
+SELECT School_ID, Leaders_Score, Leaders_Icon
+FROM chicago_public_schools
+WHERE School_ID = 610038;
+
+CALL UPDATE_LEADERS_SCORE(610038, 101);
+
+SELECT School_ID, Leaders_Score, Leaders_Icon
+FROM chicago_public_schools
+WHERE School_ID = 610038;
