@@ -321,3 +321,111 @@ WHERE industry = 'Major Banks';
 
 ############################
 
+IBM: Skills Network Lab Exercises:
+
+/* Preview data */
+SELECT * FROM DEPARTMENTS LIMIT 5;
+SELECT * FROM EMPLOYEES LIMIT 5;
+SELECT * FROM JOB_HISTORY LIMIT 5;
+SElECT * FROM JOBS LIMIT 5;
+
+/* Select the names and job start dates of all employees who work for the department number 5. */
+SELECT
+    e.f_name,
+    e.l_name,
+    jh.START_DATE
+FROM EMPLOYEES AS e
+JOIN JOB_HISTORY AS jh
+    ON e.EMP_ID = jh.EMPL_ID
+WHERE e.DEP_ID = '5'
+ORDER BY jh.START_DATE ASC;
+
+/* Select the names, job start dates, and job titles of all employees who work for the department number 5 */
+SELECT
+    e.f_name,
+    e.l_name,
+    j.job_title,
+    jh.start_date 
+FROM EMPLOYEES AS e
+JOIN JOB_HISTORY AS jh
+    ON e.EMP_ID = jh.EMPL_ID
+JOIN JOBS AS j
+    ON e.JOB_ID = j.JOB_IDENT
+WHERE e.DEP_ID = '5'
+ORDER BY jh.start_date ASC;
+
+/* Perform a Left Outer Join on EMPLOYEES and DEPARTMENT tables and select 
+employee id, last name, department id, and department name for all employees */
+SELECT
+    e.EMP_ID,
+    e.L_NAME,
+    e.DEP_ID,
+    d.DEP_NAME
+FROM EMPLOYEES AS e
+LEFT JOIN DEPARTMENTS AS d 
+    ON e.DEP_ID = d.DEPT_ID_DEP
+ORDER BY 
+    d.DEP_NAME ASC,
+    e.L_NAME ASC;
+    
+/* Re-write the previous query but have the result set include all the employees 
+but department names for only the employees who were born before 1980 */
+SELECT
+    e.EMP_ID,
+    e.L_NAME,
+    e.DEP_ID,
+    d.DEP_NAME
+FROM EMPLOYEES AS e
+LEFT JOIN DEPARTMENTS AS d 
+    ON e.DEP_ID = d.DEPT_ID_DEP
+WHERE YEAR(e.B_DATE) < 1980
+ORDER BY 
+    d.DEP_NAME ASC,
+    e.L_NAME ASC;
+    
+/* Perform a full join on the EMPLOYEES and DEPARTMENT tables and select
+the first name, last name, and department name of all employees */
+SELECT
+    e.F_NAME,
+    e.L_NAME,
+    d.DEP_NAME
+FROM EMPLOYEES AS e
+LEFT JOIN DEPARTMENTS AS d 
+    ON e.DEP_ID = d.DEPT_ID_DEP
+    
+UNION
+
+SELECT
+    e.F_NAME,
+    e.L_NAME,
+    d.DEP_NAME
+FROM EMPLOYEES AS e
+RIGHT JOIN DEPARTMENTS AS d 
+    ON e.DEP_ID = d.DEPT_ID_DEP;
+    
+/* Re-write the previous query but have the result set include all
+employee names but department id and department names only for male employees */
+SELECT
+    e.F_NAME,
+    e.L_NAME,
+    d.DEPT_ID_DEP,
+    d.DEP_NAME
+FROM EMPLOYEES AS e
+LEFT JOIN DEPARTMENTS AS d 
+    ON e.DEP_ID = d.DEPT_ID_DEP
+    AND e.SEX = 'M'
+    
+UNION
+
+SELECT
+    e.F_NAME,
+    e.L_NAME,
+    d.DEPT_ID_DEP,
+    d.DEP_NAME
+FROM EMPLOYEES AS e
+RIGHT JOIN DEPARTMENTS AS d 
+    ON e.DEP_ID = d.DEPT_ID_DEP
+    AND e.SEX = 'M'
+ORDER BY DEP_NAME ASC;
+
+############################
