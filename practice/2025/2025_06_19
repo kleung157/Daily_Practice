@@ -429,3 +429,55 @@ RIGHT JOIN DEPARTMENTS AS d
 ORDER BY DEP_NAME ASC;
 
 ############################
+
+IBM: Skills Network Lab Exercises:
+
+/* Preview data. */
+SELECT * FROM chicago_crime LIMIT 5;
+SELECT * FROM chicago_public_schools LIMIT 5;
+SELECT * FROM chicago_socioeconomic_data LIMIT 5;
+
+/* List the case number, type of crime and community area for all
+crimes in community area number 18. */
+SELECT 
+    cc.CASE_NUMBER,
+    cc.PRIMARY_TYPE,
+    csd.COMMUNITY_AREA_NAME
+FROM chicago_crime AS cc
+JOIN chicago_socioeconomic_data AS csd
+    ON cc.COMMUNITY_AREA_NUMBER = csd.COMMUNITY_AREA_NUMBER
+WHERE cc.COMMUNITY_AREA_NUMBER = '18';
+
+/* List all crimes that took place at a school. Include case number,
+crime type and community name. */
+SELECT 
+    cc.CASE_NUMBER,
+    cc.PRIMARY_TYPE,
+    csd.COMMUNITY_AREA_NAME
+FROM chicago_crime AS cc
+JOIN chicago_socioeconomic_data AS csd
+    ON cc.COMMUNITY_AREA_NUMBER = csd.COMMUNITY_AREA_NUMBER
+WHERE cc.LOCATION_DESCRIPTION LIKE '%SCHOOL%';
+
+/* For the communities of Oakland, Armour Square, Edgewater and
+CHICAGO list the associated community_area_numbers and the case_numbers. */
+SELECT 
+    cc.CASE_NUMBER,
+    csd.COMMUNITY_AREA_NUMBER
+FROM chicago_crime AS cc
+LEFT JOIN chicago_socioeconomic_data AS csd
+    ON cc.COMMUNITY_AREA_NUMBER = csd.COMMUNITY_AREA_NUMBER
+WHERE csd.COMMUNITY_AREA_NAME IN ('Oakland', 'Armour Square', 'Edgewater', 'CHICAGO')
+
+UNION
+
+SELECT 
+    cc.CASE_NUMBER,
+    csd.COMMUNITY_AREA_NUMBER
+FROM chicago_crime AS cc
+RIGHT JOIN chicago_socioeconomic_data AS csd
+    ON cc.COMMUNITY_AREA_NUMBER = csd.COMMUNITY_AREA_NUMBER
+WHERE csd.COMMUNITY_AREA_NAME IN ('Oakland', 'Armour Square', 'Edgewater', 'CHICAGO')
+ORDER BY COMMUNITY_AREA_NUMBER DESC;
+
+############################
