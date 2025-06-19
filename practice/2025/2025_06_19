@@ -1,0 +1,323 @@
+Date: 06/19/2025
+
+############################
+
+Website:
+StrataScratch - ID 2006
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+Meta - Users Activity Per Month Day
+Return the total number of posts made on each calendar day of the month, aggregated across all months and years (ignoring user and year).
+
+Data Dictionary:
+Table name = 'facebook_posts'
+post_id: int64(int)
+poster: int64(int)
+post_text: object(str)
+post_keywords: object(str)
+post_date: datetime64(dt)
+
+Code:
+Solution #1 (using copy(), groupby(), size(), reset_index(), dt.day)
+# Question: Return total number of posts made on each calendar day of the month,
+# aggregated across all months and years (ignoring user and year)
+# Output: total_post
+
+# Import libraries
+import pandas as pd
+
+# Preview data
+data = facebook_posts.copy()
+df = pd.DataFrame(data)
+#df.head(10)
+
+# Extract day of month
+df['day_of_month'] = df['post_date'].dt.day
+
+# Group by day of month and count posts
+post_per_day_df = df.groupby('day_of_month').size().reset_index(name='total_posts')
+
+# Final iteration
+post_per_day_df
+
+# Check solution
+#print(df[['day_of_month', 'post_id']].sort_values(by='day_of_month', ascending=True))
+
+############################
+
+Website:
+StrataScratch - ID 2009
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+Twitch - Users With Two Statuses
+Find users who are both a viewer and streamer.
+
+Data Dictionary:
+Table name = 'twitch_sessions'
+user_id: int64(int)
+session_start: datetime64(dt)
+session_end: datetime64(dt)
+session_id: int64(int)
+session_type: object(str)
+
+Code:
+Solution #1 (using unique(), pd.Series, list(), set(), sort_values(), to_frame() )
+# Question: Find users who are both a viewer and streamer
+# Output: users
+
+# Import libraries
+import pandas as pd
+
+# Preview data
+data = twitch_sessions.copy()
+df = pd.DataFrame(data)
+#df.head(10)
+
+# User IDS for 'streamer' and 'viewer'
+streamer_users = df[df['session_type'] == 'streamer']['user_id'].unique()
+viewer_users = df[df['session_type'] == 'viewer']['user_id'].unique()
+
+# Intersection of two sets of user ids
+user_ids_df = pd.Series(list(set(streamer_users) & set(viewer_users))).to_frame(name='user_id')
+
+# Final iteration
+print("User IDS who are both a viewer and streamer.")
+user_ids_df
+
+# Check solution
+# print(df[['user_id', 'session_type']].sort_values(by='user_id', ascending=True))
+
+############################
+
+Website:
+StrataScratch - ID 9774
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Meta - Find the maximum step reached for every feature
+Find the maximum step reached for every feature.
+Output the feature id along with its maximum step.
+
+Data Dictionary:
+Table name = 'facebook_product_features_realizations'
+feature_id: bigint(int)
+step_reached: bigint(int)
+timestamp: timestamp(dt)
+user_id: bigint(int)
+
+Code:
+/* Question: Find the maximum step reached for every feature */
+/* Output: feature_id, maximum_step */
+
+/* SELECT to preview data */
+SELECT * FROM facebook_product_features_realizations LIMIT 10;
+
+/* Iteration */
+SELECT
+    feature_id,
+    MAX(step_reached) as step_reached_max
+FROM facebook_product_features_realizations
+GROUP BY feature_id
+ORDER by feature_id ASC;
+
+/* Final iteration */
+SELECT
+    feature_id,
+    MAX(step_reached) as maximum_step
+FROM facebook_product_features_realizations
+GROUP BY feature_id
+ORDER by feature_id ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9780
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Meta - Find the overall friend acceptance count for a given date
+Find the overall friend acceptance count for a given date.
+Assume the date is 2nd of January 2019.
+
+Data Dictionary:
+Table name = 'facebook_friendship_requests'
+date_approved: date(dt)
+date_sent: date(dt)
+receiver: bigint(int)
+sender: bigint(int)
+
+Code:
+/* Question: Find the overall friend acceptance count for a given date.
+Assume the date is 2nd of January 2019. */
+/* Output: friend_acceptance_count */
+
+/* SELECT to preview data */
+SELECT * FROM facebook_friendship_requests LIMIT 10;
+
+/* Iteration */
+SELECT
+    COUNT(date_approved) AS date_approved_count
+FROM facebook_friendship_requests
+WHERE date_approved = '2019-01-02';
+
+/* Final iteration */
+SELECT
+    COUNT(date_approved) AS friend_acceptance_count
+FROM facebook_friendship_requests
+WHERE date_approved = '2019-01-02';
+
+############################
+
+Website:
+StrataScratch - ID 9787
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Meta - User Scroll Up Events
+Find all users that have performed at least one scroll_up event.
+
+Data Dictionary:
+Table name = 'facebook_web_log'
+action: text(str)
+timestamp: timestamp(dt)
+user_id: bigint(int)
+
+Code:
+/* Question: Find all users that have performed at least one scroll_up event. */
+/* Output: user_id */
+
+/* SELECT to preview data */
+SELECT * FROM facebook_web_log LIMIT 10;
+
+/* Iteration */
+SELECT 
+   user_id,
+   action
+FROM facebook_web_log
+WHERE action = 'scroll_up'
+ORDER BY user_id ASC;
+
+/* Final iteration */
+SELECT 
+   DISTINCT user_id
+FROM facebook_web_log
+WHERE action = 'scroll_up'
+ORDER BY user_id ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9788
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Meta - Find the total number of interactions on days 0 and 2
+Find the total number of interactions on days 0 and 2.
+Output the result alongside the day.
+
+Data Dictionary:
+Table name = 'facebook_user_interactions'
+day: bigint(int)
+user1: bigint(int)
+user2: bigint(int)
+
+Code:
+/* Question: Find the total number of interactions on days 0 and 2 */
+/* Output: result, day */
+
+/* SELECT to preview data */
+SELECT * FROM facebook_user_interactions LIMIT 10;
+
+/* Iteration */
+SELECT
+    day,
+    COUNT(*) AS interaction_count
+FROM facebook_user_interactions
+GROUP BY day
+ORDER BY day ASC;
+
+/* Final iteration */
+SELECT
+    day,
+    COUNT(*) AS interaction_total
+FROM facebook_user_interactions
+WHERE day IN (0, 2)
+GROUP BY day
+ORDER BY day ASC;
+
+############################
+
+Website:
+StrataScratch - ID 9798
+
+Difficulty:
+Easy
+
+Question Type:
+SQL
+
+Question:
+Forbes - Find the average profit for major banks
+Find the average profit for the industry "Major Banks".
+
+Data Dictionary:
+Table name = 'forbes_global_2010_2014'
+assets: double precision(flt)
+company: text(str)
+continent: text(str)
+country: text(str)
+
+Code:
+/* Question: Find the average profit for the industry "Major Banks". */
+/* Output: profits */
+
+/* SELECT to preview data */
+SELECT * FROM forbes_global_2010_2014 LIMIT 10;
+
+/* Iteration */
+SELECT
+    industry,
+    profits
+FROM forbes_global_2010_2014
+WHERE industry = 'Major Banks';
+
+/* Final iteration */
+SELECT
+    CAST(AVG(profits) AS DECIMAL (10, 2)) AS profit_avg
+FROM forbes_global_2010_2014
+WHERE industry = 'Major Banks';
+
+############################
+
