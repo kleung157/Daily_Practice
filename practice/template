@@ -19,24 +19,25 @@ Code:
 ############################
 
 SQL Code Format:
-/* SELECT to preview data */
-
 /* Question: */
 /* Output: */
+
+/* SELECT to preview data */
 
 /* Final iteration */
 
 ############################
 
 Python Pandas Code Format:
+# Question:
+# Output:
+
 # Import libraries
 
 # Preview data
 
 # Steps
 
-# Question:
-# Output:
 # Final iteration
 
 # Check solution
