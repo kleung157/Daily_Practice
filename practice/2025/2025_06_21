@@ -1,0 +1,273 @@
+Date: 06/21/2025
+
+############################
+
+Website: 
+StrataScratch - ID 2011
+
+Difficulty: 
+Easy
+
+Question Type: 
+Python - Pandas
+
+Question:
+Twitch - Session Type Duration
+Calculate the average session duration (in seconds) for each session type?
+
+Data Dictionary:
+Table name = 'twitch_sessions'
+user_id: int64(int)
+session_start: datetime64(dt)
+session_end: datetime64(dt)
+session_id: int64(int)
+session_type: object(str)
+
+Code:
+# Question: Calculate the average session duration (in seconds) for each session type
+# Output: average_session_by_type
+
+# Import packages
+import pandas as pd
+
+# Preview data
+data = twitch_sessions.copy()
+df = pd.DataFrame(data)
+#print(df.head(10))
+
+# Calulate session duration in seconds on a separate column
+df['session_duration'] = (df['session_end'] - df['session_start']).dt.total_seconds()
+
+# Average session duration for each session type
+average_session_by_type = df.groupby('session_type')['session_duration'].mean().round(2).reset_index()
+
+# Rename column
+average_session_by_type = average_session_by_type.rename(
+    columns={'session_duration': 'average_session_duration_seconds'})
+
+# Result
+average_session_by_type
+
+# Check solution
+#print(df[['session_type', 'session_duration']].sort_values('session_type', ascending=True))
+
+############################
+
+Website:
+StrataScratch - ID 2013
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+Postmates - Customer Average Orders
+How many customers placed an order and what is the average order amount?
+
+Data Dictionary:
+Table name = 'postmates_orders'
+id: int64(int)
+customer_id: int64(int)
+courier_id: int64(int)
+seller_id: int64(int)
+order_timestamp_utc: datetime64(dt)
+amount: float64(flt)
+city_id: int64(int)
+
+Code:
+# Question: How many customers placed an order and what is the average order amount?
+# Output: customer_count, average_order
+
+# Import packages
+import pandas as pd
+
+# Load and preview data
+data = postmates_orders.copy()
+df = pd.DataFrame(data)
+#print(df.head(10))
+
+# Calculate unique customer count
+customer_count = df['customer_id'].nunique()
+
+# Calculate average order amount
+average_order = df['amount'].mean().round(2)
+
+# Result
+result_df = pd.DataFrame({
+    'customer_count': [customer_count],
+    'average_order': [average_order]
+})
+result_df
+
+# Check solution
+#print(df[['customer_id', 'amount']].sort_values('customer_id', ascending=True))
+
+############################
+
+Website:
+StrataScratch - ID 2000
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Credit Karma - Variable vs Fixed Rates
+Write a SQL query to show each loan and its rate type. 
+For each loan, create two new columns: fixed and variable. 
+If the loan has a fixed rate, put a 1 in the fixed column and a 0 in the variable column. 
+If the loan has a variable rate, do the opposite.
+
+Data Dictionary:
+Table name = 'submissions'
+balance: double precision(flt)
+id: bigint(int)
+interest_rate: double precision(flt)
+loan_id: bigint(int)
+rate_type: text(str)
+
+Code:
+/* Question: Show each loan and its rate type. 
+For each loan create two columns: fixed and variable.
+If the loan has a fixed rate, put a 1 in the fixed column, 0 in the variable column.
+If the loan has a variable rate, put a 0 in the fixed column, 1 in the variable column. */ 
+/* Output: loan_id, fixed, variable */
+
+/* SELECT to preview data */
+SELECT * FROM submissions LIMIT 10;
+
+/* Iteration */
+SELECT
+    loan_id,
+    CASE 
+        WHEN rate_type = 'fixed' 
+        THEN 1 
+        ELSE 0 
+    END AS fixed,
+    CASE
+        WHEN rate_type = 'variable' 
+        THEN 1 
+        ELSE 0 
+    END AS variable
+FROM submissions;
+
+/* Final iteration */
+SELECT
+    loan_id,
+    CASE 
+        WHEN rate_type = 'fixed' 
+        THEN 1 
+        ELSE 0 
+    END AS fixed,
+    CASE
+        WHEN rate_type = 'variable' 
+        THEN 1 
+        ELSE 0 
+    END AS variable
+FROM submissions
+ORDER BY loan_id ASC;
+
+############################
+
+Website:
+StrataScratch - ID 2001
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Credit Acceptance - Share of Loan Balance
+
+Data Dictionary:
+Table name = 'submissions'
+balance: double precision(flt)
+id: bigint(int)
+interest_rate: double precision(flt)
+loan_id: bigint(int)
+rate_type: text(str)
+
+Code:
+Solution # 1 (using CASE WHEN and FILTER)
+/* Question: Return rate_type, loan_id, loan_balance, and column that shows with 
+what percentage the loan's balance contributes to the total balance among the 
+loans of the same rate type. Sort the final output by rate_type and loan_id. */
+/* Output: balance, loan_id, rate_type, percent_contribution, ORDER by rate_type, loan_id */
+
+/* SELECT to preview data */
+SELECT * FROM submissions;
+
+/* Iteration */
+SELECT
+    balance * 100.0 / SUM(balance) OVER()
+FROM submissions
+WHERE rate_type = 'fixed';
+
+SELECT
+    balance * 100.0 / SUM(balance) OVER()
+FROM submissions
+WHERE rate_type = 'variable';
+
+SELECT
+    CASE
+        WHEN rate_type = 'fixed' THEN 
+            balance * 100.0 / SUM(balance) FILTER (WHERE rate_type = 'fixed') OVER()
+        WHEN rate_type = 'variable' THEN 
+            balance * 100.0 / SUM(balance) FILTER (WHERE rate_type = 'variable') OVER()
+        ELSE 0
+    END AS percent
+FROM submissions;
+
+SELECT
+    balance,
+    loan_id,
+    rate_type,
+    CASE
+        WHEN rate_type = 'fixed' THEN 
+            balance * 100.0 / SUM(CASE WHEN rate_type = 'fixed' THEN balance ELSE 0 END) OVER()
+        WHEN rate_type = 'variable' THEN 
+            balance * 100.0 / SUM(CASE WHEN rate_type = 'variable' THEN balance ELSE 0 END) OVER()
+        ELSE 0
+    END AS percent
+FROM submissions
+ORDER BY 
+    rate_type ASC,
+    loan_id ASC;
+
+/* Final iteration */
+SELECT
+    balance,
+    loan_id,
+    rate_type,
+    CASE
+        WHEN rate_type = 'fixed' THEN 
+            balance * 100.0 / SUM(balance) FILTER (WHERE rate_type = 'fixed') OVER()
+        WHEN rate_type = 'variable' THEN 
+            balance * 100.0 / SUM(balance) FILTER (WHERE rate_type = 'variable') OVER()
+        ELSE 0
+    END AS percent_contribution
+FROM submissions
+ORDER BY 
+    rate_type ASC,
+    loan_id ASC;
+    
+Solution #2 (using OVER(PARTITION BY) )
+SELECT
+    rate_type,
+    loan_id,
+    balance,
+    -- Calculate loan's balance as a percentage of the total balance within its rate_type group
+    (balance * 100.0 / SUM(balance) OVER (PARTITION BY rate_type)) AS percent_contribution
+FROM
+    submissions
+ORDER BY
+    rate_type ASC,
+    loan_id ASC;
+
+############################
