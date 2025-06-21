@@ -144,14 +144,10 @@ SELECT * FROM submissions LIMIT 10;
 SELECT
     loan_id,
     CASE 
-        WHEN rate_type = 'fixed' 
-        THEN 1 
-        ELSE 0 
+        WHEN rate_type = 'fixed' THEN 1 ELSE 0 
     END AS fixed,
     CASE
-        WHEN rate_type = 'variable' 
-        THEN 1 
-        ELSE 0 
+        WHEN rate_type = 'variable' THEN 1 ELSE 0 
     END AS variable
 FROM submissions;
 
@@ -159,14 +155,10 @@ FROM submissions;
 SELECT
     loan_id,
     CASE 
-        WHEN rate_type = 'fixed' 
-        THEN 1 
-        ELSE 0 
+        WHEN rate_type = 'fixed' THEN 1 ELSE 0 
     END AS fixed,
     CASE
-        WHEN rate_type = 'variable' 
-        THEN 1 
-        ELSE 0 
+        WHEN rate_type = 'variable' THEN 1 ELSE 0 
     END AS variable
 FROM submissions
 ORDER BY loan_id ASC;
