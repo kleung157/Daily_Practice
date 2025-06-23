@@ -1,0 +1,177 @@
+Date: 06/23/2025
+
+############################
+
+Website:
+StrataScratch - ID 2017
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+Ring Central - Paid Users In April 2020
+How many paid users had any calls in Apr 2020?
+
+Data Dictionary:
+Table name = 'rc_calls'
+user_id: int64(int)
+call_id: int64(int)
+call_date: datetime64(dt)
+Table name = 'rc_users'
+user_id: int64(int)
+status: object(str)
+company_id: int64(int)
+
+Code:
+# Question: How many paid users had any calls in April 2020?
+# Output: unique_paid_users_df
+
+# Import packages
+import pandas as pd
+
+# Load data
+#rc_calls = pd.read_csv('rc_calls.csv')
+#rc_users = pd.read_csv('rc_users.csv')
+
+# Preview data
+df = pd.DataFrame(rc_calls)
+df2 = pd.DataFrame(rc_users)
+#print(df.head(5))
+#print(df2.head(5))
+
+# Check user calls for nulls
+#print(df[['call_id', 'call_date']].isna().sum())
+
+# Merge datasets
+df_merged = pd.merge(df, df2, on='user_id', how='inner')
+#print(df_merged.head(5))
+
+# Convert call_date to datetime
+df_merged['call_date'] = pd.to_datetime(df_merged['call_date'])
+#print(df_merged.head(5))
+
+# Filter timeframe for April 2020 and status for paid users
+filtered_df = df_merged[
+    (df_merged['call_date'] < '2020-05-01') & 
+    (df_merged['call_date'] >= '2020-04-01') &
+    (df_merged['status'] == 'paid')
+]
+#print(filtered_df.head(5))
+
+# Find unique users by dropping duplicates then sort values
+unique_paid_users_df = filtered_df[['user_id']].drop_duplicates(subset=['user_id'])
+unique_paid_users_df = unique_paid_users_df.sort_values(by='user_id', ascending=True) 
+
+# Result
+unique_paid_users_df
+
+# Check solution
+#print(filtered_df['user_id'].nunique())
+
+############################
+
+Website:
+StrataScratch - ID 2003
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+MetLife - Recent Refinance Submissions
+Write a query to return the total loan balance for each user based on their most recent "Refinance" submission. 
+The submissions table joins to the loans table using loan_id from submissions and id from loans.
+
+Data Dictionary:
+Table name = 'loans'
+created_at: date(dt)
+id: bigint(int)
+status: text(str)
+type: text(str)
+user_id: bigint(int)
+Table name = 'submissions'
+balance: double precision(flt)
+id: bigint(int)
+interest_rate: double precision(flt)
+loan_id: bigint(int)
+rate_type: text(str)
+
+Code:
+/* Question: Return the total loan balance for each user based on their most recent "Refinance"
+submission. The submissions table joins to the loans table using loan_id and id respectively.*/
+/* Output: user_id, total_loan_balance */
+
+/* SELECT to preview data */
+SELECT * FROM loans LIMIT 5;
+SELECT * FROM submissions LIMIT 5;
+
+/* JOIN tables */
+SELECT 
+    l.created_at,
+    l.status,
+    l.type,
+    l.user_id,
+    s.balance,
+    s.interest_rate,
+    s.rate_type
+FROM loans as l
+LEFT JOIN submissions as s
+    ON l.id = s.loan_id;
+
+/* Iteration */
+SELECT 
+    l.created_at,
+    l.type,
+    l.user_id,
+    s.balance
+FROM loans as l
+LEFT JOIN submissions as s
+    ON l.id = s.loan_id
+WHERE l.type = 'Refinance'
+ORDER BY 
+    l.user_id ASC,
+    l.created_at DESC;
+
+WITH refinance_rank AS(
+    SELECT 
+        l.created_at,
+        l.type,
+        l.user_id,
+        s.balance,
+        RANK() OVER (PARTITION BY l.user_id ORDER BY l.created_at DESC) AS rank_refinance
+    FROM loans as l
+    LEFT JOIN submissions as s
+        ON l.id = s.loan_id
+    WHERE l.type = 'Refinance'
+)
+SELECT 
+    user_id,
+    SUM(balance) AS balance_sum
+FROM refinance_rank
+WHERE rank_refinance = 1
+GROUP BY user_id;
+    
+/* Final iteration */
+WITH refinance_rank AS(
+    SELECT 
+        l.user_id,
+        s.balance,
+        RANK() OVER (PARTITION BY l.user_id ORDER BY l.created_at DESC) AS rank_refinance
+    FROM loans as l
+    LEFT JOIN submissions as s
+        ON l.id = s.loan_id
+    WHERE l.type = 'Refinance'
+)
+SELECT 
+    user_id,
+    SUM(balance) AS total_loan_balance
+FROM refinance_rank
+WHERE rank_refinance = 1
+GROUP BY user_id;
+
+############################
