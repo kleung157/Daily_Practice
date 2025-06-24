@@ -1,0 +1,271 @@
+Date: 06/24/2025
+
+############################
+
+Website:
+StrataScratch - ID 2018
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+Ring Central - Inactive Free Users
+Return a list of users with status free who didn’t make any calls in Apr 2020.
+
+Data Dictionary:
+Table name = 'rc_calls'
+user_id: int64(int)
+call_id: int64(int)
+call_date: datetime64(dt)
+Table name = 'rc_users'
+user_id: int64(int)
+status: object(flt)
+company_id: int64(int)
+
+Code:
+# Question: Return a list of users with status free who didn't make any calls in Apr 2020
+# Output: users with status free, didn't make calls, Apr 2020
+
+# Import packages
+import pandas as pd
+
+# Load data
+#rc_calls = pd.read_csv('rc_calls')
+#rc_users = pd.read_csv('rc_users')
+
+# Preview data 
+df = pd.DataFrame(rc_calls)
+df2 = pd.DataFrame(rc_users)
+#print(df.head(5))
+#print(df2.head(5))
+
+# Check for nulls
+#print(df.isna().sum())
+#print(df2.isna().sum())
+
+# Check datatypes
+#print(df.dtypes)
+#print(df2.dtypes)
+
+# Convert call_date column to datetime
+df['call_date'] = pd.to_datetime(df['call_date'])
+
+# Merge data
+merged_df = pd.merge(df, df2, on='user_id', how='outer')
+#print(merged_df.head(5))
+
+# Check for nulls after merging
+#print(merged_df.isna().sum())
+
+# Filter for status free, no calls in April 2020
+filtered_df = merged_df[
+    (merged_df['status'] == 'free') &
+    (merged_df['call_date'].isna() |
+    ~((merged_df['call_date'] < '2020-05-01') & (merged_df['call_date'] >= '2020-04-01'))
+    )
+]
+filtered_df
+#print(filtered_df.head(5))
+
+# Sort and drop duplicates
+inactive_free_users_df = filtered_df[['user_id']].drop_duplicates('user_id').sort_values(by='user_id', ascending=True)
+
+# Results
+inactive_free_users_df
+
+# Check solution
+#print(filtered_df['user_id'].nunique())
+
+############################
+
+Website:
+StrataScratch - ID 2005
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Meta - Share of Active Users
+Calculate the percentage of users who are both from the US and have an 'open' status, as indicated in the fb_active_users table.
+
+Data Dictionary:
+Table name = 'fb_active_users'
+country: text(str)
+name: text(str)
+status: text(str)
+user_id: bigint(int)
+
+Code:
+Solution #1 (Can use "NULLIF(COUNT(DISTINCT user_id), 0) to account for division by zero)
+/* Question: Calculate the percentage of users who are both from the US and have an 'open'
+status, as indicated in the fb_active_users table. */
+/* Output: user_percentage */
+
+/* SELECT to preview data */
+SELECT * FROM fb_active_users LIMIT 5;
+
+/* Iteration */
+SELECT
+    COUNT(DISTINCT user_id)
+FROM fb_active_users
+WHERE status = 'open'
+    AND country = 'USA';
+
+SELECT
+    COUNT(DISTINCT CASE WHEN status = 'open' AND country = 'USA' THEN user_id END)
+FROM fb_active_users;
+
+SELECT
+    COUNT(DISTINCT user_id) FILTER (WHERE status = 'open' AND country = 'USA')
+FROM fb_active_users;
+
+SELECT
+    COUNT(DISTINCT user_id)
+FROM fb_active_users;
+
+SELECT
+    ROUND(100.0 *
+        COUNT(DISTINCT user_id) FILTER (WHERE status = 'open' AND country = 'USA') /
+        COUNT(DISTINCT user_id)
+        , 2) AS user_percentage
+FROM fb_active_users;
+
+SELECT
+    ROUND(100.0 *
+        COUNT(DISTINCT CASE WHEN status = 'open' AND country = 'USA' THEN user_id END) /
+        COUNT(DISTINCT user_id)
+        , 2) AS user_percentage
+FROM fb_active_users;
+
+/* Final iteration */
+SELECT
+    ROUND(100.0 *
+        COUNT(DISTINCT user_id) FILTER (WHERE status = 'open' AND country = 'USA') /
+        COUNT(DISTINCT user_id)
+        , 2) AS user_percentage
+FROM fb_active_users;
+
+############################
+
+Website:
+StrataScratch - ID 2010
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Twitch - Top Streamers
+List the top 3 users who accumulated the most sessions. 
+Include only the user who had more streaming sessions than viewing. 
+Return the user_id, number of streaming sessions, and number of viewing sessions.
+
+Data Dictionary:
+Table name = 'twitch_sessions'
+session_end: timestamp(dt)
+session_id: bigint(int)
+session_start: timestamp(dt)
+session_type: text(str)
+user_id: bigint(int)
+
+Code:
+/* Question: List the top 3 users who accumulated the most sessions. Include only the user who
+had more streaming sessions than viewing. */
+/* Output: user_id, number of streaming sessions, number of viewing sessions */
+
+/* SELECT to preview data */
+SELECT * FROM twitch_sessions LIMIT 5;
+
+/* Iteration */
+SELECT
+    user_id,
+    COUNT(session_type)
+FROM twitch_sessions
+WHERE session_type = 'streamer'
+GROUP BY user_id;
+
+SELECT
+    user_id,
+    COUNT(session_type)
+FROM twitch_sessions
+WHERE session_type = 'viewer'
+GROUP BY user_id;
+
+SELECT
+    user_id,
+    COUNT(session_type) FILTER (WHERE session_type = 'streamer') AS streamer_count,
+    COUNT(session_type) FILTER (WHERE session_type = 'viewer') AS viewer_count
+FROM twitch_sessions
+GROUP BY user_id
+HAVING 
+    COUNT(session_type) FILTER (WHERE session_type = 'streamer') > 
+    COUNT(session_type) FILTER (WHERE session_type = 'viewer')
+ORDER BY COUNT(session_type) DESC;
+
+WITH ranked_sessions AS (
+SELECT
+    user_id,
+    COUNT(session_type) FILTER (WHERE session_type = 'streamer') AS streamer_count,
+    COUNT(session_type) FILTER (WHERE session_type = 'viewer') AS viewer_count,
+    DENSE_RANK() OVER(ORDER BY COUNT(session_type) DESC) AS session_rank
+FROM twitch_sessions
+GROUP BY user_id
+HAVING 
+    COUNT(session_type) FILTER (WHERE session_type = 'streamer') > 
+    COUNT(session_type) FILTER (WHERE session_type = 'viewer')
+)
+SELECT 
+    user_id,
+    streamer_count,
+    viewer_count
+FROM ranked_sessions
+WHERE session_rank IN (1, 2, 3);
+
+WITH ranked_sessions AS (
+    SELECT
+        user_id,
+        COUNT(CASE WHEN session_type = 'streamer' THEN session_type END) AS streamer_count,
+        COUNT(CASE WHEN session_type = 'viewer' THEN session_type END) AS viewer_count,
+        DENSE_RANK() OVER(ORDER BY COUNT(session_type) DESC) AS session_rank
+    FROM twitch_sessions
+    GROUP BY user_id
+    HAVING 
+        COUNT(CASE WHEN session_type = 'streamer' THEN session_type END) > 
+        COUNT(CASE WHEN session_type = 'viewer' THEN session_type END)
+)
+SELECT 
+    user_id,
+    streamer_count,
+    viewer_count
+FROM ranked_sessions
+WHERE session_rank IN (1, 2, 3);
+
+/* Final iteration */
+WITH ranked_sessions AS (
+    SELECT
+        user_id,
+        COUNT(session_type) FILTER (WHERE session_type = 'streamer') AS streamer_count,
+        COUNT(session_type) FILTER (WHERE session_type = 'viewer') AS viewer_count,
+        DENSE_RANK() OVER(ORDER BY COUNT(session_type) DESC) AS session_rank
+    FROM twitch_sessions
+    GROUP BY user_id
+    HAVING 
+        COUNT(session_type) FILTER (WHERE session_type = 'streamer') > 
+        COUNT(session_type) FILTER (WHERE session_type = 'viewer')
+)
+SELECT 
+    user_id,
+    streamer_count,
+    viewer_count
+FROM ranked_sessions
+WHERE session_rank IN (1, 2, 3);
+
+############################
