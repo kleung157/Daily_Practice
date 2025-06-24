@@ -38,6 +38,10 @@ Python Pandas Code Format:
 
 # Preview data
 
+# Check for nulls
+
+# Check datatypes
+
 # Iteration
 
 # Result
