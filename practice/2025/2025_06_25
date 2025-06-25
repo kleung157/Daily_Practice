@@ -1,0 +1,228 @@
+Date: 06/25/2025
+
+############################
+
+Website:
+StrataScratch - ID 2024
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+Apple - Unique Users Per Client Per Month
+
+Data Dictionary:
+Table name = 'fact_events'
+id: int64(int)
+time_id: datetime64(dt)
+user_id: object(str)
+customer_id: object(str)
+client_id: object(str)
+event_type: object(str)
+event_id: int64(int)
+
+Code:
+Solution #1(documentation)
+# Question: Return the number of unique users per client per month 
+# Output: unique_users_per_client_per_month
+
+# Import packages
+import pandas as pd
+
+# Load data
+#fact_events = pd.read_csv('fact_events')
+
+# Preview data
+df = pd.DataFrame(fact_events)
+#print(df.head(5))
+
+# Check for null values
+#print(df.isna().sum())
+
+# Convert time_id column to month 
+df['month'] = df['time_id'].dt.to_period('M')
+
+# Filter for columns month, user_id, and client_id
+#df = df[['month', 'user_id', 'client_id']]
+
+# Group by month and client_id columns, find nunique users, reset index, sort values ASC, rename column
+unique_users_per_client_per_month = (
+    df
+    .groupby(['month','client_id'])['user_id']
+    .nunique()
+    .reset_index()
+    .sort_values(by='month', ascending=True)
+    .rename(columns={'user_id' : 'user_count'})
+)
+
+# Result
+unique_users_per_client_per_month
+
+# Check solution
+#print(df.groupby(['month','client_id'])['user_id'].unique().tolist())
+
+Solution #2(refactored approach, no documentation)
+# Question: Return the number of unique users per client per month 
+# Output: unique_users_per_client_per_month
+
+# Import packages
+import pandas as pd
+
+# Preview data
+df = pd.DataFrame(fact_events)
+df.head(5)
+
+# Convert time_id column to month 
+df['month'] = df['time_id'].dt.to_period('M')
+
+# Group by month and client_id columns, find nunique users, reset index, sort values ASC, rename column
+unique_users_per_client_per_month = (
+    df
+    .groupby(['month','client_id'])['user_id']
+    .nunique()
+    .reset_index()
+    .sort_values(by='month', ascending=True)
+    .rename(columns={'user_id' : 'user_count'})
+)
+
+# Result
+unique_users_per_client_per_month
+
+############################
+
+Website:
+StrataScratch - ID 2014
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Postmates - Hour With The Highest Order Volume
+Which hour of the day has the highest average number of orders across all recorded days? 
+Your output should include the hour that satisfies this condition and the corresponding average number of orders per hour. 
+The "order volume" refers to the count of orders placed within each hour of the day.
+
+Data Dictionary:
+Table name = 'postmates_orders'
+amount: double precision(flt)
+city_id: bigint(int)
+courier_id: bigint(int)
+customer_id: bigint(int)
+id: bigint(int)
+order_timestamp_utc: timestamp(dt)
+seller_id: bigint(int)
+
+Code:
+Solution #1
+/* Question: Which hour of the day has the highest average number of orders across all recorded days?
+Your output should include the hour that satisfies this condition and the corresponding average
+number of orders per hour. 
+The 'order volume' refers to the count of orders placed within each hour of the day. */
+/* Output: Hour, average_orders_per_hour */
+
+/* SELECT to preview data */
+SELECT * FROM postmates_orders LIMIT 5;
+
+/* Iteration */
+WITH orders_CTE AS (
+SELECT 
+    EXTRACT(HOUR FROM order_timestamp_utc) AS hour,
+    COUNT(*) AS order_volume
+FROM postmates_orders
+GROUP BY hour
+ORDER BY hour ASC
+),
+orders_CTE2 AS (
+SELECT
+    hour,
+    order_volume,
+    SUM(order_volume) OVER() AS total_orders
+FROM orders_CTE
+)
+SELECT
+    hour,
+    (order_volume/total_orders) AS average_orders_per_hour
+FROM orders_CTE2
+ORDER BY average_orders_per_hour DESC
+LIMIT 1;
+
+WITH orders_CTE AS (
+SELECT
+    CAST(order_timestamp_utc AS DATE) AS date,
+    EXTRACT(HOUR FROM order_timestamp_utc) AS hour,
+    COUNT(id) AS order_count
+FROM postmates_orders
+GROUP BY
+    date,
+    hour
+ORDER BY 
+    date ASC,
+    hour ASC
+)
+SELECT
+    hour,
+    AVG(order_count) AS avg_order
+FROM orders_CTE
+GROUP BY hour
+ORDER BY avg_order DESC
+LIMIT 1;
+
+WITH orders_CTE AS (
+SELECT
+    CAST(order_timestamp_utc AS DATE) AS date,
+    EXTRACT(HOUR FROM order_timestamp_utc) AS hour,
+    COUNT(id) AS order_count
+FROM postmates_orders
+GROUP BY
+    date,
+    hour
+ORDER BY 
+    date ASC,
+    hour ASC
+),
+ranked_orders AS (
+SELECT
+    hour,
+    AVG(order_count) AS avg_order,
+    DENSE_RANK() OVER (ORDER BY AVG(order_count) DESC) AS rank
+FROM orders_CTE
+GROUP BY hour
+)
+SELECT
+    hour,
+    avg_order
+FROM ranked_orders
+WHERE rank = 1;
+
+/* Final iteration */
+WITH orders_CTE AS (
+    SELECT
+        CAST(order_timestamp_utc AS DATE) AS date,
+        EXTRACT(HOUR FROM order_timestamp_utc) AS hour,
+        COUNT(id) AS order_count
+    FROM postmates_orders
+    GROUP BY
+        date,
+        hour
+),
+ranked_orders AS (
+    SELECT
+        hour,
+        AVG(order_count) AS avg_order,
+        DENSE_RANK() OVER (ORDER BY AVG(order_count) DESC) AS rank
+    FROM orders_CTE
+    GROUP BY hour
+)
+SELECT
+    hour,
+    avg_order AS average_number_of_orders
+FROM ranked_orders
+WHERE rank = 1;
+
+############################
