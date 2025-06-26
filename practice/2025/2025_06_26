@@ -1,0 +1,421 @@
+Date: 06/26/2025
+
+############################
+
+Website:
+StrataScratch - ID 2039
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+Whole Foods - Products Report Summary
+Find the number of unique transactions and total sales for each of the product categories in 2017. 
+Output the product categories, number of transactions, and total sales in descending order. 
+The sales column represents the total cost the customer paid for the product so no additional calculations need to be done on the column.
+Only include product categories that have products sold.
+
+Data Dictionary:
+Table name = 'wfm_transactions'
+customer_id: int64(int)
+store_id: int64(int)
+transaction_date: datetime64(dt)
+transaction_id: int64(int)
+product_id: int64(int)
+sales: int64(int)
+Table name = 'wfm_products'
+product_id: int64(int)
+product_description: object(str)
+product_brand: object(str)
+product_category: object(str)
+
+Code:
+Solution #1
+# Question: Find the number of unique transactions and total sales for each of the product categories in 2017.
+# Sales column represents the total cost the customer paid for the product, no additional calculations.
+# Only include product categories that have products sold.
+# Output: product categories, number of transactions, total sales, DESC order.
+
+# Import packages
+import pandas as pd
+
+# Load and preview data
+#df = pd.read_csv('wfm_products')
+#df2 = pd.read_csv('wfm_transactions')
+df = wfm_products
+df2 = wfm_transactions
+df.head(5)
+df2.head(5)
+
+# Merge data
+merged_df = pd.merge(df, df2, on='product_id', how='outer')
+merged_df.head(5)
+
+# Check for nulls in product categories that have no products sold
+#print(merged_df.isna().sum())
+merged_df = merged_df.dropna()
+#print(merged_df.isna().sum())
+
+# Convert transaction_date column to datetime
+merged_df['transaction_date'] = pd.to_datetime(merged_df['transaction_date'])
+
+# Filter for 2017
+filtered_df = merged_df[
+    (merged_df['transaction_date'] >= '2017-01-01') &
+    (merged_df['transaction_date'] <= '2017-12-31')
+]
+#filtered_df[['transaction_date']]
+
+# Groupby product categories, find nunique transactions and sum of sales
+unique_transactions = (
+    filtered_df
+    .groupby('product_category')['transaction_id']
+    .nunique()
+    .reset_index(name='transaction_count')
+)
+
+sum_sales = (
+    filtered_df
+    .groupby('product_category')['sales']
+    .sum()
+    .reset_index(name='total_sales')
+)
+
+# Merge unique_transactions and sum_sales
+result_df = pd.merge(unique_transactions, sum_sales, on='product_category')
+
+# Order by total_sales DESC 
+result_df = result_df.sort_values(by='total_sales', ascending=False)
+
+# Result
+result_df
+
+Solution #2 (refined)
+# Question: Find the number of unique transactions and total sales for each of the product categories in 2017.
+# Sales column represents the total cost the customer paid for the product, no additional calculations.
+# Only include product categories that have products sold.
+# Output: product categories, number of transactions, total sales, DESC order.
+
+# Import packages
+import pandas as pd
+
+# Load and preview data
+#df = pd.read_csv('wfm_products')
+#df2 = pd.read_csv('wfm_transactions')
+df = wfm_products
+df2 = wfm_transactions
+df.head(5)
+df2.head(5)
+
+# Merge data
+merged_df = pd.merge(df, df2, on='product_id', how='inner')
+merged_df.head(5)
+
+# Convert transaction_date column to datetime
+merged_df['transaction_date'] = pd.to_datetime(merged_df['transaction_date'])
+
+# Filter for 2017
+filtered_df = merged_df[
+    (merged_df['transaction_date'] >= '2017-01-01') &
+    (merged_df['transaction_date'] <= '2017-12-31')
+]
+
+# Groupby product categories, find nunique transactions and sum of sales
+result_df = (
+    filtered_df.groupby('product_category').agg(
+        transaction_count = ('transaction_id', 'nunique'),
+        total_sales = ('sales', 'sum')
+        ).reset_index()
+)
+
+# Order by total_sales DESC 
+result_df = result_df.sort_values(by='total_sales', ascending=False)
+
+# Result
+result_df
+
+############################
+
+Website:
+StrataScratch - ID 2015
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Postmates - City With The Highest and Lowest Income Variance
+What cities recorded the largest growth and biggest drop in order amount between March 11, 2019, and April 11, 2019. 
+Just compare order amounts on those two dates.
+Your output should include the names of the cities and the amount of growth/drop.
+
+Data Dictionary:
+Table name = 'postmates_orders'
+amount: double precision(flt)
+city_id: bigint(int)
+courier_id: bigint(int)
+customer_id: bigint(int)
+id: bigint(int)
+order_timestamp_utc: timestamp(dt)
+seller_id: bigint(int)
+Table name = 'postmates_markets'
+id: bigint(int)
+name: text(str)
+timezone: text(str)
+
+Code:
+/* Question: What cities recorded the largest growth and biggest drop in order amount between 
+March 11, 2019, and April 11, 2019. Just compare order amounts on those two dates. */
+/* Output: names of cities, amount of growth/drop */
+
+/* SELECT to preview data */
+SELECT * FROM postmates_orders LIMIT 5;
+SELECT * FROM postmates_markets LIMIT 5;
+
+/* JOIN tables */
+SELECT
+    pm.name,
+    pm.timezone,
+    po.amount,
+    po.courier_id,
+    po.customer_id,
+    po.order_timestamp_utc,
+    po.seller_id
+FROM postmates_markets AS pm
+JOIN postmates_orders AS po
+    ON pm.id = po.city_id
+LIMIT 5;
+
+/* Iteration */
+WITH city_cte AS (
+SELECT
+    pm.name,
+    SUM(po.amount) AS amount_sum,
+    CAST(po.order_timestamp_utc AS DATE) AS date
+FROM postmates_markets AS pm
+JOIN postmates_orders AS po
+    ON pm.id = po.city_id
+WHERE CAST(po.order_timestamp_utc AS DATE) IN ('2019-03-11', '2019-04-11')
+GROUP BY 
+    date,
+    pm.name
+)
+SELECT
+    name,
+    amount_sum,
+    date,
+    amount_sum - LAG(amount_sum, 1, 0) OVER (PARTITION BY name ORDER BY date) AS growth_drop
+FROM city_cte
+ORDER BY 
+    date ASC,
+    name ASC;
+    
+WITH city_cte AS (
+SELECT
+    pm.name,
+    SUM(po.amount) AS amount_sum,
+    CAST(po.order_timestamp_utc AS DATE) AS date
+FROM postmates_markets AS pm
+JOIN postmates_orders AS po
+    ON pm.id = po.city_id
+WHERE CAST(po.order_timestamp_utc AS DATE) IN ('2019-03-11', '2019-04-11')
+GROUP BY 
+    date,
+    pm.name
+ORDER BY 
+    date ASC,
+    pm.name ASC
+)
+SELECT
+    name,
+    amount_sum - LAG(amount_sum, 1, 0) OVER (PARTITION BY name ORDER BY date) AS growth_drop_amount
+FROM city_cte
+ORDER BY 
+    date ASC,
+    name ASC
+OFFSET 4
+LIMIT 4;
+    
+WITH city_cte AS (
+SELECT
+    pm.name,
+    SUM(po.amount) AS amount_sum,
+    CAST(po.order_timestamp_utc AS DATE) AS date
+FROM postmates_markets AS pm
+JOIN postmates_orders AS po
+    ON pm.id = po.city_id
+WHERE CAST(po.order_timestamp_utc AS DATE) IN ('2019-03-11', '2019-04-11')
+GROUP BY 
+    date,
+    pm.name
+ORDER BY 
+    date ASC,
+    pm.name ASC
+),
+amount_cte AS (
+SELECT
+    name,
+    date,
+    amount_sum - LAG(amount_sum, 1, 0) OVER (PARTITION BY name ORDER BY date) AS growth_drop_amount
+FROM city_cte
+ORDER BY 
+    date ASC,
+    name ASC
+)
+(SELECT
+    name,
+    growth_drop_amount
+FROM amount_cte
+WHERE date = '2019-04-11'
+ORDER BY growth_drop_amount DESC
+LIMIT 1)
+
+UNION ALL
+
+(SELECT
+    name,
+    growth_drop_amount
+FROM amount_cte
+WHERE date = '2019-04-11'
+ORDER BY growth_drop_amount ASC
+LIMIT 1);
+
+/* Final iteration */
+WITH city_cte AS (
+    SELECT
+        pm.name,
+        SUM(po.amount) AS amount_sum,
+        CAST(po.order_timestamp_utc AS DATE) AS date
+    FROM postmates_markets AS pm
+    JOIN postmates_orders AS po
+        ON pm.id = po.city_id
+    WHERE CAST(po.order_timestamp_utc AS DATE) IN ('2019-03-11', '2019-04-11')
+    GROUP BY 
+        date,
+        pm.name
+),
+amount_cte AS (
+    SELECT
+        name,
+        date,
+        amount_sum - LAG(amount_sum, 1, 0) OVER (PARTITION BY name ORDER BY date) AS growth_drop_amount
+    FROM city_cte
+)
+(SELECT
+    name,
+    growth_drop_amount
+FROM amount_cte
+WHERE date = '2019-04-11'
+ORDER BY growth_drop_amount DESC
+LIMIT 1)
+
+UNION ALL
+
+(SELECT
+    name,
+    growth_drop_amount
+FROM amount_cte
+WHERE date = '2019-04-11'
+ORDER BY growth_drop_amount ASC
+LIMIT 1);
+
+Solution #1 (Optimal performance)
+WITH city_cte AS (
+    SELECT
+        pm.name,
+        SUM(po.amount) AS amount_sum,
+        CAST(po.order_timestamp_utc AS DATE) AS date
+    FROM postmates_markets AS pm
+    JOIN postmates_orders AS po
+        ON pm.id = po.city_id
+    WHERE CAST(po.order_timestamp_utc AS DATE) IN ('2019-03-11', '2019-04-11')
+    GROUP BY 
+        date,
+        pm.name
+),
+amount_cte AS (
+    SELECT
+        name,
+        date,
+        amount_sum - LAG(amount_sum, 1, 0) OVER (PARTITION BY name ORDER BY date) AS growth_drop_amount
+    FROM city_cte
+)
+(SELECT
+    name,
+    growth_drop_amount
+FROM amount_cte
+WHERE date = '2019-04-11'
+ORDER BY growth_drop_amount DESC
+LIMIT 1)
+
+UNION ALL
+
+(SELECT
+    name,
+    growth_drop_amount
+FROM amount_cte
+WHERE date = '2019-04-11'
+ORDER BY growth_drop_amount ASC
+LIMIT 1);
+
+Solution #2 (Less optimal due to more groupby and CTEs, however more readable and easier approach)
+WITH CityAmounts AS (
+    SELECT
+        pm.name AS city_name,
+        CAST(po.order_timestamp_utc AS DATE) AS order_date,
+        SUM(po.amount) AS daily_amount_sum
+    FROM
+        postmates_orders po
+    JOIN
+        postmates_markets pm ON po.city_id = pm.id
+    WHERE
+        CAST(po.order_timestamp_utc AS DATE) IN ('2019-03-11', '2019-04-11')
+    GROUP BY
+        pm.name,
+        CAST(po.order_timestamp_utc AS DATE)
+),
+PivotedAmounts AS (
+    SELECT
+        city_name,
+        SUM(CASE WHEN order_date = '2019-03-11' THEN daily_amount_sum ELSE 0 END) AS amount_march_11,
+        SUM(CASE WHEN order_date = '2019-04-11' THEN daily_amount_sum ELSE 0 END) AS amount_april_11
+    FROM
+        CityAmounts
+    GROUP BY
+        city_name
+),
+GrowthDrop AS (
+    SELECT
+        city_name,
+        (amount_april_11 - amount_march_11) AS growth_drop_amount
+    FROM
+        PivotedAmounts
+)
+-- Find the city with the largest growth
+(SELECT
+    city_name,
+    growth_drop_amount
+FROM
+    GrowthDrop
+ORDER BY
+    growth_drop_amount DESC
+LIMIT 1)
+
+UNION ALL
+
+-- Find the city with the biggest drop
+(SELECT
+    city_name,
+    growth_drop_amount
+FROM
+    GrowthDrop
+ORDER BY
+    growth_drop_amount ASC
+LIMIT 1);
+
+############################
