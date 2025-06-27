@@ -1,0 +1,166 @@
+Date: 06/27/2025
+
+############################
+
+Website:
+StrataScratch - ID 2043
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+Uber - Employees' Without Annual Review
+Return all employees who have never had an annual review. 
+Your output should include the employee's first name, last name, hiring date, and termination date. 
+List the most recently hired employees first.
+
+Data Dictionary:
+Table name = 'uber_employees'
+first_name: object(str)
+last_name: object(str)
+id: int64(int)
+hire_date: datetime64(dt)
+termination_date: datetime64(dt)
+salary: int64(int)
+Table name = 'uber_annual_review'
+id: int64(int)
+emp_id: int64(int)
+review_date: datetime64(dt)
+
+Code:
+Solution #1
+# Question: Return all employees who never had an annual review.
+# Output: first name, last name, hiring date, termination date, list most recent hired employee first
+
+# Import packages
+import pandas as pd
+
+# Load and preview data
+#uber_employees = pd.read_csv('uber_employees')
+#uber_annual_review = pd.read_csv('uber_annual_review')
+df = uber_employees
+df2 = uber_annual_review
+df = pd.DataFrame(df)
+df2 = pd.DataFrame(df2)
+#print(df.head(5))
+#print(df2.head(5))
+
+# Check for nulls
+#print(df.isna().sum())
+#print(df2.isna().sum())
+
+# Merge data and select relevant columns
+merged_df = pd.merge(df, df2, left_on='id', right_on='emp_id', how='outer')
+merged_df = merged_df[['first_name', 'last_name', 'hire_date', 'termination_date','review_date', 'id_x']]
+
+# Filter data by isnull(), sort_values() by descending, drop duplicates
+filtered_df = merged_df
+filtered_df = filtered_df[(filtered_df['review_date'].isnull())].sort_values(by='hire_date', ascending=False)
+filtered_df = filtered_df.drop_duplicates(subset='id_x')
+
+# Display only first_name, last_name, hire_date, termination_date
+result_df = filtered_df[['first_name', 'last_name', 'hire_date', 'termination_date']]
+result_df
+
+# Check solution for duplicate names
+#result_df.duplicated(subset=['first_name', 'last_name']).sum()
+
+Solution #2 (using unique() and isin() )
+employees_with_review_ids = uber_annual_review['emp_id'].unique()
+employees_never_reviewed = uber_employees[~uber_employees['id'].isin(employees_with_review_ids)]
+result_df = employees_never_reviewed[['first_name', 'last_name', 'hire_date', 'termination_date']].sort_values(by='hire_date', ascending=False)
+
+Solution #3 (optimized approach using pipe() and chaining the whole operation)
+result_df = (
+    pd.merge(df, df2, left_on='id', right_on='emp_id', how='outer')
+    .pipe(lambda df: df[df['review_date'].isnull()])               # Filter for null review dates
+    .sort_values(by='hire_date', ascending=False)                  # Sort by hire_date descending
+    .drop_duplicates(subset='id_x')                                # Drop duplicates based on employee id
+    [['first_name', 'last_name', 'hire_date', 'termination_date']] # Select final columns
+)
+result_df
+
+############################
+
+Website:
+StrataScratch - ID 2016
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Postmates - Pizza Partners
+Which partners have ‘pizza’ in their name and are located in Boston? And what is the average order amount? 
+Output the partner name and the average order amount.
+
+Data Dictionary:
+Table name = 'postmates_orders'
+amount: double precision(flt)
+city_id: bigint(int)
+courier_id: bigint(int)
+customer_id: bigint(int)
+id: bigint(int)
+order_timestamp_utc: timestamp(dt)
+seller_id: bigint(int)
+Table name = 'postmates_markets'
+id: bigint(int)
+name: text(str)
+timezone: text(str)
+Table name = 'postmates_partners'
+category: text(str)
+id: bigint(int)
+name: text(str)
+
+Code:
+/* Question: Which partners have 'pizza' in their name and are located in Boston? 
+What is the average order amount? */
+/* Output: partner name, average order amount */
+
+/* SELECT to preview data */
+SELECT * FROM postmates_orders LIMIT 5;
+SELECT * FROM postmates_markets LIMIT 5;
+SELECT * FROM postmates_partners LIMIT 5;
+
+/* JOIN tables */
+SELECT *
+FROM postmates_orders AS po
+JOIN postmates_markets AS pm
+    ON po.city_id = pm.id
+JOIN postmates_partners as pp
+    ON po.seller_id = pp.id
+LIMIT 5;
+
+/* Iteration */
+SELECT 
+    pp.name AS partner_name,
+    AVG(po.amount) AS average_order_amount
+FROM postmates_orders AS po
+JOIN postmates_markets AS pm
+    ON po.city_id = pm.id
+JOIN postmates_partners as pp
+    ON po.seller_id = pp.id
+WHERE pp.name ILIKE '%pizza%'
+    AND pm.name = 'Boston' 
+GROUP BY partner_name;
+
+/* Final iteration */
+SELECT 
+    pp.name AS partner_name,
+    AVG(po.amount) AS average_order_amount
+FROM postmates_orders AS po
+JOIN postmates_markets AS pm
+    ON po.city_id = pm.id
+JOIN postmates_partners as pp
+    ON po.seller_id = pp.id
+WHERE pp.name ILIKE '%pizza%'
+    AND pm.name = 'Boston' 
+GROUP BY partner_name
+ORDER BY partner_name ASC;
+
+############################
