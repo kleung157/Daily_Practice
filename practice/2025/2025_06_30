@@ -1,0 +1,354 @@
+Date: 06/30/2025
+
+############################
+
+Website:
+StrataScratch - ID 2049
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+Uber - Total Order Per Status Per Service
+Uber is interested in identifying gaps in their business. 
+Calculate the count of orders for each status of each service. 
+Your output should include the service name, status of the order, and the number of orders.
+
+Data Dictionary:
+Table name = 'uber_orders'
+order_date: datetime64(dt)
+number_of_orders: int64(int)
+status_of_order: object(str)
+monetary_value: float64(flt)
+service_name: object(str)
+
+Code:
+# Question: Identify gaps in the business. Calculate the count of orders for each status of each service.
+# Output: Service name, status of order, number of orders
+
+# Import packages
+import pandas as pd
+
+# Load and preview data
+#df = pd.read_csv('uber_orders')
+df = pd.DataFrame(uber_orders)
+df.head(5)
+
+# Check for null values
+#df.info()
+#print(df.isnull().sum())
+
+# Group by service name and status of orders then count the number of orders
+result_df = (
+    df[['service_name', 'status_of_order', 'number_of_orders']]
+    .groupby(['service_name', 'status_of_order'])['number_of_orders']
+    .count()
+    .reset_index(name='count_of_orders')                 # resets index, rename number_of_orders column
+    .sort_values(by='service_name', ascending=True)      # sorts values by service_name by ascending
+)
+
+# Result
+result_df
+
+############################
+
+Website:
+StrataScratch - ID 2051
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+Asana - Monthly Active Users
+Find the monthly active users for January 2021 for each account. 
+Your output should have account_id and the monthly count for that account.
+
+Data Dictionary:
+Table name = 'sf_events'
+record_date: datetime64(dt)
+account_id: object(str)
+user_id: object(str)
+
+Code:
+# Question: Find the monthly active users for January 2021 for each account.
+# Output: account_id, monthly count for that account
+
+# Import packages
+import pandas as pd
+
+# Load and preview data
+#df = pd.read_csv('sf_events')
+df = pd.DataFrame(sf_events)
+df.head(5)
+
+# Check for null values
+#df.info()
+#df.isnull().sum()
+
+# Filter for January 2021
+df = df[
+    (df['record_date'] >= '2021-01-01') &
+    (df['record_date'] <= '2021-01-31')
+]
+
+# Group by account id, count unique users
+result_df = (
+    df
+    .groupby('account_id')['user_id']
+    .nunique()
+    .reset_index(name='user_count')
+    .sort_values(by='account_id', ascending=True)
+)
+
+# Result
+result_df
+
+############################
+
+Website:
+StrataScratch - ID 2019
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Ring Central - Top 2 Users With Most Calls
+
+Data Dictionary:
+Table name = 'rc_calls'
+call_date: timestamp(dt)
+call_id: bigint(int)
+user_id: bigint(int)
+Table name = 'rc_users'
+call_date: bigint(int)
+status: text(str)
+user_id: bigint(int)
+
+Code:
+/* Question: Return top 2 users in each company that called the most. If there are multiple users
+in the same rank, keep all of them */
+/* Output: company_id, user_id, user rank */
+
+/* Preview data */
+SELECT * FROM rc_calls LIMIT 5;
+SELECT * FROM rc_users LIMIT 5;
+
+/* JOIN tables */
+SELECT 
+    rc.call_date,
+    rc.call_id,
+    rc.user_id,
+    ru.company_id,
+    ru.status,
+    ru.user_id
+FROM rc_calls AS rc
+JOIN rc_users AS ru
+    ON rc.user_id = ru.user_id
+LIMIT 5;
+
+/* DENSE_RANK() -> CTE -> SELECT */
+WITH ranked_calls AS (
+SELECT 
+    ru.company_id,
+    ru.user_id,
+    DENSE_RANK() OVER(PARTITION BY ru.company_id ORDER BY COUNT(rc.call_id) DESC) AS call_rank
+FROM rc_calls AS rc
+JOIN rc_users AS ru
+    ON rc.user_id = ru.user_id
+GROUP BY 
+    ru.company_id,
+    ru.user_id
+)
+SELECT 
+    company_id,
+    user_id,
+    call_rank
+FROM ranked_calls
+WHERE call_rank <= 2
+ORDER BY 
+    company_id ASC,
+    call_rank ASC,
+    user_id ASC;
+
+/* Final iteration */
+WITH ranked_calls AS (
+    SELECT 
+        ru.company_id,
+        ru.user_id,
+        DENSE_RANK() OVER(PARTITION BY ru.company_id ORDER BY COUNT(rc.call_id) DESC) AS call_rank
+    FROM rc_calls AS rc
+    JOIN rc_users AS ru
+        ON rc.user_id = ru.user_id
+    GROUP BY 
+        ru.company_id,
+        ru.user_id
+)
+SELECT 
+    company_id,
+    user_id,
+    call_rank
+FROM ranked_calls
+WHERE call_rank <= 2
+ORDER BY 
+    company_id ASC,
+    call_rank ASC,
+    user_id ASC;
+
+############################
+
+Website:
+StrataScratch - ID 2020
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Ring Central - Call Declines
+Which company had the biggest month call decline from March to April 2020? 
+Return the company_id and calls difference for the company with the highest decline.
+
+Data Dictionary:
+Table name = 'rc_calls'
+call_date: timestamp(dt)
+call_id: bigint(int)
+user_id: bigint(int)
+Table name = 'rc_users'
+company_id: bigint(int)
+status: text(str)
+user_id: bigint(int)
+
+Code:
+Solution #1 (Using lag(), more optimal )
+/* Question: Which company had the biggest month call decline from March to April 2020? */
+/* Output: company_id, calls difference for the company with highest decline */
+
+/* SELECT to preview data */
+SELECT * FROM rc_calls LIMIT 5;
+SELECT * FROM rc_users LIMIT 5;
+
+/* JOIN tables */
+SELECT 
+    rc.call_date,
+    rc.call_id,
+    rc.user_id,
+    ru.company_id,
+    ru.status,
+    ru.user_id
+FROM rc_calls AS rc
+JOIN rc_users AS ru
+    ON rc.user_id = ru.user_id
+LIMIT 5;
+
+/* Iteration */
+WITH calls_cte AS (
+SELECT 
+    TO_CHAR(call_date, 'YYYY-MM') AS date,
+    ru.company_id,
+    COUNT(call_id) AS call_count
+FROM rc_calls AS rc
+JOIN rc_users AS ru
+    ON rc.user_id = ru.user_id
+WHERE rc.call_date >= '2020-03-01'
+    AND rc.call_date <= '2020-04-30'
+GROUP BY 
+    date,
+    ru.company_id
+),
+monthly_difference AS (
+SELECT
+    date,
+    company_id,
+    call_count,
+    call_count - LAG(call_count, 1, 0) OVER(PARTITION BY company_id ORDER BY date) AS calls_difference
+FROM calls_cte
+)
+SELECT
+    company_id,
+    calls_difference
+FROM monthly_difference
+ORDER BY calls_difference ASC
+LIMIT 1;
+
+/* Final iteration */
+WITH calls_cte AS (
+    SELECT 
+        TO_CHAR(call_date, 'YYYY-MM') AS date,
+        ru.company_id,
+        COUNT(call_id) AS call_count
+    FROM rc_calls AS rc
+    JOIN rc_users AS ru
+        ON rc.user_id = ru.user_id
+    WHERE rc.call_date >= '2020-03-01'
+        AND rc.call_date <= '2020-04-30'
+    GROUP BY 
+        date,
+        ru.company_id
+),
+monthly_difference AS (
+    SELECT
+        date,
+        company_id,
+        call_count,
+        call_count - LAG(call_count, 1, 0) OVER(PARTITION BY company_id ORDER BY date) AS calls_difference
+    FROM calls_cte
+)
+SELECT
+    company_id,
+    calls_difference
+FROM monthly_difference
+ORDER BY calls_difference ASC
+LIMIT 1;
+
+Solution #2 ( EXTRACT(), CASE WHEN() )
+WITH MonthlyCallCounts AS (
+    SELECT
+        ru.company_id,
+        EXTRACT(YEAR FROM rc.call_date) AS call_year,
+        EXTRACT(MONTH FROM rc.call_date) AS call_month,
+        COUNT(rc.call_id) AS total_calls
+    FROM
+        rc_calls rc
+    JOIN
+        rc_users ru ON rc.user_id = ru.user_id
+    WHERE
+        EXTRACT(YEAR FROM rc.call_date) = 2020
+        AND EXTRACT(MONTH FROM rc.call_date) IN (3, 4)
+    GROUP BY
+        ru.company_id,
+        EXTRACT(YEAR FROM rc.call_date),
+        EXTRACT(MONTH FROM rc.call_date)
+),
+CompanyMonthlyComparison AS (
+    SELECT
+        company_id,
+        SUM(CASE WHEN call_month = 3 THEN total_calls ELSE 0 END) AS calls_march_2020,
+        SUM(CASE WHEN call_month = 4 THEN total_calls ELSE 0 END) AS calls_april_2020
+    FROM
+        MonthlyCallCounts
+    GROUP BY
+        company_id
+)
+SELECT
+    company_id,
+    (calls_march_2020 - calls_april_2020) AS calls_decline_amount
+FROM
+    CompanyMonthlyComparison
+WHERE
+    (calls_march_2020 - calls_april_2020) > 0
+ORDER BY
+    calls_decline_amount DESC
+LIMIT 1;
+
+############################
