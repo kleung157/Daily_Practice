@@ -1,0 +1,268 @@
+Date: 07/01/2025
+
+############################
+
+Website:
+StrataScratch - ID 2052
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+Asana - User Growth Rate
+Find the growth rate of active users for Dec 2020 to Jan 2021 for each account. 
+The growth rate is defined as the number of users in January 2021 divided by the number of users in Dec 2020. 
+Output the account_id and growth rate.
+
+Data Dictionary:
+Table name = 'sf_events'
+record_date: datetime64(dt)
+account_id: object(str)
+user_id: object(str)
+
+Code:
+Solution #1 (Fill NaN values with 0 by using df['column'].fillna(0) prevents infinity values)
+# Question: Find the growth rate of active users for Dec 2020 to Jan 2021 for each account.
+# Growth rate is defined as the number of users in Jan 2021 / number of users Dec 2020. 
+# Output: account_id and growth rate
+
+# Import packages
+import pandas as pd
+
+# Load and preview data
+#sf_events = pd.read_csv('sf_events')
+df = pd.DataFrame(sf_events)
+df.head(5)
+
+# Look at datatypes and check for nulls
+#df.info()
+#df.isna().sum()
+
+# Filter users by record_date for Dec 2020 and Jan 2021
+users_dec = df[
+    (df['record_date'] >= '2020-12-01') &
+    (df['record_date'] <= '2020-12-31')
+]
+    
+users_jan = df[
+    (df['record_date'] >= '2021-01-01') &
+    (df['record_date'] <= '2021-01-31')
+]
+
+# Group by account_id, find count of unique users for each account
+users_dec = (
+    users_dec
+    .groupby(['account_id'])['user_id']
+    .nunique()
+    .reset_index(name='dec_user_count')
+    .sort_values(by='account_id', ascending=True)
+)
+    
+users_jan = (
+    users_jan
+    .groupby(['account_id'])['user_id']
+    .nunique()
+    .reset_index(name='jan_user_count')
+    .sort_values(by='account_id', ascending=True)
+)
+
+# Merge users_dec and users_jan by account_id
+results_df = pd.merge(users_dec, users_jan, on='account_id', how='outer')
+results_df
+
+# Fill NaN values with 0 for user counts
+results_df['dec_user_count'] = results_df['dec_user_count'].fillna(0)
+results_df['jan_user_count'] = results_df['jan_user_count'].fillna(0)
+
+# Create growth_rate column by dividing jan_user_count by dec_user_count
+results_df['growth_rate'] = results_df['jan_user_count'] / results_df['dec_user_count']
+
+# Filter relevant columns
+results_df = results_df[['account_id', 'growth_rate']]
+
+# Result
+results_df
+
+############################
+
+Website:
+StrataScratch - ID 2056
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+Amazon - Number of Shipments Per Month
+Write a query that will calculate the number of shipments per month. 
+The unique key for one shipment is a combination of shipment_id and sub_id. 
+Output the year_month in format YYYY-MM and the number of shipments in that month.
+
+Data Dictionary:
+Table name = 'amazon_shipment'
+shipment_id: int64(int)
+sub_id: int64(int)
+weight: int64(int)
+shipment_date: datetime64(dt)
+
+Code:
+Solution #1 (concatenate id keys by using df['column'].astype(str) + '_' + df['column'].astype(str) )
+# Question: Calculate the number of shipments per month. 
+# The unique key for one shipment is combination of shipment_id and sub_id.
+# Output: year_month (YYYY-MM) and number of shipments in that month
+
+# Import packages
+import pandas as pd
+
+# Load and preview data
+#amazon_shipment = pd.read_csv('amazon_shipment.csv')
+df = pd.DataFrame(amazon_shipment)
+df.head(5)
+
+# Check datatypes and nulls
+#df.info()
+#df.isna().sum()
+
+# Convert shipment_date to YYYY-MM format
+df['year_month'] = df['shipment_date'].dt.to_period('M')
+
+# Create unique key shipment column
+df['shipment_key'] = df['shipment_id'].astype(str) + '_' + df['sub_id'].astype(str)
+
+# Group by year_month and find unique shipment_key values
+results_df = (
+    df
+    .groupby(['year_month'])['shipment_key']
+    .nunique()
+    .reset_index(name='number_of_shipments')
+    .sort_values(by='year_month', ascending=True)
+)
+
+# Results
+results_df
+
+############################
+
+Website:
+StrataScratch - ID 2021
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Redfin - Initial Call Duration
+Redfin helps clients to find agents. 
+Each client will have a unique request_id and each request_id has several calls. 
+For each request_id, the first call is an “initial call” and all the following calls are “update calls”.  
+What's the average call duration for all initial calls?
+
+Data Dictionary:
+Table name = 'redfin_call_tracking'
+call_duration: bigint(int)
+created_on: timestamp(dt)
+id: bigint(int)
+request_id: bigint(int)
+
+Code:
+Solution #1 (Use ROW_NUMBER() for unique rows, use RANK() or DENSE_RANK() to settle ties)
+/* Question: Redfin helps clients to find agents. 
+Each client will have a unique request_id and each request_id has several calls. 
+For each request_id, the first call is an "initial call" and all the following are "update calls". 
+What's the average call duration for all initial calls? */
+/* Output: average_call_duration */
+
+/* SELECT to preview data */
+SELECT * FROM redfin_call_tracking LIMIT 5;
+
+/* unique request_id and number of calls */
+SELECT
+    DISTINCT request_id,
+    COUNT(*)
+FROM redfin_call_tracking
+GROUP BY request_id;
+
+/* first call is an initial call, use ROW_NUMBER() */
+SELECT
+    call_duration,
+    created_on,
+    id,
+    request_id,
+    ROW_NUMBER() OVER(PARTITION BY request_id ORDER BY created_on ASC) AS call_row
+FROM redfin_call_tracking
+LIMIT 5;
+
+/* initial_calls CTE, avg(call_duration) */
+WITH initial_calls AS (
+    SELECT
+        call_duration,
+        created_on,
+        id,
+        request_id,
+        ROW_NUMBER() OVER(PARTITION BY request_id ORDER BY created_on ASC) AS call_row
+    FROM redfin_call_tracking
+)
+SELECT 
+    AVG(call_duration) AS average_call_duration
+FROM initial_calls
+WHERE call_row = 1;
+
+############################
+
+Website:
+StrataScratch - ID 2022
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Redfin - Update Call Duration
+Redfin helps clients to find agents. 
+Each client will have a unique request_id and each request_id has several calls. 
+For each request_id, the first call is an “initial call” and all the following calls are “update calls”.  
+What's the average call duration for all update calls?
+
+Data Dictionary:
+Table name = 'redfin_call_tracking'
+call_duration: bigint(int)
+created_on: timestamp(dt)
+id: bigint(int)
+request_id: bigint(int)
+
+Code:
+Solution #1
+/* Question: Redfin helps clients to find agents.
+Each client will have a unique request_id and eacch request_id has several calls.
+For each request_id, the first call is an "initial call" and the following calls are "update calls".
+What's the average call duration for all update calls? */
+/* Output: average_call_duration */
+
+/* SELECT to preview data */
+SELECT * FROM redfin_call_tracking LIMIT 5;
+
+/* update_calls CTE, ROW_NUMBER(), AVG(call_duration) */
+WITH update_calls AS (
+    SELECT
+        call_duration,
+        created_on,
+        id,
+        request_id,
+        ROW_NUMBER() OVER(PARTITION BY request_id ORDER BY created_on ASC) AS call_row
+    FROM redfin_call_tracking
+)
+SELECT 
+    AVG(call_duration) AS average_call_duration
+FROM update_calls
+WHERE call_row > 1;
+
+############################
