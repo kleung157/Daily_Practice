@@ -1,0 +1,232 @@
+Date: 07/02/2025
+
+############################
+
+Website:
+StrataScratch - ID 2057
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+Amazon - Weight For First Shipment
+Write a query to find the weight for each shipment's earliest shipment date. 
+Output the shipment id along with the weight.
+
+Data Dictionary:
+Table name = 'amazon_shipment'
+shipment_id: int64(int)
+sub_id: int64(int)
+weight: int64(int)
+shipment_date: datetime64(dt)
+
+Code:
+Solution #1 
+(
+For df['column'], use sort_values first then groupby then rank. 
+Rank can be 'first', 'min, or 'dense'. 'first' = row_number(), 'min' = rank(), 'dense' = dense_rank().
+Selecting row numbers or ranks can be done by df = df[ df['column'] == rank ]
+)
+
+# Question: Find the weight for each shipment's earliest shipment date.
+# Output: shipment_id, weight
+
+# Import packages
+import pandas as pd
+
+# Load and preview data
+#amazon_shipment = pd.read_csv('amazon_shipment.csv')
+df = pd.DataFrame(amazon_shipment)
+df.head(5)
+
+# Check data types and for nulls
+#df.info()
+#df.isna().sum()
+
+# Assign ranks to each shipment
+df['shipment_rank'] = (
+    df.sort_values(['shipment_id', 'shipment_date'])
+    .groupby('shipment_id')['shipment_date']
+    .rank(method='first', ascending=True)
+)
+
+# Select shipment_rank where == 1 for earliest shipment date
+results_df = df[df['shipment_rank'] == 1]
+
+# Select shipment_id and weight columns
+results_df = results_df[['shipment_id', 'weight']]
+
+# Result
+results_df
+
+############################
+
+Website:
+StrataScratch - ID 2023
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Redfin - Rush Hour Calls
+Redfin helps clients to find agents. 
+Each client will have a unique request_id and each request_id has several calls. 
+For each request_id, the first call is an “initial call” and all the following calls are “update calls”.  
+How many customers have called 3 or more times between 3 PM and 6 PM (initial and update calls combined)?
+
+Data Dictionary:
+Table name = 'redfin_call_tracking'
+call_duration: bigint(int)
+created_on: timestamp(dt)
+id: bigint(int)
+request_id: bigint(int)
+
+Code:
+Solution #1
+/* Question: Redfin helps clients to find agents.
+Each client will have a unique request_id and each request_id has several calls.
+For each request_id, the first call is an "initial call", and all the following are "update calls".
+How many customers have called 3 or more times between 3PM and 6PM (initial and update calls combined)? */
+/* Output: number of customers */
+
+/* SELECT to preview data */
+SELECT * FROM redfin_call_tracking LIMIT 5;
+
+/* Iteration */
+WITH customer_calls AS (
+SELECT
+    request_id,
+    COUNT(id) AS call_count
+FROM redfin_call_tracking
+WHERE CAST(created_on AS TIME) >= '15:00:00'
+    AND CAST(created_on AS TIME) <= '18:00:00'
+GROUP BY request_id
+HAVING COUNT(id) >= 3
+)
+SELECT
+    COUNT(request_id) AS number_of_customers
+FROM customer_calls;
+
+/* Final iteration */
+WITH customer_calls AS (
+    SELECT
+        request_id,
+        COUNT(id) AS call_count
+    FROM redfin_call_tracking
+    WHERE CAST(created_on AS TIME) >= '15:00:00'
+        AND CAST(created_on AS TIME) <= '18:00:00'
+    GROUP BY request_id
+    HAVING COUNT(id) >= 3
+)
+SELECT
+    COUNT(request_id) AS number_of_customers
+FROM customer_calls;
+
+Solution #2 (more optimal direct approach)
+SELECT
+    COUNT(DISTINCT request_id) AS num_customers_3_or_more_calls_3_6pm
+FROM
+    redfin_call_tracking
+WHERE
+    CAST(created_on AS TIME) >= '15:00:00' AND CAST(created_on AS TIME) < '18:00:00'
+GROUP BY
+    request_id
+HAVING
+    COUNT(id) >= 3;
+
+############################
+
+Website:
+StrataScratch - ID 2025
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Apple - Users Exclusive Per Client
+Considering a dataset that tracks user interactions with different clients, identify which clients have users who are exclusively loyal to them (i.e., they don't interact with any other clients).
+For each of these clients, calculate the number of such exclusive users. 
+The output should include the client_id and the corresponding count of exclusive users.
+
+Data Dictionary:
+Table name = 'fact_events'
+client_id: text(str)
+customer_id: text(str)
+event_id: bigint(int)
+event_type: text(str)
+id: bigint(int)
+time_id: date(dt)
+user_id: text(str)
+
+Code:
+Solution #1
+(
+Use subquery and WHERE NOT EXISTS (), SELECT 1 is more efficient than SELECT * for a True/False
+)
+
+/* Question: Considering a dataset that tracks user interactions with different clients,
+identify which clients have users who are exclusively loyal to them (don't interact with other clients).
+For each of these clients, calculate number of such exclusive users. */
+/* Output: client_id, corresponding count of exclusive users */
+
+/* SELECT to preview data */
+SELECT * FROM fact_events LIMIT 5;
+
+/* Iteration */
+SELECT
+    client_id,
+    COUNT(DISTINCT user_id)
+FROM fact_events
+GROUP BY client_id;
+
+SELECT
+    fe.client_id,
+    COUNT(DISTINCT fe.user_id) AS exclusive_user_count
+FROM fact_events AS fe
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM fact_events AS fe2
+    WHERE fe2.user_id = fe.user_id
+        AND fe2.client_id <> fe.client_id
+)
+GROUP BY fe.client_id
+ORDER BY fe.client_id;
+
+
+Solution #2
+(
+Using CTEs, COUNT(DISTINCT), MAX()
+)
+
+WITH UserClientCounts AS (
+SELECT 
+    user_id,
+    COUNT(DISTINCT client_id) AS distinct_client_count,
+    MAX(client_id) as single_client_id
+FROM fact_events
+GROUP BY user_id
+),
+ExclusiveUsers AS (
+SELECT
+    user_id,
+    single_client_id AS client_id_exclusive
+FROM UserClientCounts
+WHERE distinct_client_count = 1
+)
+SELECT 
+    client_id_exclusive as client_id,
+    COUNT(user_id) AS exclusive_user_count
+FROM ExclusiveUsers
+GROUP BY client_id_exclusive
+ORDER BY client_id_exclusive;
+
+############################
