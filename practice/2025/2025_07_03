@@ -1,0 +1,286 @@
+Date: 07/03/2025
+
+############################
+
+Website:
+StrataScratch - ID 2061
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+Meta - Users with Many Searches
+Count the number of users who made more than 5 searches in August 2021.
+
+Data Dictionary:
+Table name = 'fb_searches'
+date: datetime64(dt)
+search_id: int64(int)
+user_id: int64(int)
+age_group: object(str)
+search_query: object(str)
+
+Code:
+Solution #1
+(
+Using pd.Series( [ df['column'].count() ], name='column_name') to create a Series and rename column.
+)
+
+# Question: Count the number of users who made more than 5 searches in August 2021.
+# Output: number of users as pd.Series
+
+# Import packages
+import pandas as pd
+
+# Load and preview data
+#fb_searches = pd.read_csv('fb_searches.csv')
+df = pd.DataFrame(fb_searches)
+df.head(5)
+
+# Check datatypes and null values
+#df.info()
+#df.isna().sum()
+
+# Filter for August 2021 dates
+df = df[
+    (df['date'] >= '2021-08-01') &
+    (df['date'] <= '2021-08-31')
+]
+
+# Group by user_id then count() search query
+df = (
+    df
+    .groupby('user_id')['search_query']
+    .count()
+    .reset_index(name='number_of_searches')
+)
+
+# Filter for search_query counts > 5 searches
+df = df[ 
+    (df['number_of_searches'] > 5) 
+]
+
+# Count number of users
+result_series = pd.Series([df['user_id'].count()], name='number_of_users')
+
+# Result
+result_series
+
+############################
+
+Website:
+StrataScratch - ID 2062
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+Meta - Questions in Second Quarter
+How many searches were there in the second quarter of 2021?
+
+Data Dictionary:
+Table name = 'fb_searches'
+date: datetime64(dt)
+search_id: int64(int)
+user_id: int64(int)
+age_group: object(str)
+search_query: object(str)
+
+Code:
+Solution #1
+"""
+- Can use df.shape[0] or len(df) to find the count of all rows including nulls as a integer output, O(1) faster
+- For df.count(), finds all non-null values as a Series output O(n) performance for number of rows, slower
+result_series = pd.Series( [df['search_query'].count()], name='number_of_searches' )
+result_series = pd.Series( [df['search_query'].shape[0]], name='number_of_searches' )
+result_series = pd.Series( len(df['search_query']), name='number_of_searches' )
+"""
+
+# Question: How many searches were there in the second quarter of 2021?
+# Output: number of searches in pd.Series
+
+# Import packages
+import pandas as pd
+
+# Load and preview data
+#fb_searches = pd.read_csv('fb_searches.csv')
+df = pd.DataFrame(fb_searches)
+df.head(5)
+
+# Check datatypes and nulls
+#df.info()
+#df.isna().sum()
+
+# Convert 'date' column to quarters
+df['date'] = df['date'].dt.to_period('Q')
+
+# Filter for second quarter of 2021
+df = df[ (df['date'] == '2021Q2') ]
+
+# Count number of searches as a pd.Series
+result_series = pd.Series( [df['search_query'].count()], name='number_of_searches' )
+
+# Result
+result_series
+
+############################
+
+Website:
+StrataScratch - ID 2026
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Apple - Bottom 2 Companies By Mobile Usage
+Write a query to identify all companies (customer_id) whose mobile usage ranks in the bottom two positions. 
+Mobile usage is the count of events where client_id = 'mobile'. 
+Companies with the same usage count should share the same rank, and all companies in the bottom two ranks should be included. 
+Return the customer_id and event count, sorted in ascending order by the number of events.
+
+Data Dictionary:
+Table name = 'fact_events'
+client_id: text(str)
+customer_id: text(str)
+event_id: bigint(int)
+event_type: text(str)
+id: bigint(int)
+time_id: date(dt)
+user_id: text(str)
+
+Code:
+Solution #1
+"""
+- When finding bottom two, use dense_rank and order by ASC, rankings 1 and 2 will be bottom two rather than top two
+- Remember to use the id of a category column rather than the category type to do count()
+"""
+
+/* Question: Identify all companies(customer_id) whose mobile usage ranks in bottom two positions.
+Mobile usage is the count of events where client_id = 'mobile'.
+Companies with the same usage count should share the same rank,
+and all companies in the bottom two ranks should be included. */
+/* Output: customer_id, event count, sorted ASC by event count */
+
+/* SELECT to preview data */
+SELECT * FROM fact_events LIMIT 5;
+
+/* Mobile usage: GROUP BY customer_id and COUNT events WHERE client is 'mobile' */
+SELECT
+    customer_id,
+    COUNT(event_id) AS event_count
+FROM fact_events
+WHERE client_id = 'mobile'
+GROUP BY customer_id;
+
+/* Same rank for usage count: DENSE_RANK() */
+SELECT
+    customer_id,
+    COUNT(event_id) AS event_count,
+    DENSE_RANK() OVER(ORDER BY COUNT(event_id) ASC) AS event_rank
+FROM fact_events
+WHERE client_id = 'mobile'
+GROUP BY customer_id;
+
+/* CTE rankings, select bottom two ranks, sort ASC event_count */
+WITH ranked_events AS (
+    SELECT
+        customer_id,
+        COUNT(event_id) AS event_count,
+        DENSE_RANK() OVER(ORDER BY COUNT(event_id) ASC) AS event_rank
+    FROM fact_events
+    WHERE client_id = 'mobile'
+    GROUP BY customer_id
+)
+SELECT 
+    customer_id,
+    event_count
+FROM ranked_events
+WHERE event_rank <= 2
+ORDER BY event_count ASC;
+
+############################
+
+Website:
+StrataScratch - ID 2027
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Apple, Linux - Company With Most Desktop Users
+Write a query that returns the company (customer_id column) with the highest number of users who have only used desktop. 
+Users who may have used mobile at any point are ignored, but companies may still have mobile users.
+
+Data Dictionary:
+Table name = 'fact_events'
+client_id: text(str)
+customer_id: text(str)
+event_id: bigint(int)
+event_type: text(str)
+id: bigint(int)
+time_id: date(dt)
+user_id: text(str)
+
+Code:
+/* Question: Return the company (customer_id) with the highest number of users who only used desktop.
+Users who may have used mobile at any point are ignored, but companies may still have mobile users. */
+/* Output: customer_id */
+
+/* SELECT to preview data */
+SELECT * FROM fact_events LIMIT 5;
+
+/* GROUP BY customer_id, COUNT user_id, WHERE desktop */
+SELECT
+    customer_id,
+    COUNT(user_id) AS user_count
+FROM fact_events
+WHERE client_id = 'desktop'
+GROUP BY customer_id;
+
+/* GROUP BY customer_id and user_id, COUNT distinct client, MAX single client id */
+SELECT
+    customer_id,
+    user_id,
+    COUNT(DISTINCT client_id) AS distinct_client_count,
+    MAX(client_id) AS single_client_id
+FROM fact_events
+GROUP BY 
+    customer_id,
+    user_id;
+
+/* CTE customer_user_client_counts, COUNT users, WHERE users who only used one client '1' and 'desktop',
+ORDER BY DESC, LIMIT 1 */
+WITH customer_user_client_counts AS (
+    SELECT
+        customer_id,
+        user_id,
+        COUNT(DISTINCT client_id) AS distinct_client_count,
+        MAX(client_id) AS single_client_id
+    FROM fact_events
+    GROUP BY 
+        customer_id,
+        user_id
+)
+SELECT
+    customer_id,
+    COUNT(DISTINCT user_id) AS user_count
+FROM customer_user_client_counts
+WHERE distinct_client_count = 1
+    AND single_client_id = 'desktop'
+GROUP BY customer_id
+ORDER BY user_count DESC
+LIMIT 1;
+
+############################
