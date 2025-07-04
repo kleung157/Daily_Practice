@@ -1,0 +1,260 @@
+Date: 07/04/2025
+
+############################
+
+Website:
+StrataScratch - ID 2063
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+Goldman Sachs - Change of Currency Exchange Rates
+You are given a list of exchange rates from various currencies to US Dollars (USD) in different months. 
+Show how the exchange rate of all the currencies changed in the first half of 2020. 
+Output the currency code and the difference between values of the exchange rate between July 1, 2020 and January 1, 2020.
+
+Data Dictionary:
+Table name = 'sf_exchange_rate'
+source_currency: object(str)
+target_currency: object(str)
+exchange_rate: float64(flt)
+date: datetime64(dt)
+
+Code:
+Solution #1
+# Question: Given a list of exchange rates from various currencies to US dollars(USD) in different months.
+# Show how the exchange rate of all the currencies changed in the first half of 2020.
+# Output: currency code, difference between values of exchange rate between Jul 1 and Jan 1 2020
+
+# Import packages
+import pandas as pd
+
+# Load and preview data
+#sf_exchange_rate = pd.read_csv('sf_exchange_rate.csv')
+df = pd.DataFrame(sf_exchange_rate)
+df.head(5)
+
+# Check datatypes and nulls
+#df.info()
+#df.isna().sum()
+
+# Filter for July 1 and Jan 1 
+jan_rates = df[ (df['date'] == '2020-01-01') ]
+jul_rates = df[ (df['date'] == '2020-07-01') ]
+
+# Merge data by source_currency and target_currency
+merged_df = pd.merge(jan_rates, jul_rates, on=['source_currency', 'target_currency'], how='inner')
+
+# Difference between exchange_rate_y (July 1) and exchange_rate_x (Jan 1)
+merged_df['exchange_difference'] = (merged_df['exchange_rate_y'] - merged_df['exchange_rate_x'])
+
+# Select relevant columns source_currency and exchange_difference
+result_df = merged_df[ ['source_currency', 'exchange_difference'] ]
+
+# Sort source_currency values ASC
+result_df = result_df.sort_values(by='source_currency', ascending=True)
+
+# Result
+result_df
+
+Solution #2
+"""
+Using pivot_table() and less dataframes copied. More complex pandas functions but more optimally efficient.
+"""
+
+# Filter data for the relevant dates and target currency (USD)
+start_date = '2020-01-01'
+end_date = '2020-07-01'
+
+# Ensure target_currency is 'USD' for the problem
+usd_exchange_rates = sf_exchange_rate[sf_exchange_rate['target_currency'] == 'USD'].copy()
+
+# Filter for the specific start and end dates
+filtered_rates = usd_exchange_rates[
+    (usd_exchange_rates['date'] == start_date) |
+    (usd_exchange_rates['date'] == end_date)
+].copy()
+
+# Pivot the table
+pivot_df = filtered_rates.pivot_table(
+    index='source_currency',
+    columns='date',
+    values='exchange_rate'
+)
+
+# Rename columns for easier access
+pivot_df.columns = [f"rate_{col.strftime('%Y%m%d')}" for col in pivot_df.columns]
+
+print("\nPivoted Data for Comparison:")
+print(pivot_df)
+
+# 4. Calculate the difference: (July 1, 2020 rate - January 1, 2020 rate)
+# We need to access the columns using their new names or by exact date if not renamed
+# The problem statement implies July 1, 2020 minus January 1, 2020
+diff_column_name = f"rate_{pd.to_datetime(end_date).strftime('%Y%m%d')}"
+start_column_name = f"rate_{pd.to_datetime(start_date).strftime('%Y%m%d')}"
+
+# Calculate the difference
+pivot_df['exchange_rate_difference'] = pivot_df[diff_column_name] - pivot_df[start_column_name]
+
+# Output the currency code and the difference
+result = pivot_df[['exchange_rate_difference']].reset_index()
+result.rename(columns={'source_currency': 'currency_code'}, inplace=True)
+
+print("\nExchange Rate Changes (July 1, 2020 - January 1, 2020):")
+print(result)
+
+############################
+
+Website:
+StrataScratch - ID 2032
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Asana - Signups By Billing Cycle
+Write a query that returns a table containing the number of signups for each weekday and for each billing cycle frequency. 
+The day of the week standard we expect is from Sunday as 0 to Saturday as 6.
+Output the weekday number (e.g., 1, 2, 3) as rows in your table and the billing cycle frequency (e.g., annual, monthly, quarterly) as columns. 
+If there are NULLs in the output replace them with zeroes.
+
+Data Dictionary:
+Table name = 'signups'
+location: text(str)
+plan_id: bigint(int)
+signup_id: bigint(int)
+signup_start_date: date(dt)
+signup_stop_date: date(dt)
+Table name = 'plans'
+avg_revenue: double precision(flt)
+billing_cycle: text(str)
+currency: text(str)
+id: bigint(int)
+
+Code:
+Solution #1
+"""
+COUNT('column') FILTER(WHERE = 'column') is most efficient for PostgreSQL
+Create a separate CTE table using SELECT generate_series(0, 6) AS weekday_number
+Use COALESCE('column', 0) to find non-null values and 0 is the alternative if there is a null.
+LEFT JOIN generate_series table with weekday numbers to main table to get null/non-null values for 0-6 index
+"""
+
+/* Question: 
+Return a table containing the number of signups for each weekday and for each billing cycle frequency.
+The day of the week standard we expect is from Sunday as 0 to Saturday as 6.
+If there are NULLS in the output replace them with zeros. */
+
+/* Output: weekday number (ex.1,2,3) as rows, billing cycle frequency (annual, monthly, quarterly) as cols */
+
+/* SELECT to preview data */
+SELECT * FROM signups LIMIT 5;
+SELECT * FROM plans LIMIT 5;
+
+/* JOIN tables */
+SELECT *
+FROM signups AS s
+JOIN plans AS p
+    ON s.plan_id = p.id
+LIMIT 5;
+
+/* Convert dates to weekday number using EXTRACT */
+SELECT 
+    EXTRACT(DOW FROM s.signup_start_date) AS weekday_number,
+    COUNT(s.signup_id) AS annual_billing_cycle_frequency
+FROM signups AS s
+JOIN plans AS p
+    ON s.plan_id = p.id
+GROUP BY weekday_number
+ORDER BY weekday_number ASC;
+
+/* WHERE for annual, monthly and quarterly */
+SELECT 
+    EXTRACT(DOW FROM s.signup_start_date) AS weekday_number,
+    COUNT(s.signup_id) AS annual_billing_cycle_frequency
+FROM signups AS s
+JOIN plans AS p
+    ON s.plan_id = p.id
+WHERE p.billing_cycle = 'annual'
+GROUP BY weekday_number
+ORDER BY weekday_number ASC;
+
+SELECT 
+    EXTRACT(DOW FROM s.signup_start_date) AS weekday_number,
+    COUNT(s.signup_id) AS quarterly_billing_cycle_frequency
+FROM signups AS s
+JOIN plans AS p
+    ON s.plan_id = p.id
+WHERE p.billing_cycle = 'quarterly'
+GROUP BY weekday_number
+ORDER BY weekday_number ASC;
+
+SELECT 
+    EXTRACT(DOW FROM s.signup_start_date) AS weekday_number,
+    COUNT(s.signup_id) AS monthly_billing_cycle_frequency
+FROM signups AS s
+JOIN plans AS p
+    ON s.plan_id = p.id
+WHERE p.billing_cycle = 'monthly'
+GROUP BY weekday_number
+ORDER BY weekday_number ASC;
+
+/* For PostgreSQL COUNT and FILTER each column of billing_cycle_frequency */
+SELECT 
+    EXTRACT(DOW FROM s.signup_start_date) AS weekday_number,
+    COUNT(s.signup_id) FILTER (WHERE p.billing_cycle = 'annual') AS annual_billing_cycle_frequency,
+    COUNT(s.signup_id) FILTER (WHERE p.billing_cycle = 'quarterly') AS quarterly_billing_cycle_frequency,
+    COUNT(s.signup_id) FILTER (WHERE p.billing_cycle = 'monthly') AS monthly_billing_cycle_frequency
+FROM signups AS s
+JOIN plans AS p
+    ON s.plan_id = p.id
+GROUP BY weekday_number
+ORDER BY weekday_number ASC;
+
+/* For non-PostgreSQL COUNT AND CASE WHEN */
+SELECT 
+    EXTRACT(DOW FROM s.signup_start_date) AS weekday_number,
+    COUNT(CASE WHEN p.billing_cycle = 'annual' THEN s.signup_id END) AS annual_billing_cycle_frequency,
+    COUNT(CASE WHEN p.billing_cycle = 'quarterly' THEN s.signup_id END) AS quarterly_billing_cycle_frequency,
+    COUNT(CASE WHEN p.billing_cycle = 'monthly' THEN s.signup_id END) AS monthly_billing_cycle_frequency
+FROM signups AS s
+JOIN plans AS p
+    ON s.plan_id = p.id
+GROUP BY weekday_number
+ORDER BY weekday_number ASC;
+
+/* Including weekday 0 */
+WITH all_weekdays AS (
+    SELECT generate_series (0, 6) AS weekday_number
+),
+signup_counts AS (
+    SELECT 
+        EXTRACT(DOW FROM s.signup_start_date) AS weekday_number,
+        COUNT(s.signup_id) FILTER (WHERE p.billing_cycle = 'annual') AS annual_billing_cycle_frequency,
+        COUNT(s.signup_id) FILTER (WHERE p.billing_cycle = 'quarterly') AS quarterly_billing_cycle_frequency,
+        COUNT(s.signup_id) FILTER (WHERE p.billing_cycle = 'monthly') AS monthly_billing_cycle_frequency
+    FROM signups AS s
+    JOIN plans AS p
+        ON s.plan_id = p.id
+    GROUP BY weekday_number
+    ORDER BY weekday_number ASC
+)
+SELECT
+    aw.weekday_number,
+    COALESCE(sc.annual_billing_cycle_frequency, 0) AS annual,
+    COALESCE(sc.quarterly_billing_cycle_frequency, 0) AS quarterly,
+    COALESCE(sc.monthly_billing_cycle_frequency, 0) AS monthly
+FROM all_weekdays AS aw
+LEFT JOIN signup_counts AS sc
+    ON aw.weekday_number = sc.weekday_number
+ORDER BY aw.weekday_number ASC;
+
+############################
