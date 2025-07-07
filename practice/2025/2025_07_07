@@ -1,0 +1,263 @@
+Date: 07/07/2025
+
+############################
+
+Website:
+StrataScratch - ID 2002
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+MetLife - Submission Types
+Write a query that returns the user ID of all users that have created at least one ‘Refinance’ submission and at least one ‘InSchool’ submission.
+
+Data Dictionary:
+Table name = 'loans'
+id: numeric (int)
+user_id: numeric (int)
+created_at: POSIXct, POSIXt (dt)
+status: character (str)
+type: character (str)
+
+Code:
+Solution #1
+"""
+- Import library(tidyverse) for most packages
+- Load data using df = read_csv('.csv')
+- Convert to dataframe using data.frame('df')
+- Preview data using head('df', 5)
+- Check datatypes using lapply(df, class)
+- Check nulls using is.na(df) then apply colSums() to find sum of nulls
+- Use pipe operators %>% to chain functions like filter(), distinct()
+- Find intersection of two sets of data using inner_join('dataset', 'dataset', by = "id")
+"""
+
+# Question: Return the user ID of all users that have created at least one 'Refinance' submission and at
+# least one 'InSchool' submission.
+# Output: user_id
+
+# Import packages
+library(tidyverse)
+
+# Load and preview data
+# loans = read_csv('loans.csv')
+df = data.frame(loans)
+# head(df, 5)
+
+# Check datatypes using lapply and nulls using colSums (is.na () ) 
+#print(data.frame(lapply(df, class)))
+#print( colSums(is.na(df)) )
+
+# Find users with 'Refinance' submissions
+users_with_refinance <- df %>%
+    filter(type == "Refinance") %>%
+    distinct(user_id)
+print(users_with_refinance)
+
+# Find users with 'InSchool' submissions
+users_with_inschool <- df %>%
+    filter(type == 'InSchool') %>%
+    distinct(user_id)
+print(users_with_inschool)
+
+# Find intersection of two sets of users using inner_join() or intersect()
+result_df <- inner_join(users_with_refinance, users_with_inschool, by = "user_id")
+print(result_df)
+
+############################
+
+Website:
+StrataScratch - ID 2067
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+Facebook - Low Fat and Recylcable
+What percentage of all products are both low fat and recyclable?
+
+Data Dictionary:
+Table name = 'facebook_products'
+product_id: int64 (int)
+product_class: object (str)
+brand_name: object (str)
+is_low_fat: object (str)
+is_recyclable: object (str)
+product_category: int64 (int)
+product_family: object (str)
+
+Code:
+Solution # 1
+"""
+- Use len() to find count of rows 
+- For pd.Series() there are functions like data=, name= ex. pd.Series(data=df, name='column')
+- When converting to percentages multiply by * 100
+"""
+
+# Question: What percentage of all products are both low fat and recyclable?
+# Output: percentage of products as a pandas.Series
+
+# Import packages
+import pandas as pd
+
+# Load and preview data
+#facebook_products = pd.read_csv('facebook_products.csv')
+df = facebook_products
+df.head(5)
+
+# Check data types and nulls
+#df.info()
+#df.isna().sum()
+
+# Filter for low fat and recyclable
+filtered_df = df[
+    (df['is_low_fat'] == 'Y') &
+    (df['is_recyclable'] == 'Y')
+]
+
+# Count of low fat and recyclable products / count of total products
+result_series = pd.Series( 
+    ( len(filtered_df) / len(df) ) * 100, 
+    name='percentage_of_products'
+)
+
+# Result
+result_series
+
+############################
+
+Website:
+StrataScratch - ID 2034
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+DoorDash - Avg Earnings per Weekday and Hour
+You have been asked to calculate the average earnings per order segmented by a combination of weekday (all 7 days) and hour using the column customer_placed_order_datetime.
+
+You have also been told that the column order_total represents the gross order total for each order. 
+Therefore, you'll need to calculate the net order total.
+
+The gross order total is the total of the order before adding the tip and deducting the discount and refund.
+
+Note: In your output, the day of the week should be represented in text format (i.e., Monday). 
+Also, round earnings to 2 decimal
+
+Data Dictionary:
+Table name = 'doordash_delivery'
+consumer_id: bigint (int)
+customer_placed_order_datetime: timestamp (dt)
+delivered_to_consumer_datetime: timestamp (dt)
+delivery_region: text (str)
+discount_amount: bigint (int)
+driver_at_restaurant_datetime: timestamp (dt)
+driver_id: bigint (int)
+is_asap: boolean (bool)
+is_new: boolean (bool)
+order_total: double precision (flt)
+placed_order_with_restaurant_datetime: timestamp (dt)
+refunded_amount: double precision (flt)
+restaurant_id: bigint (int)
+tip_amount: double precision (flt)
+
+Code:
+Solution # 1
+"""
+- Similar to df.isnull().sum()
+    Use SUM(CASE WHEN 'column' IS NULL THEN 1 ELSE 0 END) AS null_count_col to count null values
+    Use COUNT(*) as total_rows to find total number of rows
+- TO_CHAR(column, 'Day') to find weekday text
+- EXTRACT(DOW FROM column) to find weekday number 0-6 (sunday-sat)
+- Use COALESCE(column, 0) when performing calculations on columns then performing average to account for nulls
+- ROUND( column::numeric, 2 ) is more precise than CAST(column AS DECIMAL(10,2)) when dealing with financial data
+- When selecting by weekday use TO_CHAR(col, 'day') then group by EXTRACT(DOW FROM col) then TO_CHAR(col, 'day')
+- Use TRIM() on (TO_CHAR) to remove trailing white space on text ex. Sunday_ = ex. Sunday after TRIM()
+- Put the same EXTRACT() or TO_CHAR() statement in GROUP BY or ORDER BY clause, don't use alias
+- Can use CTE if wanting to uses alias in the GROUP BY or ORDER BY clause in sub of EXTRACT(), TO_CHAR()
+"""
+
+/* Question:
+Calculate the average earnings per order segmented by combination of weekday (all 7 days) and hour using the
+column customer_placed_order_datetime.
+Column order_total represents the gross order total for each order. Therefore calculate net order total.
+Gross order total is total of the order before adding tip and deducting discount and refund.
+Day of week should be represented in text format(Monday), also round earnings to 2 decimals */
+/* Output: weekday, hour, earnings */
+
+/* SELECT to preview data */
+SELECT * FROM doordash_delivery LIMIT 5;
+
+/* Check for nulls - col4(2), col6(23), col11(1), total rows(96) */
+SELECT 
+    SUM(CASE WHEN consumer_id IS NULL THEN 1 ELSE 0 END) AS null_count_col1,
+    SUM(CASE WHEN customer_placed_order_datetime IS NULL THEN 1 ELSE 0 END) AS null_count_col2,
+    SUM(CASE WHEN delivered_to_consumer_datetime IS NULL THEN 1 ELSE 0 END) AS null_count_col3,
+    SUM(CASE WHEN delivery_region IS NULL THEN 1 ELSE 0 END) AS null_count_col4,
+    SUM(CASE WHEN discount_amount IS NULL THEN 1 ELSE 0 END) AS null_count_col5,
+    SUM(CASE WHEN driver_at_restaurant_datetime IS NULL THEN 1 ELSE 0 END) AS null_count_col6,
+    SUM(CASE WHEN driver_id IS NULL THEN 1 ELSE 0 END) AS null_count_col7,
+    SUM(CASE WHEN is_asap IS NULL THEN 1 ELSE 0 END) AS null_count_col8,
+    SUM(CASE WHEN is_new IS NULL THEN 1 ELSE 0 END) AS null_count_col9,
+    SUM(CASE WHEN order_total IS NULL THEN 1 ELSE 0 END) AS null_count_col10,
+    SUM(CASE WHEN placed_order_with_restaurant_datetime IS NULL THEN 1 ELSE 0 END) AS null_count_col11,
+    SUM(CASE WHEN refunded_amount IS NULL THEN 1 ELSE 0 END) AS null_count_col12,
+    SUM(CASE WHEN restaurant_id IS NULL THEN 1 ELSE 0 END) AS null_count_col13,
+    SUM(CASE WHEN tip_amount IS NULL THEN 1 ELSE 0 END) AS null_count_col14,
+    COUNT(*) AS total_rows
+FROM doordash_delivery;
+
+/* Convert to weekday and hour using customer_placed_order_datetime column */
+SELECT
+    TO_CHAR(customer_placed_order_datetime, 'Day') AS weekday,
+    EXTRACT(HOUR FROM customer_placed_order_datetime) AS hour
+FROM doordash_delivery;
+
+/* Calculate net order total, order_total - discount - refunded + tip_amount */
+SELECT 
+    (order_total - COALESCE(discount_amount, 0) - COALESCE(refunded_amount, 0) + COALESCE(tip_amount, 0)) 
+    AS net_order_total
+FROM doordash_delivery;
+
+/* Average earnings per order segmented by weekday, hour and round to 2 decimals */
+SELECT
+    EXTRACT(DOW FROM customer_placed_order_datetime) AS weekday,
+    EXTRACT(HOUR FROM customer_placed_order_datetime) AS hour,
+    ROUND( AVG( 
+        (order_total - COALESCE(discount_amount, 0) - COALESCE(refunded_amount, 0) + COALESCE(tip_amount, 0) 
+        ))::numeric, 2) AS avg_earnings_per_order
+FROM doordash_delivery
+GROUP BY
+    EXTRACT(DOW FROM customer_placed_order_datetime),
+    EXTRACT(HOUR FROM customer_placed_order_datetime)
+ORDER BY
+    weekday ASC,
+    hour ASC;
+    
+/* final query with text */
+SELECT
+    TRIM(TO_CHAR(customer_placed_order_datetime, 'Day')) AS weekday,
+    EXTRACT(HOUR FROM customer_placed_order_datetime) AS hour,
+    ROUND( AVG( 
+        (order_total - COALESCE(discount_amount, 0) - COALESCE(refunded_amount, 0) + COALESCE(tip_amount, 0) 
+        ))::numeric, 2) AS avg_earnings_per_order
+FROM doordash_delivery
+GROUP BY
+    EXTRACT(DOW FROM customer_placed_order_datetime),
+    TRIM(TO_CHAR(customer_placed_order_datetime, 'Day')),
+    EXTRACT(HOUR FROM customer_placed_order_datetime)
+ORDER BY 
+    EXTRACT(DOW FROM customer_placed_order_datetime) ASC,
+    EXTRACT(HOUR FROM customer_placed_order_datetime) ASC;
+
+############################
