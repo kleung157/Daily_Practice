@@ -16,36 +16,36 @@ Table name = ''
 
 Code:
 
+Notes:
+
 ############################
 
-SQL Code Format:
+SQL - Code Format:
 /* Question: */
 /* Output: */
 
 /* SELECT to preview data */
 
-/* Iteration */
+/* Check null values and total rows */
 
-/* Final iteration */
+/* Iteration */
 
 ############################
 
-Python Pandas Code Format:
+R & Python - Code Format:
 # Question:
 # Output:
 
 # Import libraries
 
-# Preview data
-
-# Check for nulls
+# Load and preview data
 
 # Check datatypes
+
+# Check for nulls
 
 # Iteration
 
 # Result
-
-# Check solution
 
 ############################
