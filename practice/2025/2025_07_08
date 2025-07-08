@@ -1,0 +1,253 @@
+**Template**
+Date: 07/08/2025
+
+############################
+
+Website:
+StrataScratch - ID 2004
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Meta - Number of Comments Per User in 30 days before 2020-02-10
+Return the total number of comments received for each user in the 30 or less days before 2020-02-10.
+Don't output users who haven't received any comment in the defined time period.
+
+Data Dictionary:
+Table name = 'fb_comments_count'
+user_id: numeric (int)
+number_of_comments: numeric (int)
+created_at: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1
+"""
+- Use <- instead of = for R environment
+- Try to do pipe operator chain in one dataframe rather than multiple
+- group_by('col')
+- filter('col' <= 'date') or filter('col > 'value')
+- summarise('rename col' = sum('col', na.rm = TRUE))  - can rename column, na.rm removes null values in sum 
+- In R environment, use str() or glimpse() to preview datatypes (doesn't work for r2 python)
+- summarise() similar to .agg() in Python
+- summarise() can use sum, mean, median, min, max, sd, n, n_distinct, first, last, IQR, var
+"""
+
+# Question: Return total number of comments received for each user in 30 or less days before 2020-02-10.
+# Don't output users who haven't received any comments in the defined time period.
+# Output: total number of comments, user_id
+
+# Import packages
+library(tidyverse)
+
+# Load and preview data
+#fb_comments_count = read_csv('fb_comments_count.csv')
+df <- data.frame(fb_comments_count)
+head(df, 5)
+
+# Check datatypes and nulls
+#data.frame(lapply(df, class))
+#colSums(is.na(df))
+
+# Solution
+result_df <- df %>%
+    filter(created_at >= '2020-01-11') %>%                                  # Filter 30 days before 2020-02-10
+    filter(created_at < '2020-02-10') %>%
+    group_by(user_id) %>%                                                   # Group_by user
+    summarise(total_comments = sum(number_of_comments, na.rm = TRUE)) %>%   # Sum comments, exclude nulls
+    filter(total_comments > 0) %>%                                          # Filter for users with comments
+    arrange(user_id)                                                        # Sort by ascending order
+    
+# Result
+print(result_df)
+
+############################
+
+Website:
+StrataScratch - ID 2069
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+Meta - Sales with Valid Promotion
+The marketing manager wants you to evaluate how well the previously ran advertising campaigns are working.
+Particularly, they are interested in the promotion IDs from the online_promotions table.
+Find the percentage of orders with promotion IDs from the online_promotions table applied.
+
+Data Dictionary:
+Table name = 'online_promotions'
+promotion_id: int64 (int)
+Table name = 'online_orders'
+product_id: int64 (int)
+promotion_id: int64 (int)
+cost_in_dollars: int64 (int)
+customer_id: int64 (int)
+date_sold: datetime64 (dt)
+units_sold: int64 (int)
+
+Code:
+# Question: How well previously ran advertising campaigns are working, 
+# specifically in promotion IDs from the online_promotions table.
+# Find percentage of orders with promotion IDs from online_promotions table applied.
+
+# Import packages
+import pandas as pd
+
+# Load and preview data
+#df = pd.read_csv('online_promotions.csv')
+#df2 = pd.read_csv('online_orders.csv')
+df = pd.DataFrame(online_promotions)
+df2 = pd.DataFrame(online_orders)
+#print(df.head())
+#print(df2.head())
+
+# Check datatypes and nulls
+#df.info()
+#df.isna().sum()
+#df2.info()
+#df2.isna().sum()
+
+# Merge dataframes to find promotions applied to orders
+promotions_applied_to_orders = pd.merge(df, df2, on='promotion_id', how='inner')
+
+# Find percentage of orders
+percentage_of_orders = (len(promotions_applied_to_orders) / len(df2) ) * 100
+
+# Result
+print(f"Percentage of orders with online promotion IDS applied: {percentage_of_orders:.2f}%")
+
+############################
+
+Website:
+StrataScratch - ID 2035
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+DoorDash - Avg Order Cost During Rush Hours
+The company you work for has asked you to look into the average order value per hour during rush hours in the San Jose area. 
+Rush hour is from 15H - 17H inclusive.
+
+You have also been told that the column order_total represents the gross order total for each order. 
+Therefore, you'll need to calculate the net order total.
+
+The gross order total is the total of the order before adding the tip and deducting the discount and refund.
+
+Use the column customer_placed_order_datetime for your calculations.
+
+Data Dictionary:
+Table name = 'delivery_details'
+consumer_id: bigint (int)
+customer_placed_order_datetime: timestamp (dt)
+delivered_to_consumer_daetime: timestamp (dt)
+delivery_region: text (str)
+discount_amount: double precision (flt)
+driver_at_restaurant_datetime: timestamp (dt)
+driver_id: bigint (int)
+is_asap: boolean (bool)
+is_new: boolean (bool)
+order_total: double precision (flt)
+placed_order_with_restaurant_datetime: timestmap(dt)
+refunded_amount: double precision (flt)
+restaurant_id: bigint (int)
+tip_amount: double precision (flt)
+
+Code:
+Solution #1
+"""
+- For generate_series(), only include the necessary hours or weekday numbers in a CTE
+- Can use WHERE 'column' BETWEEN 'value' and 'value' instead of WHERE 'column' IN ('value', 'value', 'value')
+- COALESCE('col', 0) will include null values as a 0
+- CTE a table that has EXTRACT() then can alias those EXTRACT() columns from said CTE table
+
+"""
+
+/* Question: Find average order value per hour during rush hours in the San Jose area. 
+Rush hour is from 15H - 17H inclusive.
+order_total column represents the gross order total for each order, therefore calculate net order total.
+Gross order total is the total of the order before adding the tip and deducting the discount and refund.
+Use customer_placed_order_datetime for your calculations. */
+
+/* SELECT to preview data */
+SELECT * FROM delivery_details LIMIT 5;
+
+/* Check nulls: driver_at_restaurant_datetime (244), placed_order_With_restaurant_datetime(2), 1000 rows */
+SELECT
+    SUM(CASE WHEN consumer_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN customer_placed_order_datetime IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN delivered_to_consumer_datetime IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN delivery_region IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN discount_amount IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN driver_at_restaurant_datetime IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN driver_id IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN is_asap IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN is_new IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN order_total IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN placed_order_with_restaurant_datetime IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN refunded_amount IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN restaurant_id IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN tip_amount IS NULL THEN 1 ELSE 0 END) AS col14,
+    COUNT(*) AS total_rows
+FROM delivery_details;
+
+/* Find hours */
+SELECT
+    EXTRACT(HOUR FROM customer_placed_order_datetime) AS hour
+FROM delivery_details
+LIMIT 5;
+
+/* Calculate net order total */
+SELECT
+    ROUND(
+        (order_total - COALESCE(discount_amount, 0) - COALESCE(refunded_amount, 0) + COALESCE(tip_amount, 0) )::numeric, 
+    2) AS net_order_total
+FROM delivery_details
+LIMIT 5;
+
+/* Average order value per hour during rush hours in the San Jose area */
+SELECT
+    EXTRACT(HOUR FROM customer_placed_order_datetime) AS hour,
+    ROUND( AVG(
+        (order_total - COALESCE(discount_amount, 0) - COALESCE(refunded_amount, 0) + COALESCE(tip_amount, 0) )::numeric
+    ), 2) AS avg_net_order_total
+FROM delivery_details
+WHERE delivery_region = 'San Jose'
+    AND EXTRACT(HOUR FROM customer_placed_order_datetime) IN (15, 16, 17)
+GROUP BY EXTRACT(HOUR FROM customer_placed_order_datetime)
+ORDER BY EXTRACT(HOUR FROM customer_placed_order_datetime) ASC;
+
+/* generate_series(15-17) and CTE to include 15th hour even though null */
+WITH hour_series AS (
+    SELECT generate_series(15, 17) AS hour
+),
+rush_hour AS (
+    SELECT
+        EXTRACT(HOUR FROM customer_placed_order_datetime) AS hour,
+        ROUND( AVG(
+            (order_total - COALESCE(discount_amount, 0) - COALESCE(refunded_amount, 0) + COALESCE(tip_amount, 0) )::numeric
+        ), 2) AS avg_net_order_total
+    FROM delivery_details
+    WHERE delivery_region = 'San Jose'
+        AND EXTRACT(HOUR FROM customer_placed_order_datetime) IN (15, 16, 17)
+    GROUP BY EXTRACT(HOUR FROM customer_placed_order_datetime)
+)
+SELECT
+    hs.hour,
+    COALESCE(avg_net_order_total, 0) AS avg_order_cost
+FROM hour_series as hs
+LEFT JOIN rush_hour as rh
+    ON hs.hour = rh.hour
+ORDER BY hs.hour ASC;
+
+############################
