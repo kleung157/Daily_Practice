@@ -24,17 +24,6 @@ created_at: POSIXct, POSIXt (dt)
 
 Code:
 Solution #1
-"""
-- Use <- instead of = for R environment
-- Try to do pipe operator chain in one dataframe rather than multiple
-- group_by('col')
-- filter('col' <= 'date') or filter('col > 'value')
-- summarise('rename col' = sum('col', na.rm = TRUE))  - can rename column, na.rm removes null values in sum 
-- In R environment, use str() or glimpse() to preview datatypes (doesn't work for r2 python)
-- summarise() similar to .agg() in Python
-- summarise() can use sum, mean, median, min, max, sd, n, n_distinct, first, last, IQR, var
-"""
-
 # Question: Return total number of comments received for each user in 30 or less days before 2020-02-10.
 # Don't output users who haven't received any comments in the defined time period.
 # Output: total number of comments, user_id
@@ -62,6 +51,16 @@ result_df <- df %>%
     
 # Result
 print(result_df)
+
+Notes:
+- Use <- instead of = for R environment
+- Try to do pipe operator chain in one dataframe rather than multiple
+- group_by('col')
+- filter('col' <= 'date') or filter('col > 'value')
+- summarise('rename col' = sum('col', na.rm = TRUE))  - can rename column, na.rm removes null values in sum 
+- In R environment, use str() or glimpse() to preview datatypes (doesn't work for r2 python)
+- summarise() similar to .agg() in Python
+- summarise() can use sum, mean, median, min, max, sd, n, n_distinct, first, last, IQR, var
 
 ############################
 
@@ -122,6 +121,9 @@ percentage_of_orders = (len(promotions_applied_to_orders) / len(df2) ) * 100
 # Result
 print(f"Percentage of orders with online promotion IDS applied: {percentage_of_orders:.2f}%")
 
+Notes:
+N/A
+
 ############################
 
 Website:
@@ -164,14 +166,6 @@ tip_amount: double precision (flt)
 
 Code:
 Solution #1
-"""
-- For generate_series(), only include the necessary hours or weekday numbers in a CTE
-- Can use WHERE 'column' BETWEEN 'value' and 'value' instead of WHERE 'column' IN ('value', 'value', 'value')
-- COALESCE('col', 0) will include null values as a 0
-- CTE a table that has EXTRACT() then can alias those EXTRACT() columns from said CTE table
-
-"""
-
 /* Question: Find average order value per hour during rush hours in the San Jose area. 
 Rush hour is from 15H - 17H inclusive.
 order_total column represents the gross order total for each order, therefore calculate net order total.
@@ -248,5 +242,11 @@ FROM hour_series as hs
 LEFT JOIN rush_hour as rh
     ON hs.hour = rh.hour
 ORDER BY hs.hour ASC;
+
+Notes:
+- For generate_series(), only include the necessary hours or weekday numbers in a CTE
+- Can use WHERE 'column' BETWEEN 'value' and 'value' instead of WHERE 'column' IN ('value', 'value', 'value')
+- COALESCE('col', 0) will include null values as a 0
+- CTE a table that has EXTRACT() then can alias those EXTRACT() columns from said CTE table
 
 ############################
