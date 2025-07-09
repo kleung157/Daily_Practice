@@ -1,0 +1,195 @@
+Date: 07/09/2025
+
+############################
+
+Website:
+StrataScratch - ID 2006
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Meta - Users Activity Per Month Day
+Return the total number of posts made on each calendar day of the month, aggregated across all months and years (ignoring user and year).
+
+Data Dictionary:
+Table name = 'facebook_posts'
+post_id: numeric (int)
+poster: numeric (int)
+post_text: character (str)
+post_keywords: character (str)
+post_date: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1
+# Question: Return the total number of posts made on each calendar day of the month,
+# aggregated across all months and years (ignoring user and year)
+# Output: total number of posts, calendar day of month
+
+# Import libraries
+library(tidyverse)
+
+# Load and preview data
+#facebook_posts <- read_csv('facebook_posts.csv')
+df <- data.frame(facebook_posts)
+head(df, 5)
+
+# Check data types and nulls
+lapply(df, class)
+colSums(is.na(df))
+
+# Total number of posts, aggregate across months and years
+result_df <- df %>%
+    mutate(day_of_month = mday(post_date)) %>%    # convert post_date to day_of_month
+    group_by(day_of_month) %>%                    # group_by day_of_month
+    summarise(total_posts = n()) %>%              # count rows of facebook_posts table
+    ungroup() %>%                                 # ungroup to original dataframe
+    arrange(day_of_month)                         # arrange in ASC order by day_of_month
+    
+# Result
+print(result_df)
+
+Notes:
+- When changing formats in a pipe operator, use mutate('rename col' = function('col') )
+- For unique rows or values, use n_distinct('col'); otherwise for aggregation of rows use n() in summarise()
+- Best practice to ungroup() after using group_by() and summarise()
+- Use arrange('col') for arranging in ascending order, for descending order use arrange( desc('col' )
+
+############################
+
+Website:
+StrataScratch - ID 2072
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+Google - Active Users Per Platform
+For each platform (e.g. Windows, iPhone, iPad etc.), calculate the number of users. Consider unique users and not individual sessions. 
+Output the name of the platform with the corresponding number of users.
+
+Data Dictionary:
+Table name = 'user_sessions'
+session_id: int64 (int)
+user_id: object (str)
+session_starttime: datetime64 (dt)
+session_endtime: datetime64 (dt)
+platform: object (str)
+
+Code:
+Solution #1
+# Question: For each platform (Windows, iPhone, iPad), calculate the number of users.
+# Consider unique users and not individual sessions.
+# Output: name of platform, number of unique users
+
+# Import packages
+import pandas as pd
+
+# Load and preview data
+#user_sessions = pd.read_csv('user_sessions')
+df = pd.DataFrame(user_sessions)
+df.head(5)
+
+# Check datatypes and nulls
+#df.info()
+#df.isna().sum()
+
+# Solution
+result_df = (
+    df.groupby('platform')['user_id']              # Groupby platform, select for user_id column
+    .nunique()                                     # Count number of unique users
+    .reset_index(name='number_of_users')           # Reset index for dataframe, rename column
+    .sort_values(by='platform', ascending=True)    # Sort by platform in ASC order
+)
+
+# Result
+result_df
+
+Notes:
+- Use reset_index(name='col') after using a groupby().function()
+- Use sort_values(by='col', ascending=True) for presentation of dataframe
+
+############################
+
+Website:
+StrataScratch - ID 2040
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Whole Foods Market - Customers Report Summary
+Summarize the number of customers and transactions for each month in 2017, keeping transactions that were greater or equal to $5.
+
+Data Dictionary:
+Table name = 'wfm_transactions'
+customer_id: bigint (int)
+product_id: bigint (int)
+sales: bigint (int)
+store_id: bigint (int)
+transaction_date: date (dt)
+transaction_id: bigint (int)
+
+Code:
+Solution #1
+/* Question: Summarize the number of customers and transactions for each month in 2017,
+keeping transactions that were greater or equal to $5. */
+/* Output: number of customers, number of transactions, months of 2017 */
+
+/* SELECT to preview data */
+SELECT * FROM wfm_transactions LIMIT 5;
+
+/* Check for null values - 0 null values, 216 rows */
+SELECT
+    SUM(CASE WHEN customer_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN product_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN sales IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN store_id IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN transaction_date IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN transaction_id IS NULL THEN 1 ELSE 0 END) AS col6,
+    COUNT(*) AS total_rows
+FROM wfm_transactions;
+
+/* Convert transaction_date to month of 2017 */
+SELECT 
+    TO_CHAR(transaction_date, 'YYYY-MM') AS month
+FROM wfm_transactions
+WHERE EXTRACT(YEAR FROM transaction_date) = 2017
+LIMIT 5;
+
+/* COUNT DISTINCT customer_id, COUNT transaction_id */
+SELECT 
+    TO_CHAR(transaction_date, 'YYYY-MM') AS month,
+    COUNT(DISTINCT customer_id) AS customer_count,
+    COUNT(transaction_id) AS transaction_count
+FROM wfm_transactions
+WHERE EXTRACT(YEAR FROM transaction_date) = 2017
+GROUP BY TO_CHAR(transaction_date, 'YYYY-MM')
+LIMIT 5;
+
+/* Keep transactions greater or equal to $5 */
+SELECT 
+    TO_CHAR(transaction_date, 'YYYY-MM') AS month,
+    COUNT(DISTINCT customer_id) AS customer_count,
+    COUNT(transaction_id) AS transaction_count
+FROM wfm_transactions
+WHERE EXTRACT(YEAR FROM transaction_date) = 2017
+    AND sales >= 5
+GROUP BY TO_CHAR(transaction_date, 'YYYY-MM')
+ORDER BY month ASC;
+
+Notes:
+- EXTRACT(YEAR FROM) and EXTRACT(MONTH FROM) are more performant numerically
+- TO_CHAR('col', 'YYYY-MM') is less performant but more clear and concise for grouping overall
+- COUNT(DISTINCT) for unique rows and COUNT() for all rows
+
+############################
