@@ -1,0 +1,1 @@
+SELECT * FROM pythonseq LIMIT 5;
