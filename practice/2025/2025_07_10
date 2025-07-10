@@ -1,0 +1,272 @@
+Date: 07/10/2025
+
+############################
+
+Website:
+StrataScratch - ID 2009
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Twitch - Users With Two Statuses
+
+Data Dictionary:
+Table name = 'twitch_sessions'
+user_id: numeric (int)
+session_id: numeric (int)
+session_start: POSIXct, POSIXt (dt)
+session_end: POSIXct, POSIXt (dt)
+session_type: character (str)
+
+Code:
+# Question: Find users who are both a viewer and a streamer.
+# Output: users that are viewer and streamer
+
+# Import libraries
+library(tidyverse)
+
+# Load and preview data
+#twitch_sessions <- read.csv('twitch_sessions.csv')
+df <- data.frame(twitch_sessions)
+head(df, 5)
+
+# Check datatypes and nulls
+lapply(df, class)
+colSums(is.na(df))
+
+# Filter for user_viewers and user_streamers
+user_viewers <- df %>%
+    filter(session_type == 'viewer') %>%             # Filter for viewers
+    distinct(user_id)                                # Find distinct user_id values
+
+user_streamers <- df %>%
+    filter(session_type == 'streamer') %>%           # Filter for streamers
+    distinct(user_id)                                # Find distinct user_id values
+
+# Inner join to find users who are both a viewer and streamer
+result_df <- inner_join(user_viewers, user_streamers, by='user_id') %>%    # inner_join by user_id
+    arrange(user_id) %>%                                                   # arrange ASC order
+    rename(unique_users = user_id)                                         # rename col to unique_users
+    
+# Result
+result_df
+
+Notes:
+- Originally tried to use groupby() then summarise(unique()), but distinct() is more direct and less steps
+- It's possible to have all the pipe operations in one dataframe, not as clear compared to this method similar to pandas
+- rename('newcolname' = 'oldcolname')
+
+############################
+
+Website:
+StrataScratch - ID 2080
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+Meta - Mobile and Web Logins
+Count the number of unique users per day who logged in from both a mobile device and web. 
+Output the date and the corresponding number of users.
+
+Data Dictionary:
+Table name = 'mobile_logs'
+user_id: object (str)
+log_date: datetime64 (dt)
+Table name = 'web_logs'
+user_id: object (str)
+log_date: datetime64 dt)
+
+Code:
+# Question: Count the number of unique users per day who logged in both a mobile device and web.
+# Output: date, number of unique users
+
+# Import packages
+import pandas as pd
+
+# Load and preview data
+#mobile_logs = pd.read_csv('mobile_logs.csv')
+#web_logs = pd.read_csv('web_logs.csv')
+df = pd.DataFrame(mobile_logs)
+df2 = pd.DataFrame(web_logs)
+df.head(5)
+df2.head(5)
+
+# Check data types and nulls - df(19) df(17) number of rows, no nulls
+#df.info()
+#df2.info()
+#df.isna().sum()
+#df2.isna().sum()
+
+# Drop duplicate users and log_date combination
+df = df[['log_date', 'user_id']].drop_duplicates()
+df2 = df2[['log_date', 'user_id']].drop_duplicates()
+
+# Merge dataframes with inner join to find matching user ids
+merged_df = pd.merge(df, df2, on=['log_date', 'user_id'], how='inner')
+
+result_df = (
+    merged_df.groupby('log_date')['user_id']       # groupby log_date and user_id
+    .nunique()                                     # find number of unique users
+    .reset_index(name='number_of_unique_users')    # rename colunn
+)
+
+# Get all unique dates from both original logs
+all_dates_series = pd.concat([df['log_date'], df2['log_date']]).unique()
+all_dates_df = pd.DataFrame(all_dates_series).rename(columns= {0: 'log_date'} )
+all_dates_df
+
+# Left merge all_dates_df and result_df to include log dates with 0 users
+final_result_df = pd.merge(all_dates_df, result_df, on='log_date', how='left')
+
+# Fill NaN values with 0
+final_result_df['number_of_unique_users'] = final_result_df['number_of_unique_users'].fillna(0).astype(int)
+
+# Result
+final_result_df
+
+Notes:
+- Use df.drop_duplicates() to remove duplicate values in specified columns
+- Inner joins can be used to find matches between two dataframes
+- If a question asks for dates, and the values are 0, merging/joining will not include the dates with 0
+- pd.concat( [ df['col'], df2['col'] ] ).unique() can be used to create a pd.Series of like values
+- df.rename( cols = {'oldcolname': 'newcolname'} ) to rename columns
+- Use left join then df.fillna('value').astype(int) to include missing values and fill as 0
+
+############################
+
+Website:
+StrataScratch - ID 2041
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Goldman Sachs - Total Sales In Different Currencies
+You work for a multinational company that wants to calculate total sales across all their countries they do business in.
+You have 2 tables, one is a record of sales for all countries and currencies the company deals with, and the other holds currency exchange rate information.
+Calculate the total sales, per quarter, for the first 2 quarters in 2020, and report the sales in USD currency.
+
+Data Dictionary:
+Table name = 'sf_exchange_rate'
+date: date (dt)
+exchange_rate: double precision (flt)
+source_currency: text (str)
+target_currency: text (str)
+Table name = 'sf_sales_amount'
+currency: text (str)
+sales_amount: bigint (int)
+sales_date: date (dt)
+
+Code:
+/* Question: Calculate total sales across all the countries the company does business in.
+2 tables, one is a record of sales for all countries and currencies the company deals with,
+the other holds currency exchange rate information. 
+Calculate total sales, per quarter, for the first 2 quarters in 2020, and report sales in USD currency */
+/* Output: total sales (USD), quarter (first 2 quarters 2020) */
+
+/* SELECT to preview data */
+SELECT * FROM sf_exchange_rate LIMIT 5;
+SELECT * FROM sf_sales_amount LIMIT 5;
+
+/* Check for nulls - sf_exchange_rate(0 nulls, 91 rows) - sf_sales_amount(0 nulls, 120 rows) */
+SELECT
+    SUM(CASE WHEN date IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN exchange_rate IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN source_currency IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN target_currency IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM sf_exchange_rate;
+
+SELECT
+    SUM(CASE WHEN currency IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN sales_amount IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN sales_date IS NULL THEN 1 ELSE 0 END) AS col3,
+    COUNT(*) AS total_rows
+FROM sf_sales_amount;
+
+/* JOIN tables - 70 rows*/
+SELECT COUNT(*) AS total_rows
+FROM sf_exchange_rate AS ser
+JOIN sf_sales_amount AS ssa
+    ON ser.date = ssa.sales_date
+    AND ser.source_currency = ssa.currency;
+    
+SELECT *
+FROM sf_exchange_rate AS ser
+JOIN sf_sales_amount AS ssa
+    ON ser.date = ssa.sales_date
+    AND ser.source_currency = ssa.currency
+LIMIT 5;
+
+/* Convert dates to quarters */
+SELECT 
+    TO_CHAR(ssa.sales_date, 'Q-YYYY') AS quarter
+FROM sf_exchange_rate AS ser
+JOIN sf_sales_amount AS ssa
+    ON ser.date = ssa.sales_date
+    AND ser.source_currency = ssa.currency
+LIMIT 5;
+
+/* Calculate total sales across all countries for first 2 quarters in 2020 */
+SELECT 
+    TO_CHAR(ssa.sales_date, 'Q-YYYY') AS quarter,
+    ssa.currency,
+    SUM(ssa.sales_amount) AS total_sales
+FROM sf_exchange_rate AS ser
+JOIN sf_sales_amount AS ssa
+    ON ser.date = ssa.sales_date
+    AND ser.source_currency = ssa.currency
+WHERE EXTRACT(QUARTER FROM ssa.sales_date) <= 2
+    AND EXTRACT(YEAR FROM ssa.sales_date) = 2020
+GROUP BY 
+    TO_CHAR(ssa.sales_date, 'Q-YYYY'),
+    ssa.currency;
+    
+/* Report sales in USD currency */
+SELECT 
+    TO_CHAR(ssa.sales_date, 'Q-YYYY') AS quarter,
+    ssa.currency,
+    SUM(ssa.sales_amount) AS total_sales,
+    ROUND(SUM(ssa.sales_amount * exchange_rate)::numeric, 2) AS total_sales_usd
+FROM sf_exchange_rate AS ser
+JOIN sf_sales_amount AS ssa
+    ON ser.date = ssa.sales_date
+    AND ser.source_currency = ssa.currency
+WHERE EXTRACT(QUARTER FROM ssa.sales_date) <= 2
+    AND EXTRACT(YEAR FROM ssa.sales_date) = 2020
+GROUP BY 
+    TO_CHAR(ssa.sales_date, 'Q-YYYY'),
+    ssa.currency;
+    
+/* Final output - total sales (USD), quarter (first 2 quarters 2020) */
+SELECT 
+    TO_CHAR(ssa.sales_date, 'Q-YYYY') AS quarter,
+    ROUND(SUM(ssa.sales_amount * exchange_rate)::numeric, 2) AS total_sales_usd
+FROM sf_exchange_rate AS ser
+JOIN sf_sales_amount AS ssa
+    ON ser.date = ssa.sales_date
+    AND ser.source_currency = ssa.currency
+WHERE EXTRACT(QUARTER FROM ssa.sales_date) <= 2
+    AND EXTRACT(YEAR FROM ssa.sales_date) = 2020
+GROUP BY 
+    TO_CHAR(ssa.sales_date, 'Q-YYYY')
+ORDER BY 
+    TO_CHAR(ssa.sales_date, 'Q-YYYY') ASC;
+    
+Notes:
+- When dealing with quarters, use EXTRACT(QUARTER) and EXTRACT(YEAR) in the WHERE clause
+- EXTRACT() instead of TO_CHAR() is slightly more optimal but TO_CHAR() is better for readability and reproducibility
+- For MySQL use QUARTER('date'), and for MSSQLserver use DATEPART(quarter, 'date') 
+
+############################
