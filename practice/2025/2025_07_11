@@ -1,0 +1,216 @@
+Date: 07/11/2025
+
+############################
+
+Website:
+StrataScratch - ID 2011
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Twitch - Session Type Duration
+Calculate the average session duration (in seconds) for each session type?
+
+Data Dictionary:
+Table name = 'twitch_sessions'
+user_id: numeric (int)
+session_id: numeric (int)
+session_start: POSIXct, POSIXt (dt)
+session_end: POSIXct, POSIXt (dt)
+session_type: character (str)
+
+Code:
+# Question: Calculate the average session duration (in seconds) for each session type.
+# Output: session type, average session duration (seconds)
+
+# Import libraries
+library(tidyverse)
+
+# Load and preview data
+#twitch_sessions <- read_csv('twitch_sessions.csv')
+df <- data.frame(twitch_sessions)
+head(df, 5)
+
+# Check datatypes and nulls
+lapply(df, class)
+colSums(is.na(df))
+
+# Find total session_duration by subtracting session end and session start
+df$session_duration <- df$session_end - df$session_start
+
+# Solution
+result_df <- df %>%
+    group_by(session_type) %>%                                                        # group_by
+    summarise(average_session_duration = mean(session_duration, na.rm = TRUE)) %>%    # rename, average, no null
+    ungroup() %>%                                                                     # ungroup good practice
+    arrange(session_type)                                                             # ASC order
+
+# Result 
+result_df
+
+Notes:
+- For POSIXct, POSIXt (datettime), use df <- df %>% mutate('newcolname' = as.numeric( difftime( 'col', 'col2' units = "secs" )))
+
+############################
+
+Website:
+StrataScratch - ID 2083
+
+Difficulty:
+Easy
+
+Question Type:
+Python - Pandas
+
+Question:
+CVS Health - Pending Claims
+Count how many claims submitted in December 2021 are still pending. 
+A claim is pending when it has neither an acceptance nor rejection date.
+
+Data Dictionary:
+Table name = 'cvs_claims'
+claim_id: int64 (int)
+account_id: object (str)
+date_submitted: datetime64 (dt)
+date_accepted: datetime64 (dt)
+date_rejected: datetime64 (dt)
+
+Code:
+# Question: Count how many claims submitted in Dec 2021 are still pending.
+# A claim is pending when it has neither an acceptance nor rejection date.
+# Output: pending claim count in Dec 2021 (as pandas.Series)
+
+# Import packages
+import pandas as pd
+
+# Load and preview data
+#cvs_claims = pd.read_csv('cvs_claims.csv')
+df = pd.DataFrame(cvs_claims)
+df.head(5)
+
+# Check data types and nulls - 16 total rows - date_accepted(12), date_rejected(11) nulls 
+#df.info()
+#df.isna().sum()
+
+# Filter for null values and dates
+filtered_df = df[
+    (df['date_accepted'].isna()) &              # Find null values
+    (df['date_rejected'].isna()) &
+    (df['date_submitted'] >= '2021-12-01') &    # Find dates within Dec 2021
+    (df['date_submitted'] <= '2021-12-31')
+]
+
+# Create pandas.Series, count number of claims, rename column
+result_series = pd.Series(filtered_df['claim_id'].count(), name='pending_claim_count')
+
+# Result
+result_series
+
+Notes:
+- When filtering for null values use df['col'].isna() instead of df['col'] == NULL
+- For datetime extraction can use df['col'].dt.year == 'year' and dt['col'].dt.month == 'month' instead of date ranges
+- df.count() finds all non-null value rows, can use len() or df.shape[0] alternatively for all values including nulls
+- Can rename Series in the same line using pd.Series(df['col'].function(), name='col')
+
+############################
+
+Website:
+StrataScratch - ID 2042
+
+Difficulty:
+Medium
+
+Question Type:
+SQL
+
+Question:
+Uber - Employees' Years In Service
+Find employees who have worked for Uber for more than 2 years (730 days) and check to see if they're still part of the company. 
+Output 'Yes' if they are and 'No' if they are not. Use May 1, 2021 as your date of reference when calculating whether they have worked for more than 2 years since their hire date.
+Output the first name, last name, whether or not the employee is still working for Uber, and the number of years at the company.
+
+Data Dictionary:
+Table name = 'uber_employees'
+first_name: text (str)
+hire_date: date (dt)
+id: bigint (int)
+last_name: text (str)
+salary: bigint( int)
+termination_date: date (dt)
+
+Code:
+/* Question: Find employees who worked for Uber for more than 2 years (730 days),
+and check to see if they're still part of the company.
+Output 'Yes' if they are and 'No' if they are not.
+Use May 1, 2021 as date of reference when calculating whether worked for more than 2 years since hire date. */
+
+/* Output: first name, last name, whether or not employee is still working, and number of years at company */
+
+/* SELECT to preview data */
+SELECT * FROM uber_employees LIMIT 5;
+
+/* Check for nulls and row count - termination_date(34) nulls - 100 total rows */
+SELECT
+    SUM(CASE WHEN first_name IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN hire_date IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN last_name IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN salary IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN termination_date IS NULL THEN 1 ELSE 0 END) AS col6,
+    COUNT(*) as total_rows
+FROM uber_employees;
+
+/* May 1, 2021 date of reference column */
+SELECT
+    '2021-05-01'::date AS reference_date
+FROM uber_employees
+LIMIT 5;
+
+/* Calculate how long employees worked */
+SELECT
+    '2021-05-01'::date - hire_date AS date_interval,
+    ('2021-05-01'::date - hire_date)::integer AS days_worked,
+    EXTRACT(YEAR FROM AGE('2021-05-01'::date, hire_date)) AS years_worked
+FROM uber_employees
+LIMIT 5;
+
+/* Check to see if still part of company */
+SELECT
+    CASE WHEN termination_date IS NULL THEN 'Yes' ELSE 'No' END AS employed
+FROM uber_employees
+LIMIT 5;
+
+/* first name, last name, employee is still working, and years at company > 2 */
+WITH employee_tenure AS (
+    SELECT
+        first_name,
+        last_name,
+        CASE WHEN termination_date IS NULL THEN 'Yes' ELSE 'No' END AS employed,
+        EXTRACT(YEAR FROM AGE('2021-05-01'::date, hire_date)) AS years_worked
+    FROM uber_employees
+)
+SELECT
+    first_name,
+    last_name,
+    employed,
+    years_worked
+FROM employee_tenure
+WHERE employed = 'Yes'
+    AND years_worked > 2
+ORDER BY 
+    years_worked DESC,
+    last_name ASC,
+    first_name ASC;
+
+Notes:
+- Can create new columns in select statement as a string 'value' AS 'colname' (ex. '2021-05-01'::date AS reference_date)
+- When subtracting dates, the interval is an integer but can be casted as ::integer (ex. (date-date)::integer )
+- Extract number of years between two dates EXTRACT(YEAR FROM AGE(end_date, start_date)) AS 'newcolname'
+- Create strings for conditions in a single column using CASE WHEN 'col' = 'condition' THEN 'string' ELSE 'string' END AS 'colname'
+- Selecting a CASE WHEN statement can be done but has to be repeated in the WHERE clause, A CTE is a better approach.
+
+############################
