@@ -1,0 +1,352 @@
+Date: 07/12/2025
+
+############################
+
+Website:
+StrataScratch - ID 2013
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Postmates - Customer Average Orders
+How many customers placed an order and what is the average order amount?
+
+Data Dictionary:
+Table name = 'postmates_orders'
+id: numeric (int)
+customer_id: numeric (int)
+courier_id: numeric (int)
+seller_id: numeric (int)
+city_id: numeric (int)
+order_timestamp_utc: POSIXct, POSIXt (dt)
+amount: numeric (int)
+
+Code:
+# Question: How many customers placed an order and what is the average order amount?
+# Output: count of customers with orders, average order amount
+
+# Import libraries
+library(tidyverse)
+
+# Load and preview data
+#postmates_orders <- read_csv('postmates_orders.csv')
+df <- data.frame(postmates_orders)
+head(df, 5)
+
+# Check data types and nulls
+lapply(df, class)
+colSums(is.na(df))
+
+# Find count of customers with orders
+num_of_customers <- df %>%
+    distinct(customer_id) %>%
+    summarise(customer_count = n())
+
+# Find the average order amount
+avg_order_amount <- df %>%
+    summarise(average_amount = mean(amount, na.rm = TRUE))
+    
+# Create a single dataframe with multiple pipe operators
+result_df <- df %>%
+    summarise(
+        customer_count = n_distinct(customer_id),
+        average_amount = mean(amount, na.rm = TRUE)
+    )
+
+# Result
+result_df
+
+Notes:
+- Approach should be similar to SQL, break down question one step at a time then create a final efficient output if possible
+- n_distinct('col') counts unique column values and distinct() returns unique column values
+
+############################
+
+Website:
+StrataScratch - ID 2000
+
+Difficulty:
+Medium
+
+Question Type:
+Python - Pandas
+
+Question:
+Credit Karma - Variable vs Fixed Rates
+Write a SQL query to show each loan and its rate type. 
+For each loan, create two new columns: fixed and variable. 
+If the loan has a fixed rate, put a 1 in the fixed column and a 0 in the variable column. 
+If the loan has a variable rate, do the opposite.
+
+Data Dictionary:
+Table name = 'submissions'
+id: int64 (int)
+balance: float64 (flt)
+interest_rate: float64 (flt)
+rate_type: object (str)
+loan_id: int64 (int)
+
+Code:
+# Question: Show each loan and its rate type. 
+# For each loan, create two new columns: fixed and variable.
+# If the loan has a fixed rate, put a 1 in the fixed column and a 0 in the variable column.
+# If the loan has a variable rate, do the opposite.
+# Output: loan, fixed, variable
+
+# Import packages
+import pandas as pd
+import numpy as np
+
+# Load and preview data
+#submissions = pd.read_csv('submissions.csv')
+df = pd.DataFrame(submissions)
+df.head(5)
+
+# Check datatypes and nulls - 0 nulls - 6 rows
+#df.info()
+#df.isna().sum()
+
+# Create two new columns fixed and variable
+df['fixed'] = np.where(df['rate_type'] == 'fixed', 1, 0)          # if fixed 1, else 0
+df['variable'] = np.where(df['rate_type'] == 'variable', 1, 0)    # if variable 1, else 0
+
+# Extract relevant columns
+result_df = df[['loan_id', 'balance', 'interest_rate', 'fixed', 'variable']]
+
+# Result
+result_df
+
+Notes:
+- np.where(condition, value_if_true, value_if_false), similar to CASE WHEN or WHERE, used for if/else statements
+
+############################
+
+Website:
+StrataScratch - ID 514
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Active Campaign - Marketing Campaign Success [Advanced]
+You have the marketing_campaign table, which records in-app purchases by users. 
+Users making their first in-app purchase enter a marketing campaign, where they see call-to-actions for more purchases. 
+Find how many users made additional purchases due to the campaign's success.
+
+The campaign starts one day after the first purchase. 
+Users with only one or multiple purchases on the first day do not count, nor do users who later buy only the same products from their first day.
+
+Data Dictionary:
+Table name = 'marketing_campaign'
+created_at: date (dt)
+price: bigint (int)
+product_id: bigint (int)
+quantity: bigint (int)
+user_id: bigint (int)
+
+Code:
+Attempt (gave up)
+/* Question: marketing_campaign table records in-app purchases by users. 
+Users making their first in-app purchase enter a marketing campaign, 
+where they see call-to-actions for more purchases.
+Find how many users made additional purchases due to the campaign's success.
+The campaign starts one day after the first purchase.
+Users with only one or multiple purchases on the first day do not count,
+nor do users who later buy only the same products from their first day. */
+
+/* Output: number of users who made additional purchases afer entering campaign */
+
+/* SELECT to preview data */
+SELECT * FROM marketing_campaign LIMIT 5;
+
+/* Check nulls and rows - 0 nulls - 102 rows */
+SELECT
+    SUM(CASE WHEN created_at IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN price IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN product_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN quantity IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    COUNT(*) AS total_rows
+FROM marketing_campaign;
+
+/* Eligible users for the campaign */
+SELECT 
+    user_id,
+    COUNT(product_id) as product_count
+FROM marketing_campaign
+GROUP BY user_id
+HAVING COUNT(product_id) >= 1
+ORDER BY user_id
+LIMIT 5;
+
+/* Users who entered campaign, one day after first purchase */
+SELECT 
+    user_id,
+    COUNT(DISTINCT created_at) AS date_count,
+    COUNT(product_id) as product_count
+FROM marketing_campaign
+GROUP BY user_id
+HAVING COUNT(product_id) >= 1
+    AND COUNT(DISTINCT created_at) > 1
+ORDER BY user_id;
+
+/* The campaign starts one day after the first purchase. */
+/* Users with only one or multiple purchases on the first day do not count,
+nor do users who later buy only the same products from their first day. */
+WITH date_rank AS (
+SELECT
+    user_id,
+    created_at,
+    product_id,
+    quantity,
+    price,
+    DENSE_RANK() OVER(PARTITION BY user_id ORDER BY created_at) AS dense_rank
+FROM marketing_campaign
+),
+purchases AS (
+SELECT
+    user_id,
+    created_at,
+    product_id,
+    quantity,
+    dense_rank,
+    CASE WHEN dense_rank = 1 AND quantity >= 1 THEN 1 ELSE 0 END AS first_purchases,
+    CASE WHEN dense_rank >= 2 AND quantity >= 1 THEN 1 ELSE 0 END AS campaign_purchases
+FROM date_rank
+),
+day_product_id AS (
+SELECT
+    user_id,
+    dense_rank,
+    first_purchases,
+    campaign_purchases,
+    CASE WHEN first_purchases = 1 THEN product_id ELSE 0 END AS first_product_id,
+    CASE WHEN campaign_purchases = 1 THEN product_id ELSE 0 END AS campaign_product_id
+FROM purchases
+)
+SELECT
+    user_id,
+    dense_rank,
+    first_purchases,
+    campaign_purchases,
+    first_product_id,
+    campaign_product_id,
+    CASE WHEN first_product_id = campaign_product_id THEN 1 ELSE 0 END AS product_from_first
+FROM day_product_id;
+
+Solution # 1 (continuing attempt)
+WITH date_rank AS (
+    -- Rank purchases by date for each user.
+    SELECT
+        user_id,
+        created_at,
+        product_id,
+        DENSE_RANK() OVER(PARTITION BY user_id ORDER BY created_at) AS purchase_day_rank
+    FROM marketing_campaign
+),
+purchases_categorized AS (
+    -- Categorize purchases into first-day vs. subsequent purchases
+    SELECT
+        user_id,
+        created_at,
+        product_id,
+        purchase_day_rank,
+        CASE WHEN purchase_day_rank = 1 THEN 1 ELSE 0 END AS is_first_purchases,
+        CASE WHEN purchase_day_rank > 1 THEN 1 ELSE 0 END AS is_campaign_purchases
+    FROM date_rank
+),
+first_day_products AS (
+    -- Get all distinct products purchased by each user on their first day
+    SELECT DISTINCT 
+        user_id,
+        product_id
+    FROM purchases_categorized
+    WHERE is_first_purchases = 1
+),
+campaign_products AS (
+    -- Get all distinct products purchased by eeach user on subsequent days (after first purchase day)
+    SELECT DISTINCT
+        user_id,
+        product_id
+    FROM purchases_categorized
+    WHERE is_campaign_purchases = 1
+),
+users_with_new_products AS (
+    -- Identify users who made subsequent purchases of products that were *not* among first day purchases.
+    -- "nor do users who later buy only the same products from their first day"
+    SELECT DISTINCT
+        cp.user_id
+    FROM campaign_products AS cp
+    LEFT JOIN first_day_products AS fdp
+        ON cp.user_id = fdp.user_id
+        AND cp.product_id = fdp.product_id
+    WHERE fdp.product_id IS NULL    -- product_id from campaign_products was NOT found in the
+                                    -- first_day_products for that user, it's a "new" product after first day
+)
+-- Count number of unique users who meet all criteria
+SELECT
+    COUNT(DISTINCT user_id) AS users_with_campaign_success
+FROM users_with_new_products;
+
+Solution # 2 (using INNER JOINS and DISTINCT)
+WITH user_first_purchase AS (
+    -- Find earliest purchase date for each user
+    SELECT
+        user_id,
+        MIN(created_at) AS first_purchase_date
+    FROM marketing_campaign
+    GROUP BY user_id
+),
+first_day_products AS (
+    -- Identify all distinct products a user purchased on their very first purchase date
+    SELECT DISTINCT
+        mc.user_id,
+        mc.product_id
+    FROM marketing_campaign AS mc
+    JOIN user_first_purchase AS ufp
+        ON mc.user_id = ufp.user_id
+        AND mc.created_at = ufp.first_purchase_date
+),
+subsequent_purchases AS (
+    -- Identify all purchases by users *after* their first purchase date.
+    -- Filters out users who only made purchases on their first day.
+    SELECT
+        mc.user_id,
+        mc.created_at,
+        mc.product_id
+    FROM marketing_campaign AS mc
+    JOIN user_first_purchase AS ufp
+        ON mc.user_id = ufp.user_id
+    WHERE mc.created_at > ufp.first_purchase_date
+),
+users_with_new_products_after_first_day AS (
+    -- From subsequent purchases, find users who bought at least one product
+    -- that was *not* among their first day's purchases.
+    -- Handles exclusion: "nor do users who later buy only the same products from their first day"
+    SELECT 
+        DISTINCT sp.user_id
+    FROM subsequent_purchases AS sp
+    LEFT JOIN first_day_products AS fdp
+        ON sp.user_id = fdp.user_id
+        AND sp.product_id = fdp.product_id
+    WHERE fdp.product_id IS NULL     -- This condition means product_id from subsequent_purchases
+                                     -- was NOT found in the first_day_products for that user.
+)
+SELECT 
+    COUNT(user_id) AS users_with_campaign_success
+FROM users_With_new_products_after_first_day;
+
+Notes:
+- Use groupby 'col' and MIN('coldate') to find earliest date in a column
+- Use DISTINCT on columns to drop duplicates and inner join CTEs to find intersection of values
+- WHERE clause can find dates later dates using WHERE 'desired date' > 'earliest_date'
+- Can use -- for notes similar to # in python and R
+
+############################
