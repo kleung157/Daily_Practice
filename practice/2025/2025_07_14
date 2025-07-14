@@ -1,0 +1,306 @@
+Date: 07/14/2025
+
+############################
+
+Website:
+StrataScratch - ID 2017
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Ring Central - Paid Users In April 2020
+How many paid users had any calls in Apr 2020?
+
+Data Dictionary:
+Table name = 'rc_calls'
+user_id: numeric (int)
+call_id: numeric (int)
+call_date: POSIXct, POSIXt (dt)
+Table name = 'rc_users'
+user_id: numeric (int)
+company_id: numeric (int)
+status: character (str)
+
+Code:
+# Question: How many paid users had any calls in April 2020?
+
+# Output: number of paid users
+
+# Import libraries
+library(tidyverse)
+
+# Load and preview data
+#rc_calls <- read_csv('rc_calls.csv')
+#rc_users <- read_csv('rc_users.csv')
+df <- data.frame(rc_calls)
+df2 <- data.frame(rc_users)
+head(df, 5)
+head(df2, 5)
+
+# Check data types, nulls, number of rows - 0 nulls - df(40), df(20) rows  
+lapply(df, class)
+lapply(df2, class)
+colSums(is.na(df))
+colSums(is.na(df2))
+nrow(df)
+nrow(df2)
+
+# Solution
+result_df <- inner_join(df, df2, by='user_id') %>%           # Join callers and users tables
+    filter(call_date >= '2020-04-01') %>%                    # Filter for April 2020
+    filter(call_date <= '2020-04-30') %>%
+    filter(status == 'paid') %>%                             # Filter for paid users
+    filter(!is.na(call_id)) %>%                              # Filter for non-null calls
+    summarise(number_of_paid_users = n_distinct(user_id))    # Find number of distinct users
+    
+# Result
+result_df
+
+Notes:
+- Use lubridate package similar to EXTRACT filter(month('datecol') == 'month', filter(year('datecol') == 'year'
+- For IS NOT NULL use !is.na('col' or 'df')
+- nrow('df') counts total number of rows
+
+############################
+
+Website:
+StrataScratch - ID 2001
+
+Difficulty:
+Medium
+
+Question Type:
+Python - Pandas
+
+Question:
+Credit Acceptance - Share of Loan Balance
+Write a query that returns the rate_type, loan_id, loan balance , and a column that shows with what percentage the loan's balance contributes to the total balance among the loans of the same rate type. 
+Sort the final output by rate_type and loan_id.
+
+Data Dictionary:
+Table name = 'submissions'
+id: int64 (int)
+balance: float64 (flt)
+interest_rate: float64 (flt)
+rate_type: object (str)
+loan_id: int64 (int)
+
+Code:
+# Question: Return rate_type, loan_id, loan_balance, and
+# percentage the loan's balance contributes to total balance among loans of same rate type.
+# Sort final output by rate_type and loan_id
+
+# Output: rate_type, loan_id, loan_balance, percentage, sort (rate_type, loan_id)
+
+# Import libraries
+import pandas as pd
+import numpy as np
+
+# Load and preview data
+#submissions = pd.read_csv('submissions.csv')
+df = pd.DataFrame(submissions)
+df.head(5)
+
+# Check datatypes, nulls, rows - 0 nulls, 6 rows
+#df.info()
+#df.isna().sum()
+
+# Find total balance for each rate_type
+df['total_balance'] = df.groupby('rate_type')['balance'].transform('sum')
+
+# Find contribution percentage 
+df['contribution'] = (df['balance'] / df['total_balance']) * 100
+
+# Select relevant columns
+result_df = df[['rate_type', 'loan_id', 'balance', 'contribution']]
+
+# Sort by rate_type and loan_id
+result_df = result_df.sort_values(by=['rate_type', 'loan_id'], ascending=True)
+
+# Result
+result_df
+
+Notes:
+- When handling a pandas Series, use .transform('function') to keep same row number 
+(ex. df['col'] = df.groupby('col')['coll'].transform('function')
+
+############################
+
+Website:
+StrataScratch - ID 2007
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Meta - Rank Variance Per Country
+Compare the total number of comments made by users in each country between December 2019 and January 2020. 
+For each month, rank countries by total comments using dense ranking (i.e., avoid gaps between ranks) in descending order. 
+Then, return the names of the countries whose rank improved from December to January.
+
+Data Dictionary:
+Table name = 'fb_comments_count'
+created_at: date (dt)
+number_of_comments: bigint (int)
+user_id: bigint (int)
+Table name = 'fb_active_users'
+country: text (str)
+name: text (str)
+status: text (str)
+user_id: bigint (int)
+
+Code:
+/* Question: Compare the total number of comments made by users in each country between Dec 2019 and Jan 2020.
+For each month, rank countries by total comments using dense ranking (Avoid gaps between ranks) in DESC order.
+Return names of the countries whose rank improved from Dec to Jan. */
+
+/* Output: country */
+
+/* Preview data */
+SELECT * FROM fb_comments_count LIMIT 5;
+SELECT * FROM fb_active_users LIMIT 5;
+
+/* Check nulls and rows - comments (0 nulls, 121 rows) - users (0 nulls, 23 rows) */
+SELECT
+    SUM(CASE WHEN created_at IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN number_of_comments IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    COUNT(*) AS total_rows
+FROM fb_comments_count;
+
+SELECT
+    SUM(CASE WHEN country IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN name IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN status IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    COUNT(*) AS total_rows
+FROM fb_active_users;
+
+/* Join comments and users table */
+SELECT *
+FROM fb_comments_count AS fcc
+JOIN fb_active_users AS fau
+    ON fcc.user_id = fau.user_id
+LIMIT 5;
+
+/* Between Dec 2019 and Jan 2020 */
+SELECT
+    TO_CHAR(fcc.created_at, 'YYYY-MM') AS year_month
+FROM fb_comments_count AS fcc
+JOIN fb_active_users AS fau
+    ON fcc.user_id = fau.user_id
+wHERE fcc.created_at BETWEEN '2019-12-01'AND '2020-01-31'
+LIMIT 5;
+
+/* total number of comments made by users in each country */ 
+SELECT
+    TO_CHAR(fcc.created_at, 'YYYY-MM') AS year_month,
+    fau.country,
+    fcc.user_id,
+    SUM(fcc.number_of_comments) AS total_user_comments
+FROM fb_comments_count AS fcc
+JOIN fb_active_users AS fau
+    ON fcc.user_id = fau.user_id
+wHERE fcc.created_at BETWEEN '2019-12-01'AND '2020-01-31'
+GROUP BY
+    TO_CHAR(fcc.created_at, 'YYYY-MM'),
+    fau.country,
+    fcc.user_id
+LIMIT 5;
+
+/* For each month, rank countries by total comments using dense ranking, DESC */
+WITH user_comments AS (
+SELECT
+    TO_CHAR(fcc.created_at, 'YYYY-MM') AS year_month,
+    fau.country,
+    fcc.user_id,
+    SUM(fcc.number_of_comments) AS total_user_comments
+FROM fb_comments_count AS fcc
+JOIN fb_active_users AS fau
+    ON fcc.user_id = fau.user_id
+wHERE fcc.created_at BETWEEN '2019-12-01'AND '2020-01-31'
+GROUP BY
+    TO_CHAR(fcc.created_at, 'YYYY-MM'),
+    fau.country,
+    fcc.user_id
+),
+country_comments AS (
+SELECT 
+    year_month,
+    country,
+    SUM(total_user_comments) AS total_comments
+FROM user_comments
+GROUP BY 
+    year_month,
+    country
+)
+SELECT 
+    year_month,
+    country,
+    total_comments,
+    DENSE_RANK() OVER(PARTITION BY year_month ORDER BY total_comments DESC) AS country_rank
+FROM country_comments;
+
+/* Return names of the countries whose rank improved from Dec to Jan. */
+WITH user_comments AS (
+    SELECT
+        TO_CHAR(fcc.created_at, 'YYYY-MM') AS year_month,
+        fau.country,
+        fcc.user_id,
+        SUM(fcc.number_of_comments) AS total_user_comments
+    FROM fb_comments_count AS fcc
+    JOIN fb_active_users AS fau
+        ON fcc.user_id = fau.user_id
+    wHERE fcc.created_at BETWEEN '2019-12-01'AND '2020-01-31'
+    GROUP BY
+        TO_CHAR(fcc.created_at, 'YYYY-MM'),
+        fau.country,
+        fcc.user_id
+),
+country_comments AS (
+    SELECT 
+        year_month,
+        country,
+        SUM(total_user_comments) AS total_comments
+    FROM user_comments
+    GROUP BY 
+        year_month,
+        country
+),
+ranked_countries AS (
+    SELECT 
+        year_month,
+        country,
+        total_comments,
+        DENSE_RANK() OVER(PARTITION BY year_month ORDER BY total_comments DESC) AS country_rank
+    FROM country_comments
+),
+changed_countries AS (
+    SELECT
+        year_month,
+        country,
+        total_comments,
+        country_rank,
+        -(country_rank - LAG(country_rank, 1) OVER(PARTITION BY country ORDER BY year_month)) AS rank_change
+    FROM ranked_countries
+)
+SELECT
+    country
+FROM changed_countries
+WHERE rank_change > 0;
+
+Notes:
+- Created an extra CTE than needed but wanted to be thorough in seeing each step
+- For ranked improvements can use LAG('col_value', 1) OVER(PARTITION BY 'col_id' ORDER BY 'col_date') AS previous_date_rank
+  then CTE To query a WHERE clause with rank < previous_date_rank
+- My interpretation of rank change is - (rank - LAG(rank, 1) OVER(PARTITION BY col_id ORDER BY col_date) AS rank_change
+  outputs actual rank changes like -4 or +1.
+
+############################
