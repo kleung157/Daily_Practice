@@ -1,0 +1,342 @@
+Date: 07/15/2025
+
+############################
+
+Website:
+StrataScratch - ID 2018
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Ring Central - Inactive Free Users
+Return a list of users with status free who didn’t make any calls in Apr 2020.
+
+Data Dictionary:
+Table name = 'rc_calls'
+user_id: numeric (int)
+call_id: numeric (int)
+call_date: POSIXct, POSIXt (dt)
+Table name = 'rc_users'
+user_id: numeric (int)
+company_id: numeric (int)
+status: character (str)
+
+Code:
+Attempt #1
+# Question: Return a list of user with status free who didn't make any calls in April 2020.
+
+# Output: free users who didn't make calls in april 2020
+
+# Import libraries
+library(tidyverse)
+
+# Load and preview data
+#rc_calls <- read_csv('rc_calls.csv')
+#rc_users <- read_csv('rc_users.csv')
+df <- data.frame(rc_calls)
+df2 <- data.frame(rc_users)
+head(df, 5)
+head(df2, 5)
+
+# Check datatypes, nulls, rows - 0 nulls - df(40), df2(20) rows
+lapply(df, class)
+lapply(df2, class)
+colSums(is.na(df))
+colSums(is.na(df2))
+nrow(df)
+nrow(df2)
+
+# Solution
+result_df <- inner_join(df, df2, by='user_id') %>%    # Merge calls and users tables
+    filter(status == 'free') %>%                      # Filter rows with status 'free'
+    filter(!is.na(call_id)) %>%                       # Filter rows with call_id not null
+    filter(month(call_date) != 4) %>%                 # Filter rows *not* with April
+    filter(year(call_date) == 2020) %>%               # Filter rows with year 2020
+    distinct(user_id) %>%                             # Find unique user_ids
+    arrange(user_id)                                  # Arrange in ASC order
+    
+# Result
+result_df
+
+Solution #1
+# Filter calls made in April 2020
+calls_apr_2020 <- rc_calls %>%
+    filter(year(call_date) == 2020 & month(call_date) == 4) %>%
+    distinct(user_id)
+
+# Filter users with 'free' status
+free_users <- rc_users %>%
+    filter(status == 'free')
+    
+# Find 'free' users who are not in the list of users who made calls in Apr 2020
+# Use an anti_join, it returns all rows from x (free_users) 
+# that do not have a match in y (calls_apr_2020)
+users_free_no_calls_apr_2020 <- free_users %>%
+    anti_join(calls_apr_2020, by ='user_id') %>%
+    pull(user_id)                                       # Extract user_id as a vector
+
+# Result
+users_free_no_calls_apr_2020
+
+Notes:
+- pull() extract a single column from a data frame or tibble as a vector.
+- anti_join() is unique in its purpose of identifying non-matching rows from the left-hand side
+- filter(year('coldate') == 'year' & month('col_date') == 'month')
+  ex. filter(year(call_date) == 2020 & month(call_date) == 4)
+
+############################
+
+Website:
+StrataScratch - ID 2003
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+MetLife - Recent Refinance Submissions
+Write a query to return the total loan balance for each user based on their most recent "Refinance" submission. 
+The submissions table joins to the loans table using loan_id from submissions and id from loans.
+
+Data Dictionary:
+Table name = 'loans'
+id: int64 (int)
+user_id: int64 (int)
+created_at: datetime64 (dt)
+status: object (str)
+type: object (str)
+Table name = 'submissions'
+id: int64 (int)
+balance: float64 (flt)
+interest_rate: float64 (flt)
+rate_type: object (str)
+loan_id: int64 (int)
+
+Code:
+# Question: Return the total loan balance for each user based on their most recent 'Refinance' submission.
+# The submissions table joins to the loans table using loan_id from submissions and id from loans.
+
+# Output: total loan balance, user_id
+
+# Import libraries
+import pandas as pd
+import numpy as np
+
+# Load and preview data
+#loans = pd.read_csv('loans.csv')
+#submissions = pd.read_csv('submissions.csv')
+df = pd.DataFrame(loans)
+df2 = pd.DataFrame(submissions)
+df.head(5)
+df2.head(5)
+
+# Check datatypes, nulls, rows - 0 nulls - df(11), df2(6) rows
+#df.info()
+#df2.info()
+#df.isna().sum()
+#df2.isna().sum()
+
+# Join loans and submissions tables
+merged_df = pd.merge(df, df2, 
+                    left_on='id',
+                    right_on='loan_id',
+                    how='inner')
+
+# Filter for 'Refinance'
+filtered_df = merged_df[(merged_df['type'] == 'Refinance')]
+
+# Get index of row with maximum date for each group
+idx = filtered_df.groupby('user_id')['created_at'].idxmax()
+
+# Use indices to select full rows from original DataFrame
+filtered_df = filtered_df.loc[idx]
+
+# Select relevant columns
+result_df = (
+    filtered_df[['user_id','balance']]
+    .rename(columns={'balance': 'total_loan_balance'})    # Rename balance column
+    .sort_values(by='user_id', ascending=True)            # Sort ASC user_id
+)
+
+# Result
+result_df
+
+Notes:
+- pd.merge (df, df2, left_on=df['id'], right_on=df['some_id'], how='inner'), to join with two different names for ids
+- idx = df.groupby('col_id')['col_date'].idxmax() finds rows with the most recent values in a date column
+  df = df.loc[idx] use indices to select full rows from original DataFrame
+
+############################
+
+Website:
+StrataScratch - ID 2008
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Delta Airlines - The Cheapest Airline Connection
+COMPANY X employees are trying to find the cheapest flights to upcoming conferences.
+
+When people fly long distances, a direct city-to-city flight is often more expensive than taking two flights with a stop in a hub city. Travelers might save even more money by breaking the trip into three flights with two stops. But for the purposes of this challenge, let's assume that no one is willing to stop three times. The table contains the following columns:
+•   id - the unique ID of the flight;
+•   origin - the origin city of the current flight;
+•   destination - the destination city of the current flight;
+•    cost - the cost of current flight.
+
+Your task is to produce a trips table listing the cheapest possible trips between all origin-destination pairs present in the dataset, considering routes with up to two stops.
+
+This table should have the columns origin, destination, and min_price (cheapest one). Sort the output table by origin, then by destination.
+
+The cities are all represented by three-letter uppercase abbreviations.
+
+Note: A flight from SFO to JFK is considered different from a flight from JFK to SFO.
+
+Data Dictionary:
+Table name = 'da_flights'
+cost: bigint (int)
+destination: text (str)
+id: bigint (int)
+origin: text (str)
+
+Code:
+Attempt #1
+/* Question: Company X is trying to find the cheapest flights to upcoming conferences.
+When people fly longer distances, a direct city-to-city flight is often more expensive than taking
+two flights with a stop in a hub city.
+Travelers might save even more money by breaking the trip into three flights with two stops.
+But for the purposes of this, let's assume that no one is willing to stop three times.
+    id - unique ID of flight, origin - origin city of current flight, 
+    destination - destination city of current flight, cost - the cost of current flight
+Task is to produce a trips table listing the cheapest possible trips between all origin-destination pairs
+present in the dataset, considering routes with up to two stops.
+Table should have columns origin, destination, min_price (cheapest one). 
+Sort by origin then destination.
+Cities are represented by three-later uppercase abbreviations.
+Note: A flight from SFO to JFK is considered different from a flight from JFK to SFO. */
+
+/* Output: origin, destination, min_price, ORDER BY origin, destination */
+
+/* Preview data */
+SELECT * FROM da_flights LIMIT 10;
+
+/* Check nulls, rows - 0 nulls, 6 rows */
+SELECT
+    SUM(CASE WHEN cost IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN destination IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN origin IS NULL THEN 1 ELSE 0 END) AS col1,
+    COUNT(*) AS total_rows
+FROM da_flights;
+
+/* SFO to JFK the only two city route  */
+SELECT
+    SUM(cost) FILTER (WHERE origin = 'SFO' AND destination = 'JFK') AS one_city_cost,
+    (SUM(cost) FILTER (WHERE origin = 'SFO' AND destination = 'DFW') +
+    SUM(cost) FILTER (WHERE origin = 'DFW' AND destination = 'JFK')
+    ) AS two_city_cost
+FROM da_flights;
+
+SELECT 
+    origin,
+    destination,
+    cost
+FROM da_flights
+WHERE (origin = 'SFO' AND destination = 'JFK')
+    OR (origin = 'SFO' AND destination = 'DFW')
+    OR (origin = 'DFW' AND destination = 'JFK');
+
+/* Create a column for one_city_cost and two_city_cost */
+SELECT
+    CASE
+        WHEN origin = 'SFO' AND destination = 'JFK' THEN cost
+        WHEN origin = 'SFO' AND destination = 'DFW' THEN cost
+        WHEN origin = 'SFO' AND destination = 'MCO' THEN cost
+        WHEN origin = 'DFW' AND destination = 'MCO' THEN cost
+        WHEN origin = 'DFW' AND destination = 'JFK' THEN cost
+        WHEN origin = 'JFK' AND destination = 'LHR' THEN cost
+        ELSE NULL
+    END AS one_city_cost
+FROM da_flights;
+
+Solution #1
+/* Solution */
+WITH possible_trips AS (
+    -- Direct flights (0 stops)
+    SELECT
+        f0.origin,
+        f0.destination,
+        f0.cost AS total_cost
+    FROM da_flights AS f0
+    WHERE f0.origin != f0.destination -- Exclude self-loop flights (SFO to SFO)
+    
+    UNION ALL
+    
+    -- One-stop flights (Origin -> Stop1 -> Destination)
+    SELECT
+        f1.origin AS origin,
+        f2.destination AS destination,
+        f1.cost + f2.cost AS total_cost
+    FROM da_flights AS f1
+    JOIN da_flights AS f2 ON f1.destination = f2.origin
+    WHERE
+        f1.origin != f2.destination -- Ensure the overall trip is not a direct flight (handled by f0)
+        AND f1.origin != f1.destination -- Ensure first leg is not a self-loop
+        AND f2.origin != f2.destination -- Ensure second leg is not a self-loop
+        AND f1.destination != f1.origin -- Stop city (f1.destination) is not the origin (f1.origin)
+        AND f1.destination != f2.destination -- Stop city (f1.destination) is not the final destination (f2.destination)
+        
+    UNION ALL
+    
+    -- Two-stop flights (Origin -> Stop1 -> Stop2 -> Destination)
+    SELECT 
+        f1.origin AS origin,
+        f3.destination AS destination,
+        f1.cost + f2.cost + f3.cost AS total_cost
+    FROM da_flights AS f1
+    JOIN da_flights AS f2
+        ON f1.destination = f2.origin
+    JOIN da_flights AS f3
+        ON f2.destination = f3.origin
+    WHERE 
+        f1.origin != f3.destination -- Ensure the overall trip is not a direct flight
+        AND f1.origin != f2.destination -- Ensure the overall trip is not a one-stop flight via the first stop
+        AND f2.origin != f3.destination -- Ensure the overall trip is not a one-stop flight via the second stop
+        AND f1.origin != f1.destination -- Ensure first leg is not a self-loop
+        AND f2.origin != f2.destination -- Ensure second leg is not a self-loop
+        AND f3.origin != f3.destination -- Ensure third leg is not a self-loop
+        -- Ensure all three cities in the path (origin, stop1, stop2, destination) are distinct
+        AND f1.destination != f1.origin      -- Stop1 is not origin
+        AND f1.destination != f3.destination -- Stop1 is not final destination
+        AND f2.destination != f1.origin      -- Stop2 is not origin
+        AND f2.destination != f3.destination -- Stop2 is not final destination
+        AND f1.destination != f2.destination -- Stop1 is not Stop2
+)
+SELECT
+    origin,
+    destination,
+    MIN(total_cost) AS min_price
+FROM possible_trips
+GROUP BY
+    origin,
+    destination
+ORDER BY
+    origin,
+    destination;
+
+Notes:
+- UNION ALL can be used within a CTE, to combine multiple tables
+- Three routes that needed to broken down (direct flights, one-stop flights, two-stop flights)
+- No self-loops, distinct intermediate cities, overall trip is not a shorter trip
+- Path-finder question, uses lots of WHERE !+ clauses
+
+############################
