@@ -238,19 +238,15 @@ earliest_viewer_session AS (
        user_id,
        session_type
 )
--- Use first_session CTE as reference for users who have had first sessions
--- Join first_session CTE to earliest_viewer_session CTE to match users that had 'viewer' as their first session
--- Left join first_session CTE to twitch_sessions table to match only users that are viewers
--- Count sessions where session_type is 'streamer' for the filtered users
--- Use COALESCE to show 0 if a user had no streamer sessions
+-- Count sessions where session_type is 'streamer' for the filtered users, Use COALESCE to show 0 if a user had no streamer sessions
 SELECT
     fs.user_id,
-    COALESCE(SUM(CASE WHEN ts.session_Type = 'streamer' THEN 1 ELSE 0 END), 0) AS number_of_stream_sessions
+    COALESCE(SUM(CASE WHEN ts.session_Type = 'streamer' THEN 1 ELSE 0 END), 0) AS number_of_stream_sessions 
 FROM first_session AS fs
-JOIN earliest_viewer_session AS evs
+JOIN earliest_viewer_session AS evs    -- Join first_session CTE to earliest_viewer_session CTE to match users that had 'viewer' as their first session
     ON fs.user_id = evs.user_id
     AND fs.earliest_date = evs.earliest_date
-LEFT JOIN twitch_sessions as ts
+LEFT JOIN twitch_sessions AS ts     -- Left join first_session CTE to twitch_sessions table to match only users that are viewers
     ON fs.user_id = ts.user_id
 GROUP BY fs.user_id
 ORDER BY 
