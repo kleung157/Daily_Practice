@@ -1,0 +1,302 @@
+Date: 07/16/2025
+
+############################
+
+Website:
+StrataScratch - ID 2024
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Apple - Unique Users Per Client Per Month
+Write a query that returns the number of unique users per client for each month. 
+Assume all events occur within the same year, so only month needs to be be in the output as a number from 1 to 12.
+
+Data Dictionary:
+Table name = 'fact_events'
+id: numeric (int)
+event_id: numeric (int)
+time_id: POSIXct, POSIXt (dt)
+user_id: character (str)
+customer_id: character (str)
+client_id: character (str)
+event_type: character (str)
+
+Code:
+# Question: Return the number of unique users per client for each month.
+# Assume all events occur within the same year, so only months need to be in the output as number 1 to 12.
+
+# Output: number of unique users, client, month (1-12)
+
+# Import libraries
+library(tidyverse)
+
+# Load and preview data
+#fact_events <- read_csv('fact_events.csv')
+df <- data.frame(fact_events)
+head(df, 5)
+
+# Check datatypes, nulls, rows - 0 nulls - 150 rows
+lapply(df, class)
+colSums(is.na(df))
+nrow(df)
+
+# Convert time_id column to month
+df$month <- month(df$time_id)
+
+# Solution
+result_df <- df %>%
+    group_by(month, client_id) %>%                                 # Group_by month and client
+    summarise(number_of_unique_users = n_distinct(user_id)) %>%    # Count unique users, rename column
+    ungroup() %>%                                                  # Ungroup for good practice to use later
+    arrange(month, client_id)                                      # Arrange in ASC order
+
+# Result
+result_df
+
+Notes:
+- df$date_col <- month(df$date_col) similar to SQL EXTRACT(MONTH FROM 'col') with python masking
+- df <- df %>% mutate('newcol' = month('col_date') can be used in a pipe operator to convert date to month
+
+############################
+
+Website:
+StrataScratch - ID 2005
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Meta - Share of Active Users
+Calculate the percentage of users who are both from the US and have an 'open' status, as indicated in the fb_active_users table.
+
+Data Dictionary:
+Table name = 'fb_active_users'
+user_id: int64 (int)
+name: object (str)
+status: object (str)
+country: object (str)
+
+Code:
+# Question: Calculate the percentage of users who are both from the US and have an 'open' status,
+# as indicated in the fb_active_users table.
+
+# Output: percentage of users (from US and 'open' status) as a pandas dataframe
+
+# Import libraries
+import pandas as pd
+import numpy as np
+
+# Load and preview data
+#fb_active_users = pd.read_csv('fb_active_users.csv')
+df = pd.DataFrame(fb_active_users)
+df.head(5)
+
+# Check datatypes, nulls, rows - 0 nulls, 23 rows
+df.info()
+df.isna().sum()
+
+# Users who are from US and open status
+open_us_users = df[
+    (df['country'] == 'USA') &
+    (df['status'] == 'open')
+]
+
+# Calculate percentage of users
+result_df = [(len(open_us_users) / len(df)) * 100]
+
+# Convert to DataFrame and rename column
+result_df = pd.DataFrame(result_df).rename(columns={0: 'percentage_of_open_us_users'})
+
+# Result
+result_df
+
+Notes:
+- df.rename(columns={'old_col_name': 'new_col_name'})
+- pd.DataFrame converts list or dictionary to dataframe
+
+############################
+
+Website:
+StrataScratch - ID 2012
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Twitch - Viewers Turned Streamers
+Return the number of streamer sessions for each user whose very first session was as a viewer.
+Include the user ID and count of streamer sessions for users whose earliest session (by session_start) was a 'viewer' session, regardless of whether they ever had a streamer session later. 
+Sort the results by streamer session count in descending order, then by user ID in ascending order.
+
+Data Dictionary:
+Table name = 'twitch_sessions'
+session_end: timestamp (dt)
+session_id: bigint (int)
+session_start: timestamp (dt)
+session_type: text (str)
+user_id: bigint (int)
+
+Code:
+Attempt
+/* Question: Return number of streamer sessions for each user whose very first session was as a viewer.
+Include user ID and count of streamer sessions for users whose earliest session (By session_start) was 'viewer',
+regardless of whether they ever had a streamer session later.
+Sort the results by streamer session count in DESC order, then user ID ASC order. */
+
+/* Output: user_id, number of streamer sessions, sort (num of streamer sessions DESC, user ID ASC) */
+
+/* Preview data */
+SELECT * FROM twitch_sessions LIMIT 5;
+
+/* Check nulls and rows - 0 nulls, 19 rows */
+SELECT 
+    SUM(CASE WHEN session_end IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN session_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN session_start IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN session_type IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    COUNT(*) AS total_rows
+FROM twitch_sessions;
+
+/* Solution */
+WITH first_session AS (
+    -- Filter for earliest session_start for each user
+    SELECT
+        user_id,
+        MIN(session_start) AS earliest_date
+    FROM twitch_sessions
+    GROUP BY
+        user_id
+),
+earliest_viewer_session AS (
+    -- Filter for earliest session_start and session_type 'viewer' for each user
+    SELECT
+        user_id,
+        session_type,
+        MIN(session_start) AS earliest_date
+    FROM twitch_sessions
+    WHERE session_type = 'viewer'
+    GROUP BY
+       user_id,
+       session_type
+),
+streamer_sessions AS (
+    -- Count number of streamer sessions for each user
+    SELECT
+        user_id,
+        COUNT(*) AS streamer_session_count
+    FROM twitch_sessions
+    WHERE session_type = 'streamer'
+    GROUP BY
+        user_id
+)
+-- Use first_session CTE as reference for users who have had first sessions
+-- Join first_session CTE to earliest_viewer_session CTE to match users that had 'viewer' as their first session
+-- Join first_session CTE to streamer_session CTE to match users to obtain count of streamer sessions
+SELECT
+    fs.user_id,
+    ss.streamer_session_count
+FROM first_session AS fs
+JOIN earliest_viewer_session AS evs
+    ON fs.user_id = evs.user_id
+JOIN streamer_sessions AS ss
+    ON fs.user_id = ss.user_id
+ORDER BY 
+    ss.streamer_session_count DESC,
+    fs.user_id ASC;
+
+Solution #1 (corrected attempt, more optimal):
+WITH first_session AS (
+    -- Filter for earliest session_start for each user
+    SELECT
+        user_id,
+        MIN(session_start) AS earliest_date
+    FROM twitch_sessions
+    GROUP BY
+        user_id
+),
+earliest_viewer_session AS (
+    -- Filter for earliest session_start and session_type 'viewer' for each user
+    SELECT
+        user_id,
+        session_type,
+        MIN(session_start) AS earliest_date
+    FROM twitch_sessions
+    WHERE session_type = 'viewer'
+    GROUP BY
+       user_id,
+       session_type
+)
+-- Use first_session CTE as reference for users who have had first sessions
+-- Join first_session CTE to earliest_viewer_session CTE to match users that had 'viewer' as their first session
+-- Left join first_session CTE to twitch_sessions table to match only users that are viewers
+-- Count sessions where session_type is 'streamer' for the filtered users
+-- Use COALESCE to show 0 if a user had no streamer sessions
+SELECT
+    fs.user_id,
+    COALESCE(SUM(CASE WHEN ts.session_Type = 'streamer' THEN 1 ELSE 0 END), 0) AS number_of_stream_sessions
+FROM first_session AS fs
+JOIN earliest_viewer_session AS evs
+    ON fs.user_id = evs.user_id
+    AND fs.earliest_date = evs.earliest_date
+LEFT JOIN twitch_sessions as ts
+    ON fs.user_id = ts.user_id
+GROUP BY fs.user_id
+ORDER BY 
+    number_of_stream_sessions DESC,
+    fs.user_id ASC;
+
+Solution #2 (using ROW_NUMBER() and COALESCE() )
+/* Solution #2 */
+WITH UserFirstSessionDetails AS (
+    -- Step 1: Find the earliest session for each user and its type
+    SELECT
+        user_id,
+        session_type,
+        ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY session_start ASC) as rn
+    FROM
+        twitch_sessions
+),
+UsersWithViewerFirstSession AS (
+    -- Step 2: Identify users whose very first session (rn = 1) was a 'viewer' session
+    SELECT
+        user_id
+    FROM
+        UserFirstSessionDetails
+    WHERE
+        rn = 1 AND session_type = 'viewer'
+)
+-- Step 3: Calculate the number of streamer sessions for these identified users
+SELECT
+    uvfs.user_id,
+    -- Count sessions where session_type is 'streamer' for the filtered users
+    -- Use COALESCE to show 0 if a user had no streamer sessions
+    COALESCE(SUM(CASE WHEN ts.session_type = 'streamer' THEN 1 ELSE 0 END), 0) AS count_streamer_sessions
+FROM
+    UsersWithViewerFirstSession uvfs
+LEFT JOIN -- Use LEFT JOIN to include users who had a viewer first session but no streamer sessions
+    twitch_sessions ts
+    ON uvfs.user_id = ts.user_id
+GROUP BY
+    uvfs.user_id
+ORDER BY
+    count_streamer_sessions DESC, -- Descending order by streamer session count
+    uvfs.user_id ASC;             -- Ascending order by user ID
+    
+Notes:
+- Use row_number or rank to find a column's earliest date, can also use MIN() but requires more JOINS/GROUP BYS
+- COALESCE(SUM('col'), 0) to find count of nulls values even if 0
+- Understand left join usage 
+
+############################
