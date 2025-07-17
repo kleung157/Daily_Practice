@@ -1,0 +1,436 @@
+Date: 07/17/2025
+
+############################
+
+Website:
+StrataScratch - ID 2039
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Whole Foods Market - Products Report Summary
+Find the number of unique transactions and total sales for each of the product categories in 2017. 
+Output the product categories, number of transactions, and total sales in descending order. 
+The sales column represents the total cost the customer paid for the product so no additional calculations need to be done on the column.
+Only include product categories that have products sold.
+
+Data Dictionary:
+Table name = 'wfm_transactions'
+customer_id: numeric (int)
+store_id: numeric (int)
+transaction_id: numeric (int)
+product_id: numeric (int)
+sales: numeric (int)
+transaction_date: POSIXct, POSIXt (dt)
+Table name = 'wfm_products'
+product_id: numeric (int)
+product_description: character (str)
+product_brand: character (str)
+product_category: character (str)
+
+Code:
+# Question: Find the number of unique transactions and total sales for each of the product categories in 2017.
+# The sales column represents the total cost the customer paid for the product so no additional calculations,
+# need to be done on the column.
+# Only include product categories that have products sold.
+
+# Output: the product categories, number of transactions, and total sales in DESC order
+
+# Import libraries
+library(tidyverse)
+
+# Load and preview data
+#wfm_transactions <- read_csv('wfm_transactions.csv')
+#wfm_products <- read_csv('wfm_products.csv')
+df <- data.frame(wfm_transactions)
+df2 <- data.frame(wfm_products)
+head(df, 5)
+head(df2, 5)
+
+# Check datatypes, nulls, rows - 0 nulls - df(216), df2(118) rows
+lapply(df, class)
+lapply(df2, class)
+colSums(is.na(df))
+colSums(is.na(df2))
+nrow(df)
+nrow(df2)
+
+# Join transactions and products table
+merged_df <- inner_join(df, df2, by='product_id')
+colSums(is.na(merged_df))     # Check for any nulls
+
+# Solution
+result_df <- merged_df %>%
+    filter(year(transaction_date) == 2017) %>%                         # Filter for 2017
+    group_by(product_category) %>%                                     # Group by product category
+    summarise(
+        number_of_unique_transactions = n_distinct(transaction_id),    # Count unique transactions
+        total_sales = sum(sales, na.rm = TRUE)                         # Sum sales for total sales
+    ) %>%
+    filter(total_sales > 0) %>%                                        # Exclude categories with 0 sales
+    ungroup() %>%                                                      # Ungroup, for future use
+    arrange(desc(total_sales))                                         # Arrange DESC order
+
+# Result
+result_df
+
+Notes:
+- For explicity excluding 0 or null use filter('col' > 0) in a pipe operator
+- Make sure pipe operator is %>% and not &>&
+
+############################
+
+Website:
+StrataScratch - ID 2010
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Twitch - Top Streamers
+List the top 3 users who accumulated the most sessions. Include only the user who had more streaming sessions than viewing. 
+Return the user_id, number of streaming sessions, and number of viewing sessions.
+
+Data Dictionary:
+Table name = 'twitch_sessions'
+user_id: int64 (int)
+session_start: datetime64 (dt)
+session_end: datetime64 (dt)
+session_id: int64 (int)
+session_type: object (str)
+
+Code:
+Attempt #1 (correct but too many steps)
+# Question: List the top 3 users who accumulated the most sesisons. 
+# Include only the user who had more streaming sessions than viewing.
+
+# Output: user_id, number of streaming sessions, and number of viewing sessions
+
+# Import libraries
+import pandas as pd
+
+# Load and preview data
+#twitch_sessions = pd.read_csv('twitch_sessions')
+df = pd.DataFrame(twitch_sessions)
+df.head(5)
+
+# Check datatypes, nulls, rows - 0 nulls, 19 rows
+df.info()
+df.isna().sum()
+
+# Calculate total sessions
+total_sessions_df = (
+    df.groupby('user_id')['session_id']
+    .nunique()
+    .reset_index(name='session_count')
+)
+
+# Calculate number of streaming sessions
+streaming_sessions_df = (
+    df[(df['session_type'] == 'streamer')]
+    .groupby('user_id')['session_type']
+    .count()
+    .reset_index(name='stream_count')
+)
+    
+# Calculate number of viewing sessions
+viewing_sessions_df = (
+    df[(df['session_type'] == 'viewer')]
+    .groupby('user_id')['session_type']
+    .count()
+    .reset_index(name='view_count')
+)
+
+# Join all dataframes
+result_df = pd.merge(total_sessions_df, streaming_sessions_df, on='user_id', how='inner')
+result_df = pd.merge(result_df, viewing_sessions_df, on='user_id', how='inner')
+
+# Sort by total sessions DESC
+result_df = result_df.sort_values(by='session_count', ascending=False)
+
+# Filter for streaming sessions > viewing sessions
+result_df = result_df[(result_df['stream_count'] > result_df['view_count'])]
+
+# List top 3 users
+result_df.head(3)
+
+Solution #1 (revised attempt, more efficient)
+# Question: List the top 3 users who accumulated the most sesisons. 
+# Include only the user who had more streaming sessions than viewing.
+
+# Output: user_id, number of streaming sessions, and number of viewing sessions
+
+# Import libraries
+import pandas as pd
+
+# Load and preview data
+#twitch_sessions = pd.read_csv('twitch_sessions')
+df = pd.DataFrame(twitch_sessions)
+df.head(5)
+
+# Check datatypes, nulls, rows - 0 nulls, 19 rows
+df.info()
+df.isna().sum()
+
+# Calculate total sessions, number of streamer sessions, and number of viewer sessions
+result_df = (
+    df.groupby('user_id').agg(
+        num_streaming_sessions = ('session_type', lambda x: (x == 'streamer').sum()),
+        num_viewing_sessions = ('session_type', lambda x: (x == 'viewer').sum()),
+        total_sessions = ('session_id', 'nunique')
+    ).reset_index()
+)
+
+# Sort by total sessions DESC
+result_df = result_df.sort_values(by='total_sessions', ascending=False)
+
+# Filter for streaming sessions > viewing sessions
+result_df = result_df[
+    (result_df['num_streaming_sessions'] > result_df['num_viewing_sessions'])
+]
+
+# Select user id, number of streaming sessions, number of viewing sessions. List top 3 users.
+result_df = result_df[['user_id', 'num_streaming_sessions', 'num_viewing_sessions']].head(3)
+
+# Result
+result_df
+
+Notes:
+- df.groupby('col').agg(
+    'new_col_name' = ('col', lambda x: (x == 'col_value').sum())
+  ).reset_index()
+- lambda is keyword for an anonymous function
+- x is input argument to lambda, the x represents a sub_series
+- (x == 'col_value') perform a boolean comparison to input x
+- .sum() on a Boolean Series, counts the number of Boolean values
+- Other aggregation functions mean(), max(), min(), count(), size(), first(), last()
+- Can customize the condition logic ex. lambda x: (x >= 2).sum()
+
+############################
+
+Website:
+StrataScratch - ID 2028
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+IBM - New and Existing Users
+Calculate the share of new and existing users for each month in the table. 
+Output the month, share of new users, and share of existing users as a ratio.
+
+New users are defined as users who started using services in the current month (there is no usage history in previous months). 
+Existing users are users who used services in the current month, and who also used services in any prior month of 2020.
+
+Assume that the dates are all from the year 2020 and that users are contained in user_id column.
+
+Data Dictionary:
+Table name = 'fact_events'
+client_id: text (str)
+customer_id: text (str)
+event_id: bigint (int)
+event_type: text (str)
+id: bigint (int)
+time_id: date (dt)
+user_id: text (str)
+
+Code:
+Attempt #1
+/* Question: Calculate the share of new and existing users for each month in the table.
+New users are defined as users who started using servicesin the current month (no usage in prior months).
+Existing users are users who used services in current month, who also used services in any prior month of 2020.
+Assume that the dates are all from the year 2020 and users are contained in user_id column. */
+
+/* Output: the month, share of new users, and share of existing users as a ratio */
+
+/* Preview data */
+SELECT * FROM fact_events LIMIT 5;
+
+/* Check nulls, rows - 0 nulls, 150 rows */
+SELECT
+    SUM(CASE WHEN client_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN customer_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN event_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN event_type IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN time_id IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col7,
+    COUNT(*) AS total_rows
+FROM fact_events;
+
+/* Convert to month */
+SELECT
+    EXTRACT(MONTH FROM time_id) AS month
+FROM fact_events;
+
+/* Find new users, started services in current month, no prior usage */
+WITH NewUsers AS (
+SELECT
+    EXTRACT(MONTH FROM time_id) AS month,
+    user_id,
+    DENSE_RANK() OVER(PARTITION BY user_id ORDER BY EXTRACT(MONTH FROM time_id) DESC) AS current_date_rank,
+    LAG(EXTRACT(MONTH FROM time_id), 1) OVER(PARTITION BY user_id ORDER BY EXTRACT(MONTH FROM time_id)) AS previous_month
+FROM fact_events
+GROUP BY
+    EXTRACT(MONTH FROM time_id),
+    user_id
+)
+SELECT
+    month,
+    user_id,
+    current_date_rank,
+    previous_month
+FROM NewUsers
+WHERE current_date_rank = 1
+    AND previous_month IS NULL;
+
+/* Find existing users, used services in current month, and also used services in prior months */
+WITH ExistingUsers AS (
+SELECT
+    EXTRACT(MONTH FROM time_id) AS month,
+    user_id,
+    DENSE_RANK() OVER(PARTITION BY user_id ORDER BY EXTRACT(MONTH FROM time_id) DESC) AS current_date_rank,
+    LAG(EXTRACT(MONTH FROM time_id), 1) OVER(PARTITION BY user_id ORDER BY EXTRACT(MONTH FROM time_id)) AS previous_month
+FROM fact_events
+GROUP BY
+    EXTRACT(MONTH FROM time_id),
+    user_id
+)
+SELECT
+    month,
+    user_id,
+    current_date_rank,
+    previous_month
+FROM ExistingUsers
+WHERE current_date_rank = 1
+    AND previous_month IS NOT NULL;
+    
+/* Solution */
+WITH TotalUsers AS (
+SELECT
+    EXTRACT(MONTH FROM time_id) AS month,
+    user_id,
+    DENSE_RANK() OVER(PARTITION BY user_id ORDER BY EXTRACT(MONTH FROM time_id) DESC) AS current_date_rank,
+    LAG(EXTRACT(MONTH FROM time_id), 1) OVER(PARTITION BY user_id ORDER BY EXTRACT(MONTH FROM time_id)) AS previous_month
+FROM fact_events
+GROUP BY
+    EXTRACT(MONTH FROM time_id),
+    user_id
+),
+NewAndExistingUsers AS (
+SELECT
+    month,
+    user_id,
+    CASE WHEN (current_date_rank = 1 AND previous_month IS NULL) THEN 1 ELSE 0 END AS new_users,
+    CASE WHEN (current_date_rank = 1 AND previous_month IS NOT NULL) THEN 1 ELSE 0 END AS existing_users
+FROM TotalUsers
+)
+SELECT 
+    month,
+    ROUND(
+        SUM(new_users)::numeric / COUNT(DISTINCT user_id), 2) AS share_of_new_users,
+    ROUND(
+       SUM(existing_users)::numeric / COUNT(DISTINCT user_id), 2) AS share_of_existing_users
+FROM NewAndExistingUsers
+GROUP BY month
+
+Attempt #2
+WITH AllUsers AS (
+SELECT
+    EXTRACT(MONTH FROM time_id) AS month,
+    user_id,
+    DENSE_RANK() OVER(PARTITION BY user_id ORDER BY EXTRACT(MONTH FROM time_id) DESC) AS current_date_rank,
+    LAG(EXTRACT(MONTH FROM time_id), 1) OVER(PARTITION BY user_id ORDER BY EXTRACT(MONTH FROM time_id)) AS previous_month
+FROM fact_events
+GROUP BY
+    EXTRACT(MONTH FROM time_id),
+    user_id
+),
+NewAndExistingUsers AS (
+SELECT
+    month,
+    user_id,
+    CASE WHEN (current_date_rank = 1 AND previous_month IS NULL) THEN 'new' ELSE 'existing' END AS user_status
+FROM AllUsers
+)
+SELECT 
+    month,
+    ROUND(
+        COUNT(user_status) FILTER (WHERE user_status = 'new')::numeric / COUNT(DISTINCT user_id) 
+        , 2) AS share_of_new_users,
+    ROUND(
+        COUNT(user_status) FILTER (WHERE user_status = 'existing')::numeric / COUNT(DISTINCT user_id) 
+        , 2) AS share_of_existing_users
+FROM NewAndExistingUsers
+GROUP BY month;
+
+Solution #1
+WITH UserFirstMonth AS (
+    -- Convert to month and find first month in 2020
+    SELECT
+        user_id,
+        MIN(EXTRACT(MONTH FROM time_id)) AS first_month
+    FROM fact_events
+    WHERE EXTRACT(YEAR FROM time_id) = 2020
+    GROUP BY user_id
+),
+MonthlyActiveUsers AS (
+    -- Get all distinct user-month combinations in 2020
+    SELECT DISTINCT
+        EXTRACT(MONTH FROM time_id) AS current_month,
+        user_id
+    FROM fact_events
+    WHERE EXTRACT(YEAR FROM time_id) = 2020
+),
+CategorizedMonthlyUsers AS (
+    -- Categorize each active user for each month
+    SELECT
+        mau.current_month AS month,
+        mau.user_id,
+        CASE
+            WHEN mau.current_month = ufm.first_month THEN 'new'
+            ELSE 'existing'
+        END AS user_type
+    FROM MonthlyActiveUsers AS mau
+    JOIN UserFirstMonth AS ufm
+        ON mau.user_id = ufm.user_id
+),
+MonthlyTypeCounts AS (
+    -- Count new and existing users per month
+    SELECT
+        month,
+        SUM(CASE WHEN user_type = 'new' THEN 1 ELSE 0 END) AS new_users_count,
+        SUM(CASE WHEN user_type = 'existing' THEN 1 ELSE 0 END) AS existing_users_count,
+        COUNT(user_id) AS total_users_in_month
+    FROM CategorizedMonthlyUsers
+    GROUP BY month
+)
+-- Calculate shares
+SELECT
+    month,
+    COALESCE(ROUND(
+        new_users_count::numeric / total_users_in_month, 2), 0) AS share_of_new_users,
+    COALESCE(ROUND(
+        existing_users_count::numeric / total_users_in_month, 2), 0) AS share_of_existing_users
+FROM MonthlyTypeCounts
+ORDER BY month;
+
+Notes:
+- Stick to using MIN() for finding earliest date rather than using ROW_NUMBER() or RANK(), much easier to CTE and groupby
+- Create multiple CTEs if necessary, no subqueries and limit window functions if possible
+- Use CASE WHEN and FILTER (WHERE) more often
+- COALESCE to mark null values as 0 to be a part of an aggregation
+- Mindful of joins to find matches
+- When using ROUND(::numeric, 2) - remember to convert to numeric or the outcome will be 0
+
+############################
