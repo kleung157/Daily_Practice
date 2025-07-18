@@ -1,0 +1,336 @@
+Date: 07/18/2025
+
+############################
+
+Website:
+StrataScratch - ID 2043
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Uber - Employees' Without Annual Review
+Return all employees who have never had an annual review. 
+Your output should include the employee's first name, last name, hiring date, and termination date. 
+List the most recently hired employees first.
+
+Data Dictionary:
+Table name = 'uber_employees'
+id: numeric (int)
+salary: numeric (int)
+first_name: character (str)
+last_name: character (str)
+hire_date: POSIXct, POSIXt (dt)
+termination_date: POSIXct, POSIXt (dt)
+Table name = 'uber_annual_review'
+id: numeric (int)
+emp_id: numeric (int)
+review_date: POSIXct, POSIXt (dt)
+
+Code:
+# Question: Return all employees who have never had an annual review.
+
+# Output: first name, last name, hiring date, termination date, sort by DESC hiring date
+
+# Import libraries
+library(tidyverse)
+
+# Load and preview data
+#uber_employees <- read_csv('uber_employees.csv')
+#uber_annual_review <- read_csv('uber_annual_review.csv')
+df <- data.frame(uber_employees)
+df2 <- data.frame(uber_annual_review)
+head(df, 5)
+head(df2, 5)
+
+# Check data types, nulls, rows - df(34), df2(0) nulls - df(100), df2(144) rows
+lapply(df, class)
+lapply(df2, class)
+colSums(is.na(df))
+colSums(is.na(df2))
+nrow(df)
+nrow(df2)
+
+# Solution
+result_df <- left_join(df, df2, by = c("id" = "emp_id")) %>%          # Join annual review and employees
+    filter(is.na(review_date)) %>%                                    # Filter for null review_date
+    select(first_name, last_name, hire_date, termination_date) %>%    # Select relevant columns
+    arrange(desc(hire_date))                                          # Arrange DESC order by hire_date
+
+# Result
+result_df
+
+Notes:
+- left_join(df, df2, by = c('id_1' = 'id_2') ) find missing null values if one table is bigger than the other
+
+############################
+
+Website:
+StrataScratch - ID 2014
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Postmates - Hour With The Highest Order Volume
+Which hour of the day has the highest average number of orders across all recorded days? 
+Your output should include the hour that satisfies this condition and the corresponding average number of orders per hour. 
+The "order volume" refers to the count of orders placed within each hour of the day.
+
+Data Dictionary:
+Table name = 'postmates_orders'
+id: int64 (int)
+customer_id: int64 (int)
+courier_id: int64 (int)
+seller_id: int64 (int)
+order_timestamp_utc: datetime64 (dt)
+amount: float64 (flt)
+city_id: int64 (int)
+
+Code:
+# Question: Which hour of the day has the highest average number of orders across all recorded days?
+# The "order volume" refers to the count of orders placed within each hour of the day.
+
+# Output: hour, average number of orders
+
+# Import libraries
+import pandas as pd
+
+# Load and preview data
+#postmates_orders = pd.read_csv('postmates_orders.csv')
+df = pd.DataFrame(postmates_orders)
+df.head(5)
+
+# Check datatypes, nulls, rows - 0 nulls, 20 rows
+#df.info()
+df.isna().sum()
+
+# Convert order_timestamp_utc column to date and hours
+df['date'] = df['order_timestamp_utc'].dt.date
+df['hour'] = df['order_timestamp_utc'].dt.hour
+
+# Find the count of orders placed within each hour of the day
+date_hour_orders = df.groupby(['date','hour'])['id'].count().reset_index(name='order_volume')
+
+# Average order_volume by each hour
+result_df = date_hour_orders.groupby('hour')['order_volume'].mean().reset_index(name='average_num_orders')
+
+# Filter for rows with highest average number of orders
+result_df = result_df[
+    (result_df['average_num_orders'] == result_df['average_num_orders'].max())
+]
+
+# Result
+result_df
+
+Notes:
+- Can filter for .max() using df[ (df['col'] == df['col'].max()) ]
+- In case of ties, can use to return one value df[ (df['col'] == df['col'].max()).iloc[0] ] 
+
+############################
+
+Website:
+StrataScratch - ID 2029
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Apple - Most Popular Client For Calls
+Select the most popular client_id based on the number of users who individually have at least 50% of their events from the following list: 'video call received', 'video call sent', 'voice call received', 'voice call sent'.
+
+Data Dictionary:
+Table name = 'fact_events'
+client_id: text (str)
+customer_id: text (str)
+event_id: bigint (int)
+event_type: text (str)
+id: bigint (int)
+time_id: date (dt)
+user_id: text (str)
+
+Code:
+Attempt #1
+/* Question: Select the most popular client_id based on the number of users who individually have at least
+50% of their events from the following list: 
+'video call received', 'video call sent', 'voice call received', 'voice call sent' */
+
+/* Output: client_id */
+
+/* Preview data */
+SELECT * FROM fact_events LIMIT 5;
+
+/* Check nulls, rows - 0 nulls, 150 rows */
+SELECT
+    SUM(CASE WHEN client_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN customer_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN event_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN event_type IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN time_id IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col7,
+    COUNT(*) AS total_rows
+FROM fact_events;
+
+/* Select for user, client, event_type */
+SELECT
+    user_id,
+    client_id,
+    event_type
+FROM fact_events
+ORDER BY user_id, client_id, event_type
+LIMIT 10;
+
+/* Count total number of events per user per client */
+SELECT
+    user_id,
+    COUNT(event_type) AS total_events,
+    SUM(CASE WHEN client_id = 'desktop' THEN 1 ELSE 0 END) AS desktop_sum,
+    SUM(CASE WHEN client_id = 'mobile' THEN 1 ELSE 0 END) AS mobile_sum
+FROM fact_events
+GROUP BY user_id;
+
+/* Count client and event_type for each user from the provided list */
+SELECT
+    user_id,
+    SUM(CASE WHEN client_id = 'desktop' AND event_type IN ('video call received', 'video call sent', 'voice call received', 'voice call sent') THEN 1 ELSE 0 END) AS desktop_events,
+    SUM(CASE WHEN client_id = 'mobile' AND event_type IN ('video call received', 'video call sent', 'voice call received', 'voice call sent') THEN 1 ELSE 0 END) AS mobile_events
+FROM fact_events
+GROUP BY user_id;
+
+/* Solution */
+WITH UserEventsCount AS (
+    -- Count client and event_type for each user from the provided list.
+    SELECT
+        user_id,
+        COUNT(event_type) AS total_events,
+        SUM(CASE WHEN client_id = 'desktop' AND event_type IN ('video call received', 'video call sent', 'voice call received', 'voice call sent') THEN 1 ELSE 0 END) AS desktop_events,
+        SUM(CASE WHEN client_id = 'mobile' AND event_type IN ('video call received', 'video call sent', 'voice call received', 'voice call sent') THEN 1 ELSE 0 END) AS mobile_events
+    FROM fact_events
+    GROUP BY user_id
+),
+UserPercentages AS (
+    -- Calculate event_type percentages for each user.
+    SELECT 
+        user_id,
+        ROUND(
+            (desktop_events::numeric / total_events), 2) *100 AS desktop_percentage,
+        ROUND(
+            (mobile_events::numeric / total_events), 2) *100 AS mobile_percentage
+    FROM UserEventsCount
+),
+PopularUserClients AS (
+    -- Find and categorize users that have at least (>=) 50% of events from list
+    SELECT 
+        user_id,
+        'desktop' AS client_id
+    FROM UserPercentages 
+    WHERE desktop_percentage >= 50
+
+    UNION ALL
+
+    SELECT 
+        user_id,
+        'mobile' AS client_id
+    FROM UserPercentages 
+    WHERE mobile_percentage >= 50
+)
+-- Find most popular client_id based on number of users
+SELECT 
+    client_id
+FROM PopularUserClients
+GROUP BY client_id
+ORDER BY
+    COUNT(user_id) DESC
+LIMIT 1;
+
+
+Solution #1 (revised approach)
+WITH UserEventsCount AS (
+    -- Count total events and call event type for each user/client from the provided list.
+    SELECT
+        user_id,
+        client_id,
+        COUNT(event_id) AS total_events,
+        COUNT(CASE WHEN event_type IN ('video call received', 'video call sent', 'voice call received', 'voice call sent') THEN event_id END) AS call_events
+    FROM fact_events
+    GROUP BY
+        user_id, 
+        client_id
+), 
+UserEventPercentage AS (
+    -- Calculate call_event percentages for each user/client, where at least (>=) 50%
+    SELECT 
+        user_id,
+        client_id,
+        ROUND(
+            (call_events::numeric / total_events), 2) *100 AS call_event_percentage
+    FROM UserEventsCount
+    WHERE (ROUND((call_events::numeric / total_events), 2) *100 ) >= 50
+)
+-- Find most popular client_id based on number of users
+SELECT 
+    client_id
+FROM UserEventPercentage
+GROUP BY client_id
+ORDER BY
+    COUNT(user_id) DESC
+LIMIT 1;
+
+
+Solution #2
+WITH UserClientEventCounts AS (
+    -- Step 1: Count total events and call-specific events for each user_id AND client_id combination
+    SELECT
+        user_id,
+        client_id,
+        COUNT(event_id) AS total_client_events, -- Total events for this user on this specific client
+        COUNT(CASE
+                WHEN event_type IN ('video call received', 'video call sent', 'voice call received', 'voice call sent')
+                THEN event_id
+            END) AS call_client_events -- Call events for this user on this specific client
+    FROM
+        fact_events
+    GROUP BY
+        user_id,
+        client_id
+),
+QualifiedUsersPerClient AS (
+    -- Step 2: Identify users who meet the 50% criteria for each client_id they used
+    SELECT
+        user_id,
+        client_id
+    FROM
+        UserClientEventCounts
+    WHERE
+        total_client_events > 0 -- Prevent division by zero
+        AND (CAST(call_client_events AS DECIMAL) * 100.0 / total_client_events) >= 50
+)
+-- Step 3: Find the client_id with the most qualified users
+SELECT
+    client_id
+FROM
+    QualifiedUsersPerClient
+GROUP BY
+    client_id
+ORDER BY
+    COUNT(user_id) DESC -- Count distinct users per client_id
+LIMIT 1;
+
+Notes:
+- Using a 'string' with the same alias as the original table is easier than joining if the answer is already found
+- UNION ALL is a useful function instead of having to JOIN in certain circumstances
+- ORDER BY an aggregation function 
+- Remember to indent CTEs appropriately and write notes between CTEs.
+- Can use percentage calculations in a WHERE clause, just not the alias name.
+
+############################
