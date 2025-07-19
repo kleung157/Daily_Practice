@@ -1,0 +1,283 @@
+Date: 07/19/2025
+
+############################
+
+Website:
+StrataScratch - ID 2049
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Uber - Total Order Per Status Per Service
+Uber is interested in identifying gaps in their business. 
+Calculate the count of orders for each status of each service. 
+Your output should include the service name, status of the order, and the number of orders.
+
+Data Dictionary:
+Table name = 'uber_orders'
+number_of_orders: numeric (int)
+order_date: POSIXct, POSIXt (dt)
+status_of_order: character (str)
+monetary_value: numeric (int)
+service_name: character (str)
+
+Code:
+# Question: Uber is interested in identifying gaps in their business.
+# Calculate the count of orders for each status for each service.
+
+# Output: service name, status of the other, number of orders
+
+# Import libraries
+library(tidyverse)
+
+# Load and preview data
+#uber_orders <- read_csv('uber_orders.csv')
+df <- data.frame(uber_orders)
+head(df, 5)
+
+# Check datatypes, nulls, rows - 133 (monetary_value) nulls - 3210 rows
+lapply(df, class)
+colSums(is.na(df))
+nrow(df)
+
+# Solution
+result_df <- df %>%
+    group_by(service_name, status_of_order) %>%   # group by name then status
+    summarise(number_of_orders = n()) %>%         # count of order rows
+    ungroup() %>%                                 # ungroup for later use
+    arrange(service_name, status_of_order)        # arrange ASC by name, status
+    
+# Result
+result_df
+
+Notes:
+- For count of each row, use summarise('new_colname' = n() ) 
+
+############################
+
+Website:
+StrataScratch - ID 2015
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Postmates - City With The Highest and Lowest Income Variance
+What cities recorded the largest growth and biggest drop in order amount between March 11, 2019, and April 11, 2019. 
+Just compare order amounts on those two dates. 
+Your output should include the names of the cities and the amount of growth/drop.
+
+Data Dictionary:
+Table name = 'postmates_orders'
+id: int64 (int)
+customer_id: int64 (int)
+courier_id: int64 (int)
+seller_id: int64 (int)
+order_timestamp_utc: datetime64 (dt)
+amount: float64 (flt)
+city_id: int64 (int)
+Table name = 'postmates_markets'
+id: int64 (int)
+name: object (str)
+timezone: object (str)
+
+Code:
+# Question: What cities recorded the largest growth and biggest drop in order amount between March 11 2019,
+# and April 11, 2019? Just compare order amounts on those two dates.
+
+# Output: city names, amount of group/drop
+
+# Import libraries
+import pandas as pd
+
+# Load and preview data
+#postmates_orders = pd.read_csv('postmates_orders.csv')
+#postmates_markets = pd.read_csv('postmates_markets.csv')
+df = pd.DataFrame(postmates_orders)
+df2 = pd.DataFrame(postmates_markets)
+df.head(5)
+df2.head(5)
+
+# Check datatypes, nulls, rows - df(0), df2(0) nulls - df(20), df2(4) rows
+#df.info()
+#df.isna().sum()
+#df2.info()
+#df2.isna().sum()
+
+# Create a column for the date without time 
+df['date'] = df['order_timestamp_utc'].dt.date
+
+# Filter for two dates March 11, 2019 and April 11, 2019
+filtered_df = df[
+    (df['date'] == pd.to_datetime('2019-03-11').date()) |
+    (df['date'] == pd.to_datetime('2019-04-11').date())
+]
+
+# Join orders and markets table by city_id and id respectively
+merged_df = pd.merge(filtered_df, df2, left_on='city_id', right_on='id', how='inner')
+
+# Find the sum of order amounts by city name and by date
+result_df = (
+    merged_df.groupby(['name', 'date']).sum('amount').reset_index()
+    .rename(columns={'amount': 'total_amount', 'name': 'city_name'})    # Rename columns
+    .sort_values(by=['city_name','date'], ascending=True)               # Sort values ASC
+)
+
+# Calculate the amount of growth/drop for each city name between both dates.
+result_df['growth_drop_change'] = result_df.groupby(['city_name'])['total_amount'].diff(periods=1)
+
+# Filter for most recent date 04-11-2019
+result_df = result_df[
+    (result_df['date'] == pd.to_datetime('2019-04-11').date()) 
+]
+
+# Find largest growth and biggest drop
+largest_growth_row = result_df.loc[result_df['growth_drop_change'].idxmax()]
+biggest_drop_row = result_df.loc[result_df['growth_drop_change'].idxmin()]
+
+# Convert the Series rows to DataFrames and concatenate
+final_result_df = pd.concat([
+    largest_growth_row.to_frame().T, 
+    biggest_drop_row.to_frame().T
+])
+
+# Select relevant columns
+final_result_df = final_result_df[['city_name', 'growth_drop_change']]
+
+# Result
+final_result_df
+
+Notes:
+- When filtering dataframes for dates, df[ ( df['datetime_col'].dt.date == pd.to_datetime('date').date() ) ]
+  or use df['date'] = df['date_col'.dt.date then use ( df['date'] = pd.to_datetime('date_value').date() )
+- The OR operator is denoted with |, while the AND operator is denoted with &
+- Sort values before using .diff() function similar to LAG, difference between current and preceding rows
+  df.groupby('col')['col'].diff(periods='integer') 
+- Locate maximum value row in a column df.loc[ df['col'].idxmax() ] as a Series column
+- Locate minimum value row in a column df.loc[ df['col'].idxmin() ] as a Series column
+- Convert Series rows to Dataframes, transposing, concatenate pd.concat( [df.to_frame().T, df.to_frame().T] )
+
+############################
+
+Website:
+StrataScratch - ID 2033
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Uber - Find The Most Profitable Location
+Find the most profitable location. 
+Write a query that calculates the average signup duration in days and the average transaction amount for each location. 
+Then, calculate the ratio of average transaction amount to average duration.
+Your output should include the location, average signup duration (in days), average transaction amount, and the ratio. 
+Sort the results by ratio in descending order.
+
+Data Dictionary:
+Table name = 'signups'
+location: text (str)
+plan_id: bigint (int)
+signup_id: bigint (int)
+signup_start_date: date (dt)
+signup_stop_date: date (dt)
+Table name = 'transactions'
+amt: double precision (flt)
+signup_id: bigint (int)
+transaction_id: bigint (int)
+transaction_start_date: date (dt)
+
+Code:
+/* Question: Find most profitable location. 
+Calculate the average signup duration in days and the average transaction amount for each location.
+Calculate ratio of average transaction amount to average duration. */
+
+/* Output: location, average signup duration (in days), avreage transaciton amount, the ratio. 
+Sort by ratio DESC */
+
+/* Preview data */
+SELECT * FROM signups LIMIT 5;
+SELECT * FROM transactions LIMIT 5;
+
+/* Check nulls, rows - signups(0), transaction(0) nulls - signups(50), transaction(100) rows */
+SELECT
+    SUM(CASE WHEN location IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN plan_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN signup_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN signup_start_date IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN signup_stop_date IS NULL THEN 1 ELSE 0 END) AS col5,
+    COUNT(*) AS total_rows
+FROM signups;
+
+SELECT
+    SUM(CASE WHEN amt IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN signup_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN transaction_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN transaction_start_date IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM transactions;
+
+/* Join signups and transactions tables - 100 rows */
+SELECT COUNT(*) AS total_rows
+FROM transactions as t
+JOIN signups as s
+   ON t.signup_id = s.signup_id;
+
+SELECT *
+FROM transactions as t
+JOIN signups as s
+   ON t.signup_id = s.signup_id
+LIMIT 5;
+
+/* Calculate the average signup duration in days and the average transaction amount for each location. */
+SELECT 
+    s.location,
+    ROUND(AVG(s.signup_stop_date - s.signup_start_date)::numeric) AS avg_signup_duration_days,
+    AVG(t.amt) AS avg_transaction_amount
+FROM transactions as t
+JOIN signups as s
+   ON t.signup_id = s.signup_id
+GROUP BY s.location;
+  
+/* Calculate ratio of average transaction amount to average duration. */
+SELECT 
+    s.location,
+    ROUND(
+        (AVG(t.amt) / AVG(s.signup_stop_date - s.signup_start_date) )::numeric 
+    , 2) AS ratio
+FROM transactions as t
+JOIN signups as s
+   ON t.signup_id = s.signup_id
+GROUP BY s.location;
+
+/* Find most profitable location. */
+SELECT 
+    s.location,
+    ROUND(AVG(s.signup_stop_date - s.signup_start_date)::numeric) AS avg_signup_duration_days,
+    AVG(t.amt) AS avg_transaction_amount,
+    ROUND(
+        (AVG(t.amt) / NULLIF(AVG(s.signup_stop_date - s.signup_start_date), 0))::numeric 
+    , 2) AS ratio
+FROM transactions as t
+JOIN signups as s
+   ON t.signup_id = s.signup_id
+GROUP BY s.location
+ORDER BY ratio DESC
+LIMIT 1;
+
+Notes:
+- Handle division by zero by using NULLIF in the denominator 
+  ex. AVG('col') / NULLIF ( AVG ('col1' - 'col2'), 0) )::numeric
+- NULLIF, returns null if two arguments are equal, otherwise it returns the first argument
+- COALESCE, returns the first non-null value from a list of arguments, returns fallback or default value
+
+############################
