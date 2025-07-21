@@ -1,0 +1,258 @@
+Date: 07/21/2025
+
+############################
+
+Website:
+StrataScratch - ID 2051
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Asana - Monthly Active Users
+Find the monthly active users for January 2021 for each account. 
+Your output should have account_id and the monthly count for that account.
+
+Data Dictionary:
+Table name = 'sf_events'
+record_date: POSIXct, POSIXt (dt)
+account_id: character (str)
+user_id: character (str)
+
+Code:
+# Question: Find the monthly active users for January 2021 for each acount.
+
+# Output: account_id, monthly count for each account
+
+# Import libraries
+library(tidyverse)
+
+# Load and preview data
+#sf_events <- read_csv('sf_events.csv')
+df <- data.frame(sf_events)
+head(df, 5)
+
+# Check datatypes, nulls, rows - 0 nulls - 23 rows
+lapply(df, class)
+colSums(is.na(df))
+nrow(df)
+
+# Solution
+result_df <- df %>%
+    filter((month(record_date) == 01) & (year(record_date) == 2021)) %>%    # Filter for Jan 2021
+    group_by(account_id) %>%                                                # Group_by account_id
+    summarise(monthly_count = n_distinct(user_id)) %>%                      # User count for each account
+    ungroup() %>%                                                           # Ungroup for future use
+    arrange(account_id)                                                     # Arrange ASC order 
+
+# Result
+result_df
+
+Notes:
+- filter( format('col_date', "%Y-%m") == "YYYY-MM" )
+
+############################
+
+Website:
+StrataScratch - ID 2016
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Postmates - Pizza Partners
+Which partners have ‘pizza’ in their name and are located in Boston? 
+And what is the average order amount? 
+Output the partner name and the average order amount.
+
+Data Dictionary:
+Table name = 'postmates_orders'
+id: int64 (int)
+customer_id: int64 (int)
+courier_id: int64 (int)
+seller_id: int64 (int)
+order_timestamp_utc: datetime64 (dt)
+amount: float64 (flt)
+city_id: int64 (int)
+Table name = 'postmates_markets'
+id: int64 (int)
+name: object (str)
+timezone: object (str)
+Table name = 'postmates_partners'
+id: int64 (int)
+name: object (str)
+category: object (str)
+
+Code:
+# Question: Which partners have 'pizza' in their name and are located in Boston? 
+# What is the average order amount?
+
+# Output: partner name, average order amount
+
+# Import libraries
+import pandas as pd
+
+# Load and preview data
+#postmates_orders = pd.read_csv('postmates_orders.csv')
+#postmates_markets = pd.read_csv('postmates_markets.csv')
+#postmates_partners = pd.read_csv('postmates_partners.csv')
+
+df = pd.DataFrame(postmates_orders)
+df2 = pd.DataFrame(postmates_markets)
+df3 = pd.DataFrame(postmates_partners)
+
+df.head(5)
+df2.head(5)
+df3.head(5)
+
+# Check datatypes, nulls, rows - df(0), df2(0), df3(0) nulls - df(20), df2(4), df3(4) rows
+#df.info()
+#df.isna().sum()
+#df2.info()
+#df2.isna().sum()
+#df3.info()
+#df3.isna().sum()
+
+# Merge orders, markets, and partners DataFrames
+merged_df = pd.merge(df, df2, left_on="city_id", right_on="id", how="inner")
+merged_df = pd.merge(merged_df, df3, left_on="seller_id", right_on="id", how="inner")
+
+# Filter for 'pizza' in partner name and located in 'Boston' for city name
+result_df = merged_df[
+    (merged_df['name_x'] == 'Boston') &
+    (merged_df['name_y'].str.contains("pizza", na=False, case=False))
+]
+
+# Calculate average order amount for each partner, rename columns, and sort in ascending order
+result_df = (
+    result_df.groupby('name_y')['amount']
+    .mean()
+    .reset_index()
+    .rename(columns={'name_y': 'partner_name', 'amount': 'average_order_amount'})
+    .sort_values(by='partner_name', ascending=True)
+)
+
+# Result
+result_df
+
+Notes:
+- Similar to LIKE "%%" in SQL, na handles NaN values, case-insensitive 
+  df['col'].str.contains("string", na=False, case=False)
+  
+############################
+
+Website:
+StrataScratch - ID 2036
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+DoorDash - Lowest Revenue Generated Restaurants
+Write a query that returns a list of the bottom 2% revenue generating restaurants. 
+Return a list of restaurant IDs and their total revenue from when customers placed orders in May 2020.
+You can calculate the total revenue by summing the order_total column. 
+And you should calculate the bottom 2% by partitioning the total revenue into evenly distributed buckets.
+
+Data Dictionary:
+Table name = 'doordash_delivery'
+consumer_id: bigint (int)
+customer_placed_order_datetime: timestamp (dt)
+delivered_to_consumer_datetime: timestamp (dt)
+delivery_region: text (str)
+discount_amount: bigint (int)
+driver_at_restaurant_datetime: timestmap (dt)
+driver_id: bigint (int)
+is_asap: boolean (bool)
+is_new: boolean (bool)
+order_total: double precision (flt)
+placed_order_with_restaurant_datetime (timestamp)
+refunded_amount: double precision (flt)
+restaurant_id: bigint (int)
+tip_amount: double precision (flt)
+
+Code:
+/* Question: Return a list of the bottom 2% revenue generating restaurants.
+Return a list of restaurant IDs and their total revenue from when customers placed orders in May 2020.
+Calculate the total revenue by summing the order_total column.
+Calculate the bottom 2% by partitioning the total revenue into evenly distributed buckets. */
+
+/* Output: restaurant_id, total revenue, (bottom 2%, May 2020) */
+
+/* Preview data */
+SELECT * FROM doordash_delivery LIMIT 5;
+
+/* Check nulls, rows - col4(2), col6(23), col11(1) nulls - 96 rows */
+SELECT
+    SUM(CASE WHEN consumer_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN customer_placed_order_datetime IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN delivered_to_consumer_datetime IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN delivery_region IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN discount_amount IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN driver_at_restaurant_datetime IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN driver_id IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN is_asap IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN is_new IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN order_total IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN placed_order_with_restaurant_datetime IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN refunded_amount IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN restaurant_id IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN tip_amount IS NULL THEN 1 ELSE 0 END) AS col14,
+    COUNT(*) AS total_rows
+FROM doordash_delivery;
+
+/* Filter for customers placed orders in May 2020. */
+SELECT
+    customer_placed_order_datetime
+FROM doordash_delivery
+WHERE EXTRACT(YEAR FROM customer_placed_order_datetime) = 2020
+    AND EXTRACT(MONTH FROM customer_placed_order_datetime) = 5;
+
+/* Calculate the total revenue for each restaurant by summing the order_total column */
+SELECT
+    restaurant_id,
+    SUM(order_total) AS total_revenue
+FROM doordash_delivery
+WHERE EXTRACT(YEAR FROM customer_placed_order_datetime) = 2020
+    AND EXTRACT(MONTH FROM customer_placed_order_datetime) = 5
+GROUP BY restaurant_id;
+
+/* Calculate the bottom 2% by partitioning the total revenue into evenly distributed buckets. */
+WITH RestaurantBuckets AS (
+    SELECT
+        restaurant_id,
+        SUM(order_total) AS total_revenue,
+        NTILE(50) OVER(ORDER BY SUM(order_total)) AS bucket_number
+    FROM doordash_delivery
+    WHERE EXTRACT(YEAR FROM customer_placed_order_datetime) = 2020
+        AND EXTRACT(MONTH FROM customer_placed_order_datetime) = 5
+    GROUP BY restaurant_id
+)
+SELECT
+    restaurant_id,
+    total_revenue
+FROM RestaurantBuckets
+WHERE bucket_number = 1;
+
+Notes:
+- NTILE(n), specific number of buckets and the data in each bucket is close to an equal count of rows as possible
+  NTILE(n) OVER (ORDER BY my_value) AS bucket_number 
+  n = 50, 1/50 = 0.02 = 2% per bucket
+  n = 25, 1/25 = 0.04 = 4% per bucket
+- Arithmetic Calculation when you want fixed-width intervals (bins) and 
+  are not concerned about having an exactly equal number of rows in each bucket.
+- CUME_DIST(), calculates cumulative distribution of a value within a set of values,
+  returns a value between 0 and 1. For bottom 2%, CUME_DIST() <= 0.02
+- PERCENT_RANK() calculates percentile rank of a row, ranging from 0 to 1.
+  Formula is (rank - 1) / (number of rows - 1). For bottom 2%, PERCENT_RANK() <= 0.02
+
+############################
