@@ -1,0 +1,296 @@
+Date: 07/22/2025
+
+############################
+
+Website:
+StrataScratch - ID 2052
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Asana - User Growth Rate
+Find the growth rate of active users for Dec 2020 to Jan 2021 for each account. 
+The growth rate is defined as the number of users in January 2021 divided by the number of users in Dec 2020. 
+Output the account_id and growth rate.
+
+Data Dictionary:
+Table name = 'sf_events'
+record_date: POSIXct, POSIXt (dt)
+account_id: character (str)
+user_id: character (str)
+
+Code:
+Solution #1 (using lag)
+# Question: Find the growth rate of active users for Dec 2020 to Jan 2021 for each account.
+# The growth rate is defined as the number of users in Jan 2021 divided by number of users in Dec 2020.
+
+# Output: account_id, growth rate
+
+# Import libraries
+library(tidyverse)
+
+# Load and preview data
+#sf_events <- read_csv('sf_events.csv')
+df <- data.frame(sf_events)
+head(df, 5)
+
+# Check datatypes, nulls, rows - 0 nulls, 23 rows
+lapply(df, class)
+colSums(is.na(df))
+nrow(df)
+
+# Solution
+result_df <- df %>%
+    mutate(year_month = format(record_date, "%Y-%m")) %>%            # Convert date to YYYY-MM
+    filter(year_month == '2020-12' | year_month == '2021-01') %>%    # Filter for Dec 2020, Jan 2021
+    group_by(year_month, account_id) %>%
+    summarise(number_of_users = n_distinct(user_id)) %>%             # Find unique users for month, account
+    ungroup() %>%                                      
+    arrange(year_month) %>%                                          # Arrange year_month ASC order
+    group_by(account_id) %>%                                         # Group by account_id
+    mutate(
+        previous_value = lag(number_of_users, n=1),                 # Jan 2021 (value) / Dec 2020 (prev value)
+        growth_rate = (number_of_users / previous_value)            # for growth rate
+    ) %>%
+    filter(year_month == '2021-01') %>%                             # Filter for Jan 2021 growth rate
+    select(account_id, growth_rate)                                 # Select relevant output columns
+
+# Result
+result_df
+
+
+Solution #2 (pivot_wider(), more optimal approach )
+result_df <- df %>%
+    mutate(year_month = format(record_date, "%Y-%m")) %>%            # Convert date to YYYY-MM
+    filter(year_month == '2020-12' | year_month == '2021-01') %>%    # Filter for Dec 2020, Jan 2021
+    group_by(year_month, account_id) %>%
+    summarise(number_of_users = n_distinct(user_id)) %>%             # Find unique users for month, account
+    ungroup() %>%                                      
+    pivot_wider(                                                     # Create separate columns for user counts
+       names_from = year_month,   
+       values_from = number_of_users,
+       names_prefix = "users_"                                       # Colnames: users_2020-12, users_2021-01 
+    ) %>%
+    rename(
+        users_dec_2020 = 'users_2020-12',                            # Rename for best practice to all _
+        users_jan_2021 = 'users_2021-01'
+    ) %>%
+    mutate(                                                          # Calculate growth_rate
+       growth_rate = case_when(                                       
+           is.na(users_dec_2020) | users_dec_2020 == 0 ~ NA_real_,   # If no Dec users, growth is NA
+           TRUE ~ users_jan_2021 / users_dec_2020
+        )
+    ) %>%
+    select (account_id, growth_rate)                                 # Select relevant output columns
+
+Notes:
+- Conversion to YYYY-MM mutate( 'new_col_name' = format('date_col', "%Y-%m") )
+- For OR (|) operator, filter('col' = 'value' | 'col' = 'value2')
+- Retrieves the value from the row n positions before the current row. n=1 immediatep previous row
+  lag(value, n=1)
+  arrange('col') %>%  # Ensure data is ordered correctly before lag
+  group_by('col') %>%    # Group_by relevant column before mutate, lag
+  mutate(previous_value = lag(value, n=1), rate = (value / previous_value) )
+- To rename a column rename('new_col_name' = 'old_col_name')
+- case_when( is.na('col1') | 'col2' == 0 ~ NA_real_, TRUE ~ 'co11' / 'col2'
+- pivot_wider( names_from = 'col1', values_from = 'col2', names_prefix = "ex.name_" )
+
+############################
+
+Website:
+StrataScratch - ID 2019
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Ring Central - Top 2 Users With Most Calls
+Return the top 2 users in each company that called the most. 
+Output the company_id, user_id, and the user's rank. 
+If there are multiple users in the same rank, keep all of them.
+
+Data Dictionary:
+Table name = 'rc_calls'
+user_id: int64 (int)
+call_id: int64 (int)
+call_date: datetime64 (dt)
+Table name = 'rc_users'
+user_id: int64 (int)
+status: object (str)
+company_id: int64 (int)
+
+Code:
+# Question: Return the top 2 users in each company that called the most.
+# If there are multiple users in the same rank, keep all of them.
+
+# Output: company_id, user_id, user_rank
+
+# Import libraries
+import pandas as pd
+
+# Laod and preview data
+#rc_calls = pd.read_csv('rc_calls.csv')
+#rc_users = pd.read_csv('rc_users.csv')
+df = pd.DataFrame(rc_calls)
+df2 = pd.DataFrame(rc_users)
+df.head(5)
+df2.head(5)
+
+# Check datatypes, nulls, rows - df(0), df2(0) nulls - df(40), df2(20) rows
+#df.info()
+#df.isna().sum()
+#df2.info()
+#df2.isna().sum()
+
+# Merge calls and users dataframes
+merged_df = pd.merge(df, df2, on='user_id', how='inner')
+
+# Calculate calls for each user for each company
+result_df = merged_df.groupby(['company_id', 'user_id'])['call_id'].count().reset_index(name='call_count')
+
+# Rank users in each company by call_count, include ties as same rank
+result_df['user_rank'] = result_df.groupby('company_id')['call_count'].rank(method='dense', ascending=False)
+
+# Select relevant columns (company_id, user_id, user_rank)
+result_df = result_df[['company_id', 'user_id', 'user_rank']]
+
+# Filter for Top 2 of each company
+result_df = result_df[
+    (result_df['user_rank'] <=2 )
+]
+
+# Sort by company, user_rank
+result_df = result_df.sort_values(by=['company_id', 'user_rank'], ascending=True)
+
+# Result 
+result_df
+
+Notes:
+- Similar to dense_rank(), can use method = 'average', 'min', 'max', 'first'
+  For overall rank df['col'] = df['col_values'].rank(method='dense', ascending=True)
+  For partition by rank df['col'] = df.groupby('col')['col_values'].rank(method='dense', ascending=True)
+- When filtering for rankings can use 
+  df[ (df['rank'] == 1) | df['rank'] == 2) ] 
+  df[ (df['rank'] <= 2 ]     # More optimal approach
+  df[ (df['rank'].isin([1, 2]) ) ]    # Similar to SQL WHERE 'col' IN (1,2)
+  
+############################
+
+Website:
+StrataScratch - ID 2037
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+DoorDash - Delivering and Placing Orders
+You have been asked to investigate whether there is a correlation between the average total order value and the average time in minutes between placing an order and having it delivered per restaurant.
+You have also been told that the column order_total represents the gross order total for each order. 
+Therefore, you'll need to calculate the net order total. 
+This is done by adding the tip_amount and subtracting both the discount_amount and refunded_amount from the order_total.
+Make sure correlation is rounded to 2 decimals.
+
+Data Dictionary:
+Table name = 'delivery_details'
+consumer_id: bigint (int)
+customer_placed_order_datetime: timestamp (dt)
+delivered_to_consumer_datetime: timestamp (dt)
+delivery_region: text (str)
+discount_amount: bigint (int)
+driver_at_restaurant_datetime: timestmap (dt)
+driver_id: bigint (int)
+is_asap: boolean (bool)
+is_new: boolean (bool)
+order_total: double precision (flt)
+placed_order_with_restaurant_datetime (timestamp)
+refunded_amount: double precision (flt)
+restaurant_id: bigint (int)
+tip_amount: double precision (flt)
+
+Code:
+/* Question: Investigate whether there is a correlation between the average total order value and
+the average time in minutes between placing an order and having it delivered per restaurant.
+The column order_total represents the gross order total for each order, therefore calculate net order total.
+This is done by adding tip_amount and subtracting both discount_amount and refunded_amount from order_total.
+Make sure correlation is rounded to 2 decimals. */
+
+/* Output: correlation */
+
+/* Preview data */
+SELECT * FROM delivery_details LIMIT 5;
+
+/* Check nulls, rows - col4(2), col6(244), col11(2) nulls - 998 rows */
+SELECT
+    SUM(CASE WHEN consumer_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN customer_placed_order_datetime IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN delivered_to_consumer_datetime IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN delivery_region IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN discount_amount IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN driver_at_restaurant_datetime IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN driver_id IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN is_asap IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN is_new IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN order_total IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN placed_order_with_restaurant_datetime IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN refunded_amount IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN restaurant_id IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN tip_amount IS NULL THEN 1 ELSE 0 END) AS col14,
+    COUNT(*) AS total_rows
+FROM delivery_details;
+
+/* Calculate average total_order_value per restaurant, account for null values using COALESCE */
+SELECT
+    restaurant_id,
+    AVG(
+        order_total + COALESCE(tip_amount, 0) - COALESCE(discount_amount, 0) - COALESCE(refunded_amount, 0)
+    ) AS avg_total_order_value
+FROM delivery_details
+GROUP BY restaurant_id;
+
+/* Calculate average time in minutes between placing an order and having it delivered per restaurant */
+SELECT 
+    restaurant_id,
+    AVG(
+        EXTRACT(EPOCH FROM (delivered_to_consumer_datetime - customer_placed_order_datetime)) / 60
+    ) AS avg_order_delivery_mins
+FROM delivery_details
+GROUP BY restaurant_id;
+
+/* Calculate correlation, rounded to 2 decimals */
+WITH OrderAverages AS (
+    SELECT
+        restaurant_id,
+        AVG(
+           order_total + COALESCE(tip_amount, 0) - COALESCE(discount_amount, 0) - COALESCE(refunded_amount, 0)
+        ) AS avg_total_order_value,
+        AVG(
+           EXTRACT(EPOCH FROM (delivered_to_consumer_datetime - customer_placed_order_datetime)) / 60
+        ) AS avg_order_delivery_mins
+    FROM delivery_details
+    GROUP BY restaurant_id
+)
+SELECT
+    ROUND(
+        CORR(avg_total_order_value, avg_order_delivery_mins)::numeric
+    , 2) AS correlation
+FROM OrderAverages;
+
+Notes:
+- Acquire seconds from an interval EXTRACT(EPOCH FROM INTERVAL)
+  ex. EXTRACT(EPOCH FROM ('datecol1' - 'datecol2') )
+  ex. For MySQL TIMESTAMPDIFF(SECOND, 'col1', 'col2') 
+  ex. For SQLSever DATEDIFF(SECOND, 'col1', 'col2')
+- Pearson correlation coefficient CORR('col1', 'col2')
+- ROUND( CORR('col1', 'col2')::numeric , 2 ) AS 'col_name'
+
+############################
