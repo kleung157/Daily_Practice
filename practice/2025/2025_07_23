@@ -1,0 +1,328 @@
+Date: 07/23/2025
+
+############################
+
+Website:
+StrataScratch - ID 2056
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Amazon - Number of Shipments Per Month
+Write a query that will calculate the number of shipments per month. 
+The unique key for one shipment is a combination of shipment_id and sub_id. 
+Output the year_month in format YYYY-MM and the number of shipments in that month
+
+Data Dictionary:
+Table name = 'amazon_shipment'
+shipment_id: numeric (int)
+sub_id: numeric (int)
+weight: numeric (int)
+shipment_date: POSIXct, POSIXt (dt)
+
+Code:
+# Question: Calculate the number of shipments per month. 
+# The unique key for one shipment is a combination of shipment_id and sub_id.
+
+# Output: year_month in format YYYY-MM and the number of shipments in that month
+
+# Import libraries
+library(tidyverse)
+
+# Load and preview data
+#amazon_shipment <- read_csv('amazon_shipment.csv')
+df <- data.frame(amazon_shipment)
+head(df, 5)
+
+# Check datatypes, nulls, rows - 0 nulls, 9 rows
+lapply(df, class)
+colSums(is.na(df))
+nrow(df)
+
+# Solution
+result_df <- df %>%
+    mutate(unique_id = paste0(shipment_id, "_", sub_id)) %>%      # Concatenate columns for unique key
+    mutate(year_month = format(shipment_date, "%Y-%m")) %>%       # Convert date to YYYY-MM
+    group_by(year_month) %>%                                      # Group by year_month
+    summarise(number_of_shipments = n_distinct(unique_id)) %>%    # Count number of unique shipments
+    ungroup() %>%                                                 # Setup for next use
+    arrange(year_month)                                           # Arrange ASC order
+
+# Result
+result_df
+
+Notes:
+- To concatenate multiple column values into a new column, mutate("new_col_name" = paste0('col1', "_", "col2") )
+- Truncates the date to the beginning of the month, mutate("new_col_name" = floor_date('col', "month") ) 
+
+############################
+
+Website:
+StrataScratch - ID 2020
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Ring Central - Call Declines
+Which company had the biggest month call decline from March to April 2020? 
+Return the company_id and calls difference for the company with the highest decline.
+
+Data Dictionary:
+Table name = 'rc_calls'
+user_id: int64 (int)
+call_id: int64 (int)
+call_date: datetime64 (dt)
+Table name = 'rc_users'
+user_id: int64 (int)
+status: object (str)
+company_id: int64 (int)
+
+Code:
+Solution #1
+# Question: Which company had the biggest month call decline from Mar to Apr 2020?
+
+# Output: company_id, calls difference for company with highest decline
+
+# Import libraries
+import pandas as pd
+
+# Load and preview data
+#rc_calls = pd.read_csv('rc_calls.csv')
+#rc_users = pd.read_csv('rc_users.csv')
+df = pd.DataFrame(rc_calls)
+df2 = pd.DataFrame(rc_users)
+df.head(5)
+df2.head(5)
+
+# Check datatypes, nulls, rows - df(0), df2(0) nulls - df(40), df(20) rows
+#df.info()
+#df.isna().sum()
+#df2.info()
+#df2.isna().sum()
+
+# Merge calls and users DataFrames
+merged_df = pd.merge(df, df2, on="user_id", how="inner")
+
+# Create a column to convert datetime to YYYY-MM
+merged_df['year_month'] = merged_df['call_date'].dt.to_period('M')
+
+# Filter for March 2020, April 2020
+merged_df = merged_df[
+    (merged_df['year_month'] == '2020-03') | 
+    (merged_df['year_month'] == '2020-04')
+]
+
+# Calculate number of calls per company per year_month, then sort ASC order
+result_df = (
+    merged_df.groupby(['year_month', 'company_id'])['call_id'].count()
+    .reset_index(name='call_count')
+    .sort_values(by='year_month', ascending=True)
+)
+
+# Calculate calls difference for each company
+result_df['calls_difference'] = result_df.groupby('company_id')['call_count'].diff(periods=1)
+
+# Find company with highest decline in calls difference
+result_df = (
+    result_df.loc[result_df['calls_difference'].idxmin()]
+    .to_frame().T    # Converts to DataFrame, transposes array from vertical to horizontal rows
+)
+
+# Select relevant columns 'company_id', 'calls_difference'
+result_df = result_df[['company_id', 'calls_difference']]
+
+# Result
+result_df
+
+Solution #2
+# Pivot_table
+result_df = result_df.pivot_table(
+    index='company_id',
+    columns='year_month',
+    values='call_count'
+).reset_index()
+
+# Conversion of dt.to_period('M') column names to strs datatype column names
+result_df.columns = result_df.columns.astype(str)
+
+# Calculate difference
+result_df['call_difference'] = result_df['2020-04'] - result_df['2020-03'] 
+
+Notes:
+- Convert datetime to year month, df['new_col'] = df['date'].dt.to_period('M')
+- To find minimum value, then convert to DataFrame, transposed from vertical to horizontal
+  df['new_col'] = df.loc[ df['col'].idxmin() ].to_frame().T
+- Similar to R pivot_wider()
+  df.pivot_table(
+      index='',      # Equivalent to id_cols
+      columns='',    # Equivalent to names_from 
+      values='',     # Equivalent to values_from
+      aggfunc='',    # How to aggregate if multiple values exist for a cell
+      fill_value=0   # What to fill NaN values with
+  ).reset_index()
+
+############################
+
+Website:
+StrataScratch - ID 2038
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Whole Foods Market - WFM Brand Segmentation based on Customer Activity
+WFM would like to segment the customers in each of their store brands into Low, Medium, and High segmentation. 
+The segments are to be based on a customer's average basket size which is defined as (total sales / count of transactions), per customer.
+
+The segment thresholds are as follows:
+If average basket size is more than $30, then Segment is “High”.
+If average basket size is between $20 and $30, then Segment is “Medium”.
+If average basket size is less than $20, then Segment is “Low”.
+
+Summarize the number of unique customers, the total number of transactions, total sales, and average basket size, grouped by store brand and segment for 2017.
+Your output should include the brand, segment, number of customers, total transactions, total sales, and average basket size.
+
+Data Dictionary:
+Table name = 'wfm_transactions'
+customer_id: bigint (int)
+product_id: bigint (int)
+sales: bigint (int)
+store_id: bigint (int)
+transaction_date: date (dt)
+transaction_id: bigint (int)
+Table name = 'wfm_stores'
+location: text (str)
+store_brand: text (str)
+store_id: bigint (int)
+
+Code:
+/* Question: Segment the customers in each of their store brands into Low, Medium, and High segmentation.
+The segments are to be based on a customer's average basket size which is defined as 
+(total sales / count of transactions), per customer.
+The segment thresholds
+    If average basket size is more than $30, then Segment is "High",
+    If average bakset size is between $20 and $30, then Segment is "Medium",
+    If average basket size is less than $20, then Segment is "Low"
+Summarise number of unique customers, total number of transactions, total sales, average basket size,
+grouped by store brand and segment for 2017. */
+
+/* Output: brand, segment, number of customers, total transactions, total sales, average basket size */
+
+/* Preview data */
+SELECT * FROM wfm_transactions LIMIT 5;
+SELECT * FROM wfm_stores LIMIT 5;
+
+/* Check nulls, rows - transactions(0), stores(0) nulls - transactions(216), stores(20) rows */
+SELECT 
+    SUM(CASE WHEN customer_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN product_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN sales IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN store_id IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN transaction_date IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN transaction_id IS NULL THEN 1 ELSE 0 END) AS col6,
+    COUNT(*) AS total_rows
+FROM wfm_transactions;
+
+SELECT
+    SUM(CASE WHEN location IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN store_brand IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN store_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    COUNT(*) AS total_rows
+FROM wfm_stores;
+
+/* Join transactions and stores tables */
+SELECT *
+FROM wfm_transactions AS wt
+JOIN wfm_stores AS ws
+    ON wt.store_id = ws.store_id
+LIMIT 5;
+
+/* Summarise number of unique customers, total number of transactions, total sales, average basket size,
+grouped by store brand and segment for 2017
+average basket size = (total sales / count of transactions), per customer */
+WITH BrandCustomers AS (
+    -- Calculate number of transactions, total sales, average basket size 
+    -- for each brand, customer in 2017
+    SELECT 
+        ws.store_brand,
+        wt.customer_id,
+        COUNT(wt.transaction_id) AS num_transactions,
+        SUM(wt.sales) AS total_sales,
+        SUM(wt.sales) * 1.0 / COUNT(wt.transaction_id) AS avg_basket_size
+    FROM wfm_transactions AS wt
+    JOIN wfm_stores AS ws
+        ON wt.store_id = ws.store_id
+    WHERE EXTRACT(YEAR FROM transaction_date) = 2017
+    GROUP BY
+        store_brand,
+        customer_id
+),
+CustomerSegmentation AS (
+    -- Segment customers into different thresholds
+    SELECT
+        store_brand,
+        customer_id,
+        num_transactions,
+        total_sales,
+        avg_basket_size,
+        CASE
+            WHEN avg_basket_size > 30 THEN 'High'
+            WHEN avg_basket_size BETWEEN 20 AND 30 THEN 'Medium'
+            ELSE 'Low'
+        END AS customer_segment
+    FROM BrandCustomers
+)
+-- Groupby brand, segment then calculate unique customers, total transactions, total sales, avg basket size
+SELECT
+    store_brand,
+    customer_segment,
+    COUNT(DISTINCT customer_id) AS num_unique_customers,
+    SUM(num_transactions) AS total_num_transactions,
+    SUM(total_sales) AS total_num_sales,
+    ROUND(
+        SUM(total_sales) * 1.0 / SUM(num_transactions)
+    , 2) AS avg_basket_size
+FROM CustomerSegmentation
+GROUP BY
+    store_brand,
+    customer_segment
+ORDER BY 
+    store_brand ASC,
+    CASE customer_segment
+        WHEN 'High' THEN 1
+        WHEN 'Medium' THEN 2
+        WHEN 'Low' THEN 3
+        ELSE 4 -- Handle any unexpected segments
+    END;
+
+Notes:
+- When dividing INT / INT, include a floating point 1.0 multiplication value to ensure floating point division
+  ex. SUM('col') * 1.0 / COUNT('col') 
+- ROUND values at the end of a query not inbetween or at the start unless necessary
+- For CASE WHEN scenarios of one column here is a proper example
+  CASE 
+      WHEN 'col' > 30 THEN 'High'
+      WHEN 'col' BETWEEN 20 and #) THEN 'Medium'
+      ELSE 'Low'
+    END AS col_name
+- Can use CASE WHEN in an ORDER BY clause
+  ORDER BY
+      CASE col_name
+          WHEN 'High' THEN 1
+          WHEN 'Medium' THEN 2
+          WHEN 'Low' THEN 3
+          ELSE 4 -- Handle any unexpected segments
+      END
+
+############################
