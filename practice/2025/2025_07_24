@@ -1,0 +1,265 @@
+Date: 07/24/2025
+
+############################
+
+Website:
+StrataScratch - Id 2057
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Amazon - Weight For First Shipment
+Write a query to find the weight for each shipment's earliest shipment date.
+Output the shipment id along with the weight.
+
+Data Dictionary:
+Table name = 'amazon_shipment'
+shipment_id: numeric (int)
+sub_id: numeric (int)
+weight: numeric (int)
+shipment_date: POSIXct, POSIXt (dt)
+
+Code:
+# Question: Find the weight for each shipment's earliest shipment date.
+
+# Output: shipment id, weight
+
+# Import libraries
+library(tidyverse)
+
+# Load and preview data
+#amazon_shipment <- read_csv('amazon_shipment.csv')
+df <- data.frame(amazon_shipment)
+head(df, 5)
+
+# Check datatypes, nulls, rows - 0 nulls, 9 rows
+lapply(df, class)
+colSums(is.na(df))
+nrow(df)
+
+# Find the weight for each shipment's earliest shipment date
+result_df <- df %>%
+    group_by(shipment_id) %>%                     # Group_by shipment id
+    mutate(
+        row_number = row_number(shipment_date)    # Assign a row that orders shipment_date ASC
+    ) %>%
+    ungroup() %>%                                 # Preserve dataframe for later use
+    filter(row_number == 1) %>%                   # Filter for earliest date
+    select(shipment_id, weight) %>%               # Select for relevant output columns
+    arrange(shipment_id)                          # Arrange ASC order
+    
+# Result
+result_df
+
+Notes:
+- Window functions from SQL in R, use group_by before for partioning, then mutate 
+  ex. row_number, min_rank(), dense_rank(), percent_rank(). cume_dist(), ntile(n)
+  ex. df %>% 
+      group_by(col') %>% 
+      mutate( 
+          'new_col_name' = row_number('col')     # can use DESC too row_number(desc('col'))
+      ) %>%
+      ungroup()
+- Can use slice('value') after group_by('col') and arrange('col') to achieve row_number as well
+  ex. slice(1) selects first row, slice(n()) selects last row, slice(1:5) rows 1 to 5
+  ex. df %>%
+      group_by('col') %>%
+      arrange('col_date') %>%
+      slice(value) %>%
+      ungroup()
+
+############################
+
+Website:
+StrataScratch - ID 2021
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Redfin - Initial Call Duration
+Redfin helps clients to find agents. 
+Each client will have a unique request_id and each request_id has several calls. 
+For each request_id, the first call is an “initial call” and all the following calls are “update calls”.  
+What's the average call duration for all initial calls?
+
+Data Dictionary:
+Table name = 'redfin_call_tracking'
+created_on: datetime64 (dt)
+request_id: int64 (int)
+call_duration: int64 (int)
+id: int64 (int)
+
+Code:
+# Question: Redfin helps clients to find agents.
+# Each client will have a unique request_id and each request_id has several calls.
+# For each request_id, the first call is an "initial call" and all following calls are "update calls".
+# What's the average call duration for all the initial calls?
+
+# Output: average call duration
+
+# Import libraries
+import pandas as pd
+
+# Load and preview data
+#redfin_call_tracking = pd.read_csv('redfin_call_tracking.csv')
+df = pd.DataFrame(redfin_call_tracking)
+df.head(5)
+
+# Check datatypes, nulls, rows - 0 nulls, 20 rows
+#df.info()
+#df.isna().sum()
+
+# Rank calls by datetime column with earliest as first rank
+df['call_rank'] = df.groupby('request_id')['created_on'].rank(method='min', ascending=True)
+
+# Filter for first call "initial call"
+result_df = df[
+    (df['call_rank'] == 1)
+]
+
+# Find average call duration, rename column, convert to Series then to DataFrame
+result_df = pd.Series(result_df['call_duration'].mean(), name='average_initial_call_duration').to_frame()
+
+# Result
+result_df
+
+Notes:
+- 'min' similar to RANK() in SQL
+  ex. df.groupby('col')['col'].rank(method='min', ascending=True)
+- single numpy value can be converted to pd.Series with column renamed, then converted to DataFrame
+  ex. result_df = pd.Series( df['col'].mean(), name='new_col_name' ).to_frame()
+
+############################
+
+Website:
+StrataScratch - ID 2044
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Uber - Most Senior & Junior Employee
+Write a query to find the number of days between the longest and least tenured employee still working for the company. 
+Your output should include the number of employees with the longest-tenure, the number of employees with the least-tenure, and the number of days between both the longest-tenured and least-tenured hiring dates.
+
+Data Dictionary:
+Table name = 'uber_employees'
+first_name: text (str)
+hire_date: date (dt)
+id: bigint (int)
+last_name: text (str)
+salary: bigint (int)
+termination_date: date (dt)
+
+Code:
+Solution #1 (subqueries)
+/* Question: 
+Find number of days between the longest and least tenured employee still working for the company. */
+
+/* Output: 
+number of employees with longest tenure, number of employees with least tenure,
+number of days between both longest-tenured and least-tenured hiring dates */
+
+/* Preview data */
+SELECT * FROM uber_employees LIMIT 5;
+
+/* Check nulls, rows - col6(34) nulls - 100 rows */
+SELECT
+    SUM(CASE WHEN first_name IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN hire_date IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN last_name IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN salary IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN termination_date IS NULL THEN 1 ELSE 0 END) AS col6,
+    COUNT(*) AS total_rows
+FROM uber_employees;
+
+/* Find number of days between the longest and least tenured employee still working for the company. */
+SELECT
+    (MAX(hire_date) - MIN(hire_date)) AS number_of_days
+FROM uber_employees
+WHERE termination_date IS NULL;
+
+SELECT
+    COUNT(DISTINCT id) AS longest_tenure_employee_count
+FROM uber_employees
+WHERE termination_date IS NULL
+    AND hire_date = (SELECT MIN(hire_date) FROM uber_employees);
+    
+SELECT
+    COUNT(DISTINCT id) AS least_tenure_employee_count
+FROM uber_employees
+WHERE termination_date IS NULL
+    AND hire_date = (SELECT MAX(hire_date) FROM uber_employees);
+    
+SELECT
+    COUNT(DISTINCT id) FILTER (wHERE hire_date = (SELECT MIN(hire_date) FROM uber_employees)) AS longest_tenure_employee_count,
+    COUNT(DISTINCT id) FILTER (WHERE hire_date = (SELECT MAX(hire_date) FROM uber_employees)) AS least_tenure_employee_count,
+    (MAX(hire_date) - MIN(hire_date)) AS number_of_days
+FROM uber_employees
+WHERE termination_date IS NULL;
+
+Solution #2 (CTEs with FILTER)
+WITH ActiveEmployees AS (
+    SELECT
+        id,
+        hire_date
+    FROM uber_employees
+    WHERE termination_date IS NULL
+),
+TenureDates AS (
+    SELECT
+        MIN(hire_date) AS earliest_date,
+        MAX(hire_date) AS latest_date
+    FROM uber_employees
+    WHERE termination_date IS NULL
+)
+SELECT
+    COUNT(DISTINCT ae.id) FILTER (WHERE ae.hire_date = td.earliest_date) AS longest_tenured_employee,
+    COUNT(DISTINCT ae.id) FILTER (WHERE ae.hire_date = td.latest_date) AS least_tenured_employee,
+    (MAX(td.latest_date) - MIN(td.earliest_date)) AS number_of_days_tenure
+FROM 
+    ActiveEmployees AS ae,
+    TenureDates AS td;
+
+Solution #3 (CTES with CASE WHEN)
+WITH ActiveEmployees AS (
+    SELECT
+        id,
+        hire_date
+    FROM uber_employees
+    WHERE termination_date IS NULL
+),
+TenureDates AS (
+    SELECT
+        MIN(hire_date) AS earliest_date,
+        MAX(hire_date) AS latest_date
+    FROM uber_employees
+    WHERE termination_date IS NULL
+)
+SELECT
+    COUNT(DISTINCT CASE WHEN ae.hire_date = td.earliest_date THEN ae.id END) AS longest_tenured_employee,
+    COUNT(DISTINCT CASE WHEN ae.hire_date = td.latest_date THEN ae.id END) AS least_tenured_employee,
+    (MAX(td.latest_date) - MIN(td.earliest_date)) AS number_of_days_tenure
+FROM 
+    ActiveEmployees AS ae,
+    TenureDates AS td;
+
+Notes:
+- Can do cartesian joins with multiple FROM clauses instead of having to do a direct join
+- Avoid subqueries as much as possible, CTEs are more preferable, clear and optimal
+- CASE WHEN doesn't always need an ELSE, acts more like FILTER(WHERE='col')
+  ex. COUNT(DISTINCT CASE WHEN 'col1' = 'col2' THEN 'col3' END) 
+  
+############################
