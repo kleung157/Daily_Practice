@@ -1,0 +1,288 @@
+Date: 07/25/2025
+
+############################
+
+Website:
+StrataScratch - ID 2058
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Amazon - Total Shipment Weight
+Calculate the total weight for each shipment and add it as a new column. 
+Your output needs to have all the existing rows and columns in addition to the  new column that shows the total weight for each shipment.
+One shipment can have multiple rows.
+
+Data Dictionary:
+Table name = 'amazon_shipment'
+shipment_id: numeric (int)
+sub_id: numeric (int)
+weight: numeric (int)
+shipment_date: POSIXct, POSIXt (dt)
+
+Code:
+# Question: 
+# Calculate the total weight for each shipment and add it as a new column.
+# One shipment can have multiple rows.
+
+# Output: 
+# All existing rows and columns, total weight for each shipment
+
+# Import libraries
+library(tidyverse)
+
+# Load and preview data
+#amazon_shipment <- read_csv('amazon_shipment.csv')
+df <- tibble(amazon_shipment)
+head(df, 5)
+
+# Check datatypes, nulls, rows - 0 nulls - 9 rows
+lapply(df, class)
+colSums(is.na(df))
+nrow(df)
+
+# Solution
+result_df <- df %>%
+    group_by(shipment_id) %>%                 # Group by shipment_id
+    mutate(total_weight = sum(weight)) %>%    # Create new column, calculate total weight
+    ungroup() %>%                             # Preserve DataFrame for later use
+    arrange(shipment_id)                      # Arrange ASC order
+
+# Result
+result_df
+
+Notes:
+- Can convert between data structures using as_tibble() or as.data.frame()
+- When loading data, best to use tibble() over data.frame() unless using legacy code packages
+
+############################
+
+Website:
+StrataScratch - ID 2022
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Redfin - Update Call Duration
+Redfin helps clients to find agents. 
+Each client will have a unique request_id and each request_id has several calls. 
+For each request_id, the first call is an “initial call” and all the following calls are “update calls”.  
+What's the average call duration for all update calls?
+
+Data Dictionary:
+Table name = 'redfin_call_tracking'
+created_on: datetime64 (dt)
+request_id: int64 (int)
+call_duration: int64 (int)
+id: int64 (int)
+
+Code:
+# Question:
+# Redfin helps clients to find agents.
+# Each client will have a unique request_id and each request_id has several calls.
+# For each request_id, the first call is an "initial call" and the following are "update calls".
+# What's the average call duration for all update calls?
+
+# Output: average_update_call_duration
+
+# Import libraries
+import pandas as pd
+
+# Load and preview data
+#redfin_call_tracking = pd.read_csv('redfin_call_tracking.csv')
+df = pd.DataFrame(redfin_call_tracking)
+df.head(5)
+
+# Check datatypes, nulls, rows - 0 nulls, 20 rows
+#df.info()
+#df.isna().sum()
+
+# Rank calls to determine initial and update calls
+df['call_rank'] = df.groupby('request_id')['created_on'].rank(method='dense', ascending=True)
+
+# Filter for only update calls
+result_df = df[
+    (df['call_rank'] >= 2)
+]
+
+# Calculate average call duration, rename column, convert to Series then Dataframe
+result_df = pd.Series(result_df['call_duration'].mean(), name='average_update_call_duration').to_frame()
+
+# Result
+result_df
+
+Notes:
+- Can use df = relevant_df.copy() instead of df = pd.DataFrame(relevant_df)
+- If date column is't datetime datatype, use df['date_col'] = pd.to_datetime(df['date_col'])
+
+###########################
+
+Website:
+StrataScratch - ID 2046
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Uber - Maximum Number of Employees Reached
+Write a query that returns every employee that has ever worked for the company. 
+For each employee, calculate the greatest number of employees that worked for the company during their tenure and the first date that number was reached. 
+The termination date of an employee should not be counted as a working day.
+Your output should have the employee ID, greatest number of employees that worked for the company during the employee's tenure, and first date that number was reached.
+
+Data Dictionary:
+Table name = 'uber_employees'
+first_name: text (str)
+hire_date: date (dt)
+id: bigint (int)
+last_name: text (str)
+salary: bigint (int)
+termination: date (dt)
+
+Code:
+Attempt #1 (not sure what the question is asking)
+/* Question:
+Return every employee that has ever worked for the company.
+For each employee, calculate the greatest number of employees that worked for the company during their tenure
+and the first date that number was reached.
+The termination date of an employee should not be counted as a working day. */
+
+/* Output:
+employee id, greatest number of employees that worked for company during employee's tenure,
+first date that number was reached */
+
+/* Preview data */
+SELECT * FROM uber_employees LIMIT 5;
+
+/* Check nulls, rows - col6(34) nulls - 100 rows */
+SELECT
+    SUM(CASE WHEN first_name IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN hire_date IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN last_name IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN salary IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN termination_date IS NULL THEN 1 ELSE 0 END) AS col6,
+    COUNT(*) AS total_rows
+FROM uber_employees;
+
+WITH TenureDate AS (
+-- Calculate tenure date for every employee 
+SELECT
+    id,
+    hire_date,
+    termination_date,
+    CASE 
+        WHEN termination_date IS NOT NULL THEN termination_date - 1
+        WHEN termination_date IS NULL THEN (SELECT MAX(hire_date) FROM uber_employees)
+    END AS tenure_date
+FROM uber_employees
+)
+SELECT
+    id,
+    COUNT(id)
+FROM TenureDate
+WHERE BETWEEN hire_date AND tenure_date
+GROUP BY id
+
+Solution #1
+WITH DateEvents AS (
+    -- Employees joining: +1 to count on their hire_date
+    -- Employees leaving: -1 to count on their termination_date
+    -- Termination_date should not be counted as a working day
+    SELECT
+        hire_date AS event_date,
+        1 AS employee_change
+    FROM uber_employees
+
+    UNION ALL
+
+    SELECT 
+        termination_date AS event_date,
+        -1 AS employee_change
+    FROM uber_employees
+    WHERE termination_date IS NOT NULL    
+),
+DailyNetChanges AS (
+    -- Aggregate multiple hires/terminations on the same day
+    SELECT
+        event_date,
+        SUM(employee_change) AS net_change_on_day
+    FROM DateEvents
+    GROUP BY event_date
+),
+CumulativeEmployeeCounts AS (
+    -- Calculate running total of employees active on each date
+    SELECT
+        event_date,
+        SUM(net_change_on_day) OVER (ORDER BY event_date ASC) AS current_employee_count
+   FROM DailyNetChanges
+),
+EmployeeTenureMaxCount AS (
+    -- For each employee, find the maximum number of concurrent employees that worked their tenure
+    -- Tenure is from hire_date up to (but not including) termination date.
+    SELECT
+        ue.id AS employee_id,
+        MAX(cec.current_employee_count) AS greatest_num_employees
+    FROM uber_employees AS ue
+    JOIN CumulativeEmployeeCounts AS cec
+        ON cec.event_date >= ue.hire_date
+        AND (cec.event_date < ue.termination_date OR ue.termination_date IS NULL)
+    GROUP BY ue.id
+)
+-- Final selection: employee ID, greatest concurrent employee count,
+-- and first date that count was reached during their tenure.
+SELECT
+    emc.employee_id,
+    emc.greatest_num_employees,
+    MIN(cec.event_date) AS first_date_reached
+FROM EmployeeTenureMaxCount emc
+JOIN uber_employees ue
+    ON emc.employee_id = ue.id    -- Join back to original table for hire/termination date
+JOIN CumulativeEmployeeCounts cec
+    ON cec.current_employee_count = emc.greatest_num_employees    -- Match the max count
+    AND cec.event_date >= ue.hire_date    -- Ensure date is within tenure
+    AND (cec.event_date < ue.termination_date OR ue.termination_date IS NULL)  
+GROUP BY
+    emc.employee_id,
+    emc.greatest_num_employees
+ORDER BY
+    emc.employee_id;
+
+Notes:
+- Generate all relevant date events:
+  Table that lists all dates, +1 count for hire_dates, -1 count for termination_dates
+- Calculate daily net changes: 
+  Aggregate employee_change for each date to get net change in employee count on that day
+- Compute cumulative employee counts: 
+  Calculate total active employees for each date ordered chronologically
+- Determine each employee's maximum concurrent count: 
+  For each employee, 
+  join tenure period (from hire_date upto, but not including, termination_date) with daily employee counts, 
+  find maximum current_employee_count within tenure
+- Find first date maximum was reached:
+  Join back to daily employeee counts,
+  find earliest date within employee's tenure where current_employee_count was equal to calculated maximum
+- For the following JOIN clauses, the lines with AND can be included in the WHERE clause instead
+  ex. JOIN CumulativeEmployeeCounts AS cec
+      ON cec.event_date >= ue.hire_date
+      AND (cec.event_date < ue.termination_date OR ue.termination_date IS NULL)     # This line
+  ex. JOIN CumulativeEmployeeCounts cec
+      ON cec.current_employee_count = emc.greatest_num_employees    
+      AND cec.event_date >= ue.hire_date                                            # This line
+      AND (cec.event_date < ue.termination_date OR ue.termination_date IS NULL)     # This line 
+- On my initial attempt, wasn't sure what the question was really asking.
+  Have to write out process rather than try to brute-force code it. 
+  Couldn't decide what the end tenure_date was.
+
+############################
