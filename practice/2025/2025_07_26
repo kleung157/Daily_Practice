@@ -1,0 +1,458 @@
+Date: 07/26/2025
+
+############################
+
+Website:
+StrataScratch - ID 2061
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Meta - Users with Many Searches
+Count the number of users who made more than 5 searches in August 2021.
+
+Data Dictionary:
+Table name = 'fb_searches'
+search_id: numeric (int)
+user_id: numeric (int)
+date: POSIXct, POSIXt (dt)
+age_group: character (str)
+search_query: character (str)
+
+Code:
+# Question:
+# Count the number of users who made more than 5 searches in August 2021
+
+# Output:
+# number of users with more than 5 searches (Aug 2021)
+
+# Import libraries
+#install.package(tidyverse)
+library(tidyverse)
+
+# Load and preview data
+#fb_searches <- read_csv('fb_searches.csv')
+df <- data.frame(fb_searches)
+head(df, 5)
+
+# Check datatypes, nulls, rows - 0 nulls, 91 rows
+lapply(df, class)
+colSums(is.na(df))
+nrow(df)
+
+# Solution
+result_df <- df %>%
+    filter(year(date) == 2021 & month(date) == 8) %>%                  # Filter for Aug 2021
+    group_by(user_id) %>%
+    summarise(num_searches = n_distinct(search_id)) %>%                # Count number of searches by user
+    ungroup() %>%                                                      # Preserve DataFrame for later use
+    filter(num_searches > 5) %>%                                       # Filter for more than 5 searches
+    select(user_id) %>%                                                # Select relevant column
+    summarise(num_users = n_distinct(user_id))                         # Count distinct users
+
+# Result
+print(paste("Number of users with more than 5 searches in August 2021:", result_df))
+
+Notes:
+- Conversion to date-time using df$date_col <- as_datetime(df$date_col)
+- Print results and pasting variables print( paste("text", 'col') )
+
+############################
+
+Website:
+StrataScratch - ID 2023
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Redfin - Rush Hour Calls
+Redfin helps clients to find agents. 
+Each client will have a unique request_id and each request_id has several calls. 
+For each request_id, the first call is an “initial call” and all the following calls are “update calls”.  
+How many customers have called 3 or more times between 3 PM and 6 PM (initial and update calls combined)?
+
+Data Dictionary:
+Table name = 'redfin_call_tracking'
+created_on: datetime64 (dt)
+request_id: int64 (int)
+call_duration: int64 (int)
+id: int64 (int)
+
+Code:
+# Question:
+# Redfin helps clients to find agents.
+# Each client will have a unique request_id and each request_id has several calls.
+# For each request_id, the first call is an "initial call" and all following are "update calls".
+# How many customers have called 3 or more times between 3PM and 6PM (initial/update calls combined)
+
+# Output:
+# Number of customers called 3 or more times between 3-6PM (initial + update calls)
+
+# Import libraries
+import pandas as pd
+
+# Load and preview data
+#redfin_call_tracking = pd.read_csv('redfin_call_tracking.csv')
+df = pd.DataFrame(redfin_call_tracking)
+df.head(5)
+
+# Check datatypes, nulls, rows - 0 nulls - 20 rows
+#df.info()
+#df.isna().sum()
+
+# Convert datetime to hours
+df['hour'] = df['created_on'].dt.hour
+
+# Filter between 3pm (15:00) and 6pm (18:00)
+df = df[
+    (df['hour'] >= 15) & 
+    (df['hour'] < 18)
+]
+
+# Find count of calls for each user
+result_df = df.groupby(['request_id'])['id'].count().reset_index(name='call_count')
+
+# Filter for customers with 3 or more calls
+result_df = result_df[
+    (result_df['call_count'] >= 3)
+]
+
+# Count number of customers, rename column, convert to Series then DataFrame
+result_df = pd.Series(result_df['request_id'].count(), name='num_customers').to_frame()
+
+# Result
+print("Number of customers called 3 or more times between 3PM-6PM:")
+result_df
+
+Notes:
+- Problem doesn't specify inclusive 3PM-6PM or 3:00PM to 6:59PM.
+- Instead of using count(), can use len(df), or df.shape[0]
+  ex. pd.Series( df = len(df), name='col' ).to_frame()
+  ex. pd.Series( df.shape[0], name='col' ).to_frame()
+
+############################
+
+Website:
+StrataScratch - ID 2053
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Meta - Retention Rate
+You are given a dataset that tracks user activity. 
+The dataset includes information about the date of user activity, the account_id associated with the activity, and the user_id of the user performing the activity. 
+Each row in the dataset represents a user’s activity on a specific date for a particular account_id.
+
+Your task is to calculate the monthly retention rate for users for each account_id for December 2020 and January 2021. 
+The retention rate is defined as the percentage of users active in a given month who have activity in any future month.
+
+For instance, a user is considered retained for December 2020 if they have activity in December 2020 and any subsequent month (e.g., January 2021 or later). 
+Similarly, a user is retained for January 2021 if they have activity in January 2021 and any later month (e.g., February 2021 or later).
+
+The final output should include the account_id and the ratio of the retention rate in January 2021 to the retention rate in December 2020 for each account_id. 
+If there are no users retained in December 2020, the retention rate ratio should be set to 0.
+
+Data Dictionary:
+Table name = 'sf_events'
+account_id: varchar (str)
+record_date: date (dt)
+user_id: varchar (str)
+
+Code:
+Solution #1 (my attempt, mostly CTEs)
+/* Question:
+You are given a dataset that tracks user activity.
+The dataset includes information about the date of user activity, the account_id associated with the activity,
+and the user_id of the user performing the activity.
+Each row in the dataset represents a user's activity on a specific date for a particular account_id.
+
+Calculate the monthly retention rate for users for each account_id for Dec 2020 and Jan 2021.
+The retention rate is defined as the percentage of users active in a given month who have activity in any
+future month.
+
+For instance, a user is considered retained for Dec 2020 if they have activity in Dec 2020 and any subsequent
+month (ex. Jan 2021 or later).
+Similarly, a user is retained for January 2021 if they have activity in Jan 2021 and any later month 
+(ex. Feb 2021 or later)
+
+The final output should include the account_id and the ratio of the retention rate in Jan 2021 to the 
+retention rate in Dec 2020 for each account_id.
+If there are no users retained in Dec 2020, the retention rate ratio should be set to 0 */
+
+/* Output:
+account_id, ratio (retention rate in Jan 2021 to retention rate in Dec 2020 for each account_id) */
+
+/* Preview data */
+SELECT * FROM sf_events LIMIT 5;
+
+/* Check nulls, rows - 0 nulls, 23 rows */
+SELECT
+    SUM(CASE WHEN account_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN record_date IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    COUNT(*) as total_rows
+FROM sf_events;
+
+/* Solution */
+WITH DecemberUsers AS (
+    -- Filter for December users
+    SELECT 
+        account_id,
+        user_id
+    FROM sf_events
+    WHERE record_date BETWEEN '2020-12-01' AND '2020-12-31'
+    GROUP BY account_id, user_id
+),
+JanuaryUsers AS (
+    -- Filter for January users
+    SELECT 
+        account_id,
+        user_id
+    FROM sf_events
+    WHERE record_date BETWEEN '2021-01-01' AND '2021-01-31'
+    GROUP BY account_id, user_id
+),
+SubsequentDecemberUsers AS (
+    -- Filter for users after Dec 2020
+    SELECT 
+       account_id,
+       user_id
+    FROM sf_events
+    WHERE record_date > '2020-12-31'
+    GROUP BY account_id, user_id
+),
+SubsequentJanuaryUsers AS (
+    -- Filter for users after Jan 2021
+    SELECT 
+        account_id,
+        user_id
+    FROM sf_events
+    WHERE record_date > '2021-01-31'
+    GROUP BY account_id, user_id
+),
+RetainedDecemberUsers AS (
+    -- Match users from Dec 2020 to subsequent months with activity
+    SELECT
+        du.account_id,
+        du.user_id
+    FROM DecemberUsers AS du
+    JOIN SubsequentDecemberUsers AS sdu
+        ON du.account_id = sdu.account_id
+        AND du.user_id = sdu.user_id
+),
+RetainedJanuaryUsers AS (
+    -- Match users from Jan 2021 to subsequent months with activity
+    SELECT
+        ju.account_id,
+        ju.user_id
+    FROM JanuaryUsers AS ju
+    JOIN SubsequentJanuaryUsers AS sju
+        ON ju.account_id = sju.account_id
+        AND ju.user_id = sju.user_id
+),
+DecemberUserCount AS (
+    -- Count number of users for each account in Dec 2020
+    SELECT
+        account_id,
+        COUNT(user_id) AS user_count
+    FROM DecemberUsers
+    GROUP BY account_id
+),
+RetainedDecemberUserCount AS (
+    -- Count retained number of users for each account in Dec 2020
+    SELECT
+        account_id,
+        COUNT(user_id) AS retained_count
+    FROM RetainedDecemberUsers
+    GROUP BY account_id
+),
+JanuaryUserCount AS (
+    -- Count number of users for each account in Jan 2021
+    SELECT
+        account_id,
+        COUNT(user_id) AS user_count
+    FROM JanuaryUsers
+    GROUP BY account_id
+),
+RetainedJanuaryUserCount AS (
+    -- Count retained number of users for each account in Jan 2021
+    SELECT
+        account_id,
+        COUNT(user_id) AS retained_count
+    FROM RetainedJanuaryUsers
+    GROUP BY account_id
+),
+DecemberRate AS (
+    -- Calculate retention rate (retained users / total users) in Dec 2020
+    SELECT
+        duc.account_id,
+        (COALESCE(rduc.retained_count, 0.0)::numeric / duc.user_count) AS dec_retention_rate 
+    FROM DecemberUserCount AS duc
+    LEFT JOIN RetainedDecemberUserCount AS rduc
+        ON duc.account_id = rduc.account_id
+),
+JanuaryRate AS (
+    -- Calculate retention rate (retained users / total users) in Jan 2021
+    SELECT
+        juc.account_id,
+        (COALESCE(rjuc.retained_count, 0.0)::numeric / juc.user_count) AS jan_retention_rate 
+    FROM JanuaryUserCount AS juc
+    LEFT JOIN RetainedJanuaryUserCount AS rjuc
+        ON juc.account_id = rjuc.account_id
+)
+-- Join retention rates from Dec 2020 and Jan 2021 by account id
+-- Calculate retention ratio ( Jan 2021 / Dec 2020 )
+-- If no users retained for an account, retention ratio should be 0
+SELECT
+    COALESCE(dr.account_id, jr.account_id) AS account_id,
+    CASE 
+        WHEN COALESCE(dr.dec_retention_rate, 0.0) = 0.0
+        THEN 0.0
+        ELSE COALESCE(jr.jan_retention_rate, 0.0) / dr.dec_retention_rate
+    END AS retention_rate_ratio
+FROM DecemberRate AS dr
+FULL OUTER JOIN JanuaryRate AS jr
+    ON dr.account_id = jr.account_id;
+
+Solution #2 (More concise, approach)
+WITH
+  -- 1. Base activity: distinct user-account-month combinations
+  base_activity AS (
+    SELECT DISTINCT
+      account_id,
+      user_id,
+      DATE_TRUNC('month', record_date) AS month_start -- Extracts the first day of the month
+    FROM
+      sf_events
+  ),
+  -- 2. Users active in December 2020
+  dec_2020_active_users AS (
+    SELECT DISTINCT
+      account_id,
+      user_id
+    FROM
+      base_activity
+    WHERE
+      month_start = '2020-12-01'
+  ),
+  -- 3. Users active in January 2021
+  jan_2021_active_users AS (
+    SELECT DISTINCT
+      account_id,
+      user_id
+    FROM
+      base_activity
+    WHERE
+      month_start = '2021-01-01'
+  ),
+  -- 4. Calculate retention metrics for December 2020
+  dec_2020_retention_metrics AS (
+    SELECT
+      dau.account_id,
+      COUNT(DISTINCT dau.user_id) AS total_active_users_dec, -- Total users active in Dec 2020
+      COUNT(
+        DISTINCT CASE
+          WHEN ba_future.month_start > '2020-12-01'
+          THEN dau.user_id
+          ELSE NULL
+        END
+      ) AS retained_users_dec, -- Users active in Dec 2020 AND any future month
+      -- Calculate December 2020 retention rate, handling division by zero
+      COALESCE(
+        CASE
+          WHEN COUNT(DISTINCT dau.user_id) = 0
+          THEN 0.0
+          ELSE CAST(
+            COUNT(
+              DISTINCT CASE
+                WHEN ba_future.month_start > '2020-12-01'
+                THEN dau.user_id
+                ELSE NULL
+              END
+            ) AS NUMERIC
+          ) / COUNT(DISTINCT dau.user_id)
+        END,
+        0.0
+      ) AS retention_rate_dec_2020
+    FROM
+      dec_2020_active_users dau
+      -- Join with base_activity to check for future activity for these users
+      LEFT JOIN base_activity ba_future ON dau.account_id = ba_future.account_id
+      AND dau.user_id = ba_future.user_id
+    GROUP BY
+      dau.account_id
+  ),
+  -- 5. Calculate retention metrics for January 2021
+  jan_2021_retention_metrics AS (
+    SELECT
+      jau.account_id,
+      COUNT(DISTINCT jau.user_id) AS total_active_users_jan, -- Total users active in Jan 2021
+      COUNT(
+        DISTINCT CASE
+          WHEN ba_future.month_start > '2021-01-01'
+          THEN jau.user_id
+          ELSE NULL
+        END
+      ) AS retained_users_jan, -- Users active in Jan 2021 AND any future month
+      -- Calculate January 2021 retention rate, handling division by zero
+      COALESCE(
+        CASE
+          WHEN COUNT(DISTINCT jau.user_id) = 0
+          THEN 0.0
+          ELSE CAST(
+            COUNT(
+              DISTINCT CASE
+                WHEN ba_future.month_start > '2021-01-01'
+                THEN jau.user_id
+                ELSE NULL
+              END
+            ) AS NUMERIC
+          ) / COUNT(DISTINCT jau.user_id)
+        END,
+        0.0
+      ) AS retention_rate_jan_2021
+    FROM
+      jan_2021_active_users jau
+      -- Join with base_activity to check for future activity for these users
+      LEFT JOIN base_activity ba_future ON jau.account_id = ba_future.account_id
+      AND jau.user_id = ba_future.user_id
+    GROUP BY
+      jau.account_id
+  )
+-- 6. Final SELECT: Join the retention metrics and calculate the ratio
+SELECT
+  COALESCE(drm.account_id, jrm.account_id) AS account_id,
+  COALESCE(drm.retention_rate_dec_2020, 0.0) AS retention_rate_dec_2020,
+  COALESCE(jrm.retention_rate_jan_2021, 0.0) AS retention_rate_jan_2021,
+  -- Calculate the ratio: January 2021 rate / December 2020 rate
+  -- If December 2020 rate is 0, the ratio should be 0.
+  CASE
+    WHEN COALESCE(drm.retention_rate_dec_2020, 0.0) = 0.0
+    THEN 0.0
+    ELSE COALESCE(jrm.retention_rate_jan_2021, 0.0) / COALESCE(drm.retention_rate_dec_2020, 0.0)
+  END AS retention_rate_ratio
+FROM
+  dec_2020_retention_metrics drm
+  FULL OUTER JOIN jan_2021_retention_metrics jrm ON drm.account_id = jrm.account_id;
+
+Notes:
+- Ended up brute forcing with 12 CTEs, was easier to keep track of rather than using subqueries.
+- Use COALESCE('col', 0.0) whenever possible for accounting for missing values.
+- Differentiate between INNER, LEFT and FULL OUTER JOINS throughout the query to ensure no missing data.
+- Careful when filtering dates, don't use => or <= if not needed, sometimes just > or < is enough.
+- For division, cast numerator to ::numeric or floating point division may occur.
+- Mindful of division by zero errors, use CASE WHEN and COALESCE to resolve.
+
+############################
