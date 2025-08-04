@@ -1,0 +1,234 @@
+Date: 08/04/2025
+
+############################
+
+Website:
+StrataScratch - ID 2062
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Meta - Questions in Second Quarter
+How many searches were there in the second quarter of 2021?
+
+Data Dictionary:
+Table name = 'fb_searches'
+search_id: numeric (int)
+user_id: numeric (int)
+date: POSIXct, POSIXt (dt)
+age_group: character (str)
+search_query: character (str)
+
+Code:
+# Question: How many searches were there in the second quarter of 2021?
+
+# Output: number of searches (2Q 2021)
+
+# Import libraries
+#install.package(tidyverse)
+library(tidyverse)
+
+# Load and preview data
+#fb_searches <- read_csv('fb_searches.csv')
+df <- data.frame(fb_searches)
+head(df, 5)
+
+# Check datatypes, nulls, rows - 0 nulls, 91 rows
+lapply(df, class)
+colSums(is.na(df))
+nrow(df)
+
+# Solution
+result_df <- df %>%
+    filter(
+        quarter(date) == 2,                                    # Filter for 2nd quarter, 2021
+        year(date) == 2021
+    ) %>%
+    summarise(num_searches_2Q_2021 = n_distinct(search_id))    # Find number of searches
+    
+# Result
+result_df
+
+Notes:
+- install.package("ex.tidyverse") should be done before importing libraries
+- Initially thought to create a new column for quarters/years, 
+  but can actually extract/filter using lubridate package
+
+############################
+
+Website:
+StrataScratch - ID 2025
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Apple - Users Exclusive Per Client
+Considering a dataset that tracks user interactions with different clients, identify which clients have users who are exclusively loyal to them (i.e., they don't interact with any other clients).
+For each of these clients, calculate the number of such exclusive users. 
+The output should include the client_id and the corresponding count of exclusive users.
+
+Data Dictionary:
+Table name = 'fact_events'
+id: int64 (int)
+time_id: datetime64 (dt)
+user_id: object (str)
+customer_id: object (str)
+client_id: object (str)
+event_type: object (str)
+event_id: int64 (int)
+
+Code:
+Attempt #1 (not correct)
+# Question: 
+# Considering a dataset that tracks user interactions with different clients,
+# identify which clients have users who are exclusively loyal to them (don't interact with other clients).
+# For each of these clients, calculate number of exclusive users.
+
+# Output:
+# client_id, count of exclusive users
+
+# Import packages
+import pandas as pd
+
+# Load and preview data
+#fact_events = pd.read_csv('fact_events.csv')
+df = pd.DataFrame(fact_events)
+df.head(5)
+
+# Check datatypes, nulls, rows - 0 nulls, 150 rows
+#df.info()
+#df.isna().sum()
+
+# Groupby clients then find unique users for each
+df = df.groupby('client_id')['user_id'].unique().reset_index()
+
+# Separate into desktop and mobile
+desktop = df[
+    df['client_id'] == 'desktop'
+].drop(columns='client_id')
+
+mobile = df[
+    df['client_id'] == 'mobile'
+].drop(columns='client_id')
+
+# Intersection of both
+intersection_series = desktop[desktop.isin(mobile)]
+
+Solution #1 (correct, not my solution)
+"""
+# Find users who interact with only one unique client
+exclusive_users_count = df.groupby('user_id')['client_id'].nunique()
+exclusive_users_list = exclusive_users_count[exclusive_users_count == 1].index.tolist()
+
+# Filter original DataFrame to get data for only these exclusive users
+exclusive_users_df = df[df['user_id'].isin(exclusive_users_list)]
+
+# Group by client_id and count number of unique users
+exclusive_client_counts = exclusive_users_df.groupby('client_id')['user_id'].nunique()
+
+# Convert result to DataFrame for cleaner output
+result_df = exclusive_client_counts.reset_index()
+result_df.columns = ['client_id', 'exclusive_user_count']
+
+# Result
+print("Clients with exclusive users and their corresponding count:")
+result_df
+"""
+
+Notes:
+- Find exclusive users for each client by grouping by users, not client
+  Users that are not exclusive and then exclude them.
+- .isin() filters Series or DataFrame by checking if values are present in another sequence of values.
+  Returns boolean Series or DataFrame of same size
+- Approach wasn't correct to the problem, had an idea of where to go but lacked knowledge to execute.
+
+############################
+
+Website:
+StrataScratch - ID 2054
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Netflix - Consecutive Days
+Find all the users who were active for 3 consecutive days or more.
+
+Data Dictionary:
+Table name = 'sf_events'
+account_id: varchar (str)
+record_date: date (dt)
+user_id: varchar (str)
+
+Code:
+Attempt #1 (incorrect)
+/* Question: 
+Find all users who were active for 3 consecutive days or more */
+
+/* Output:
+users active (consecutive 3 days or >) */
+
+/* Preview data */
+SELECT * FROM sf_events LIMIT 5;
+
+/* Check nulls, rows - 0 nulls, 23 rows */
+SELECT
+    SUM(CASE WHEN account_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN account_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN account_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    COUNT(*) AS total_rows
+FROM sf_events;
+
+Solution #1 
+"""
+WITH user_activity AS (
+    -- Get a unique list of active days for each user
+    SELECT
+        user_id,
+        record_date
+    FROM sf_events
+    GROUP BY
+        user_id,
+        record_date
+),
+consecutive_groups AS (
+    -- Assign a row number to each user's activity
+    -- Calculate a "grouping key" to identify conseccutive days.
+    -- For consecutive dates, difference between the date and row number will be constant
+    SELECT
+        user_id,
+        record_date,
+        ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY record_date) AS rn,
+        CAST(record_date AS date) - CAST(ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY record_date) AS integer) AS group_key
+    FROM user_activity
+)
+-- Count the number of days in each consecutive group.
+-- Filter for groups with 3 or more days then select unique user_ids
+SELECT DISTINCT
+    user_id
+FROM consecutive_groups
+GROUP BY
+    user_id,
+    group_key
+HAVING
+    COUNT(*) >= 3;
+"""
+
+Notes:
+- Never tackled a consecutive days question before so wasn't sure where to start.
+- Grouping by users and dates then assigning a row number to have multiple dates.
+  Consecutive days tackled by difference between date and row number being constant.
+  Counting number of days in each consecutive group then filtering for groups with 3 or more.
+
+############################
