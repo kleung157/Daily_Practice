@@ -1,0 +1,309 @@
+Date: 08/05/2025
+
+############################
+
+Website:
+StrataScratch - ID 2063
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Goldman Sachs - Change of Currency Exchange Rates
+You are given a list of exchange rates from various currencies to US Dollars (USD) in different months. 
+Show how the exchange rate of all the currencies changed in the first half of 2020. 
+Output the currency code and the difference between values of the exchange rate between July 1, 2020 and January 1, 2020.
+
+Data Dictionary:
+Table name = 'sf_exchange_rate'
+source_currency: character (str)
+target_currency: character (str)
+exchange_rate: numeric (int)
+date: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1 (segmented solution)
+# Question:
+# Given a list of exchange rates from various currencies to US Dollars in different months.
+# Show how the exchange rate of all the currencies changed in the first half of 2020.
+
+# Output:
+# currency code, difference between value of exchange rate between Jul 1 2020 and Jan 1, 2020
+
+# Import libraries
+#install.package(tidyverse)
+#install.package(lubridate)
+library(tidyverse)
+library(lubridate)
+
+# Load and preview data
+#sf_exchange_rate <- read_csv('sf_exchange_rate.csv')
+df <- data.frame(sf_exchange_rate)
+head(df, 5)
+
+# Check datatypes, nulls, rows - 0 nulls, 91 rows
+lapply(df, class)
+colSums(is.na(df))
+nrow(df)
+
+# Filter for value of July exchange rates and January exchange rates
+july_rates <- df %>%
+    filter(year(date) == 2020, month(date) == 7, day(date) == 1)
+    
+january_rates <- df %>%
+    filter(year(date) == 2020, month(date) == 1, day(date) == 1)
+
+# Solution
+result_df <- inner_join(july_rates, january_rates, by='source_currency') %>%       # join both months rates
+    mutate(exchange_rate_difference = (exchange_rate.x - exchange_rate.y)) %>%     # calculate difference
+    select(source_currency, exchange_rate_difference)                              # select relevant cols
+    
+# Result
+result_df
+
+Solution #2 (all in one operation with pivot_wider)
+result_df <- df %>%
+    filter(date == as.Date("2020-01-01") | date == as.Date("2020-07-01")) %>%       # Filter relevant dates
+    pivot_wider(                                                                    # Reshape data in same row 
+        id_cols = source_currency,                                                  
+        names_from = date,
+        values_from = exchange_rate,
+        names_prefix = "rate_"
+    ) %>%
+    mutate(exchange_rate_difference = `rate_2020-07-01` - `rate_2020-01-01`) %>%    # Calculate difference
+    select(source_currency, exchange_rate_difference)                               # Select relevant cols
+
+# Result
+result_df
+
+Notes:
+- To filter for specific dates ex. 2020-01-01, filter(col_date == as.Date("date_value") 
+- Can also use lubridate package library(lubridate) to extract year, month, and day
+  ex. df %>%
+      filter(year('col_date') == '2020', month('col_date') == 7, day('col_date') == 1)
+- Reshaping data in the same row rather than segmenting into multiple frames.
+  pivot_wider(
+      id_cols = "col_1",
+      names_from = "col_2",
+      values_from = "col_3",
+      names_prefix = "choosename_"
+  )
+- For special character columns like "rate_2020-07-01", use backticks `` rather than '' or ""
+
+############################
+
+Website:
+StrataScratch - ID 2026
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Apple - Bottom 2 Companies By Mobile Usage
+Write a query to identify all companies (customer_id) whose mobile usage ranks in the bottom two positions. 
+Mobile usage is the count of events where client_id = 'mobile'. 
+Companies with the same usage count should share the same rank, and all companies in the bottom two ranks should be included. 
+Return the customer_id and event count, sorted in ascending order by the number of events.
+
+Data Dictionary:
+Table name = 'fact_events'
+id: int64 (int)
+time_id: datetime64 (dt)
+user_id: object (str)
+customer_id: object (str)
+client_id: object (str)
+event_type: object (str)
+event_id: int64 (int)
+
+Code:
+# Question:
+# Identify all companies(customer_id) whose mobile usage ranks in the bottom two positions.
+# Mobile usage is the count of events where client_id = 'mobile'. 
+# Companies with the same usage count should share the same rank, 
+# and all companies in the bottom two should be included.
+
+# Output:
+# customer_id, event_count (sorted ASC)
+
+# Import packages
+import pandas as pd
+
+# Load and preview data
+#fact_events = pd.read_csv('fact_events.csv')
+df = pd.DataFrame(fact_events)
+df.head(5)
+
+# Check datatypes, nulls, rows - 0 nulls, 150 rows
+#df.info()
+#df.isna().sum()
+
+# Filter for 'mobile' client_id usage
+filtered_df = df[
+    (df['client_id'] == 'mobile')
+]
+
+# Find count of events for mobile usage
+result_df = filtered_df.groupby('customer_id')['client_id'].count().reset_index(name='event_count')
+
+# Rank each customer_id by event_count, include ties
+result_df['rank'] = result_df['event_count'].rank(method='dense', ascending=False)
+
+# Get unique rank values and sort in descending order to pick bottom two
+unique_ranks_desc = sorted(result_df['rank'].unique(), reverse=True)
+
+# Select the first two rank values
+bottom_two_rank_values = unique_ranks_desc[:2]
+
+# Filter for companies whose ranks are in bottom two values
+result_df = result_df[
+    result_df['rank'].isin(bottom_two_rank_values)
+]
+
+# Select relevant columns and sort ascending order by event count
+result_df = result_df[['customer_id', 'event_count']].sort_values(by='event_count', ascending=True)
+
+# Result
+print("Companies whose mobile usage ranks in the bottom two positions")
+result_df
+
+Notes:
+- To pick bottom two, or top two, can get unique rank values and sort in desc order to pick the two
+  ex. unique_ranks_desc = sorted(df['rank'].unique(), reverse=True)     # ex. [1,2,3,4] = [4,3,2,1]
+  ex. bottom_two_rank_values = unique_ranks_desc[:2]                    # ex. [4,3]
+  ex. df = df[                                                          # Filters for ranks in bot two
+           (df['rank'].isin(bottom_two_rank_values)) 
+           ]
+
+############################
+
+Website:
+StrataScratch - ID 2059
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Google - Player with Longest Streak
+You are given a table of tennis players and their matches that they could either win (W) or lose (L). 
+Find the longest streak of wins. A streak is a set of consecutive won matches of one player. 
+The streak ends once a player loses their next match. 
+Output the ID of the player or players and the length of the streak.
+
+Data Dictionary:
+Table name = 'players_results'
+match_date: date (dt)
+match_result: text (str)
+player_id: bigint (int)
+
+Code:
+Attempt #1 (somehow have to use CASE WHEN, LAG, and ROW_NUMBER)
+/* Question:
+Given a table of tennis players and their matches that they could either win (W) or lose (L).
+Find the longest streak of wins.
+A streak is a set of consecutive matches of one player.
+The streak ends once a player loses their next match. */
+
+/* Output:
+ID of player or players, and length of the streak */
+
+/* Preview data */
+SELECT * FROM players_results LIMIT 10;
+
+/* Check nulls, rows - 0 nulls,  49 rows */
+SELECT 
+    SUM(CASE WHEN match_date IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN match_date IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN match_date IS NULL THEN 1 ELSE 0 END) AS col3,
+    COUNT(*) as total_rows
+FROM players_results;
+
+SELECT
+    player_id,
+    match_date,
+    match_result,
+    CASE WHEN match_result = 'W' THEN 1 ELSE 0 END AS win_count
+FROM players_results
+ORDER BY player_id, match_date;
+
+SELECT
+    player_id,
+    match_date,
+    ROW_NUMBER() OVER (PARTITION BY player_id ORDER BY match_date) as rn,
+    CAST(match_date AS date) - CAST(ROW_NUMBER() OVER (PARTITION BY player_id ORDER BY match_date) AS integer) AS group_key
+FROM players_results;
+
+Solution #1 (not my solution)
+"""
+WITH PlayerStreaks AS (
+    -- Identify start of each winning streak for each player.
+    -- Streak starts if current match is a 'W' and previous match was an 'L', or if player first match
+    SELECT
+        player_id,
+        match_date,
+        match_result,
+        CASE
+            WHEN match_result = 'W' AND LAG(match_result, 1, 'L') OVER (PARTITION BY player_id ORDER BY match_date) = 'L'
+            THEN 1 
+            ELSE 0 
+        END AS is_new_streak_start
+    FROM players_results
+),
+StreakGroups AS (
+    -- Assign unique group ID to each consecutive winning streak.
+    -- Running sum of 'is_new_streak_start'
+    SELECT
+        player_id,
+        match_date,
+        match_result,
+        SUM(is_new_streak_start) OVER (PARTITION BY player_id ORDER BY match_date) AS streak_group
+    FROM PlayerStreaks
+    WHERE match_result = 'W'    -- Only consider 'W' matches for streak grouping
+),
+StreakLengths AS (
+    -- Calculate length of each winning streak.
+    -- Group by player_id and assigned streak_group then count the matches.
+    SELECT
+        player_id,
+        streak_group,
+        COUNT(*) AS current_streak_length
+    FROM StreakGroups
+    GROUP BY
+        player_id,
+        streak_group
+),
+MaxStreak AS (
+    -- Find maximum streak length across all players.
+    SELECT
+        MAX(current_streak_length) AS max_streak_length
+    FROM StreakLengths
+)
+-- Select players and their streak lengths that match the maximum streak length found.
+SELECT
+    sl.player_id,
+    sl.current_streak_length AS longest_streak
+FROM StreakLengths AS sl, MaxStreak AS ms
+WHERE sl.current_streak_length = ms.max_streak_length
+ORDER BY sl.player_id;
+"""
+
+Notes:
+- Had an idea of constructing PlayerStreaks initially but in terms of streakgroups, streaklengths
+  not sure if I would have even thought of those when building the query.
+- Am familiar with the SQL methods used in the solution, however have to build more exposure/experience 
+- LAG(match_result, 1, 'L') OVER (PARTITION BY player_id ORDER BY match_date)
+  Looks at match_result of previous match for same player, ordered by match_date,
+  if there's no previous match then it defaults to 'L'
+- SUM(is_new_streak_start) OVER (PARTITION BY player_id ORDER BY match_date)
+  each time is_new_streak_start is 1, running sum increments to create a new group id for the streak,
+  filtered for WHERE match_result = 'W' to group consecutive wins only.
+  
+############################
