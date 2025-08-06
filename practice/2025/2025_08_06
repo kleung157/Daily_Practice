@@ -1,0 +1,236 @@
+Date: 08/06/2025
+
+############################
+
+Website:
+StrataScratch - ID 2067
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Meta - Low Fat and Recyclable
+What percentage of all products are both low fat and recyclable?
+
+Data Dictionary:
+Table name = 'facebook_products'
+product_id: numeric (int)
+product_category: numeric (int)
+product_class: character (str)
+brand_name: character (str)
+is_low_fat: character (str)
+is_recyclable: character (str)
+product_family: character (str)
+
+Code:
+Solution #1
+# Question:
+# What percentage of all products are both low fat and recyclable?
+
+# Output:
+# Percentage of products low fat and recyclable
+
+# Import libraries
+#install.package(tidyverse)
+library(tidyverse)
+
+# Load and preview data
+#facebook_products <- read_csv('facebook_products.csv')
+df <- data.frame(facebook_products)
+head(df, 5)
+
+# Check datatypes, nulls, rows - 0 nulls - 12 rows
+lapply(df, class)
+colSums(is.na(df))
+nrow(df)
+
+# Count number of rows that are low fat and recycleable
+low_fat_recyclable <- df %>%
+    filter(is_low_fat == 'Y', is_recyclable == 'Y') %>%
+    summarise(count = n())
+
+# Count total number of rows for all products
+all_products <- df %>%
+    summarise(count = n())
+
+# Calculate percentage of low_fat_recycleable / all_products
+percentage <- (low_fat_recyclable$count / all_products$count * 100)
+
+# Result
+result_df <- data.frame(percentage_low_fat_recycleable = percentage)
+
+Notes:
+- When calculating percentages, select columns of DataFrames using $
+  ex. df$col / df2$col * 100
+- Rename columns of single number by converting to DataFrame
+  ex. result_df <- data.frame('new_col_name' = df)
+- rename() function only works on DataFrames
+
+############################
+
+Website:
+StrataScratch - ID 2027
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Linux - Company With Most Desktop Users
+Write a query that returns the company (customer_id column) with the highest number of users who have only used desktop. 
+Users who may have used mobile at any point are ignored, but companies may still have mobile users.
+
+Data Dictionary:
+Table name = 'fact_events'
+id: int64 (int)
+time_id: datetime64 (int)
+user_id: object (str)
+customer_id: object (str)
+client_id: object (str)
+event_type: object (str)
+event_id: int64 (int)
+
+Code:
+Solution #1
+# Question: 
+# Return the company (customer_id) with the highest number of users who only used desktop.
+# Users who may have used mobile at any point are ignored, but companies may still have mobile users.
+
+# Output:
+# customer_id
+
+# Import libraries
+import pandas as pd
+
+# Load and preview data
+#fact_events = pd.read_csv('fact_events.csv')
+df = pd.DataFrame(fact_events)
+df.head(5)
+
+# Check datatypes, nulls, rows - 0 - 150 rows
+#df.info()
+#df.isna().sum()
+
+# Find unique clients used by each user per company
+unique_client_users = df.groupby(['customer_id', 'user_id'])['client_id'].unique().reset_index()
+
+# Filter for only 'desktop' users, no 'mobile' users
+desktop_users = unique_client_users[
+    unique_client_users['client_id'].apply(lambda x: 'desktop' in x and 'mobile' not in x)
+]
+
+# Count number of 'desktop' users per company (customer_id)
+customer_user_count = desktop_users.groupby('customer_id')['user_id'].count().reset_index(name='user_count')
+
+# Locate highest number of users, convert to DataFrame and transpose column back to row 
+top_company = customer_user_count.loc[customer_user_count['user_count'].idxmax()].to_frame().T
+
+# Select for only company (customer_id) column
+result_df = top_company[['customer_id']]
+
+# Result
+print("Company (customer_id) with the highest number of users who only used desktop.")
+result_df = top_company[['customer_id']]
+
+Notes:
+- When filtering for boolean values, normally use df[ df['col'] == 'value' ] but for too many booleans,
+  use apply() to sort based on if the string exists in each list. String can be in list or not in list.
+  ex. df[
+      df['client_id'].apply(lambda x: 'desktop' in x and 'mobile' not in x)
+      ]
+- To find highest or lowest values from an index, use df.loc and idxmax() / idxmin().
+  Convert to_frame() and tranpose to be have a row rather than column of values.
+  ex. highest_df = df.loc[ df['col'].idxmax() ].to_frame().T
+
+############################
+
+Website:
+StrataScratch - ID 2073
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Google - Popular Posts
+The column 'perc_viewed' in the table 'post_views' denotes the percentage of the session duration time the user spent viewing a post. 
+Using it, calculate the total time that each post was viewed by users. 
+Output post ID and the total viewing time in seconds, but only for posts with a total viewing time of over 5 seconds.
+
+Data Dictionary:
+Table name = 'user_sessions'
+platform: text (str)
+session_endtime: timestamp (dt)
+session_id: bigint (int)
+session_starttime: timestamp (dt)
+user_id: text (str)
+Table name = 'post_views'
+perc_viewed: double precision (flt)
+post_id: bigint (int)
+session_id: bigint (int)
+
+Code:
+Solution #1
+/* Question: 
+The column 'perc_viewed' in the table 'post_views' denotes the percentage of the session duration time the
+user spent viewing a post.
+Using it, calculate the total time that each post was viewed by users. */
+
+/* Output:
+post_id, total viewing time in seconds (only for posts with total viewing time of over 5 seconds) */
+
+/* Preview data */
+SELECT * FROM user_sessions LIMIT 5;
+SELECT * FROM post_views LIMIT 5;
+
+/* Check nulls, rows - user_sessions(0 nulls, 11 rows) - post_views(0 nulls, 14 rows) */
+SELECT
+    SUM(CASE WHEN platform IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN session_endtime IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN session_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN session_starttime IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    COUNT(*) AS total_rows
+FROM user_sessions;
+
+SELECT 
+    SUM(CASE WHEN perc_viewed IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN post_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN session_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    COUNT(*) AS total_rows
+FROM post_views;
+
+WITH PostsViewingTime AS (
+    -- Join user_sessions and post_views tables
+    -- Calculate session_duration using the session end and start times
+    -- Calculate total_viewing time using perc_viwed and session_duration
+    SELECT 
+        pv.post_id,
+        pv.perc_viewed,
+        (us.session_endtime - us.session_starttime) AS session_duration,
+        EXTRACT(EPOCH FROM 
+            (pv.perc_viewed / 100) * (us.session_endtime - us.session_starttime)) AS viewing_time
+    FROM user_sessions AS us
+    JOIN post_views AS pv
+        ON us.session_id = pv.session_id
+)
+SELECT
+    post_id,
+    SUM(viewing_time) AS total_viewing_time
+FROM PostsViewingTime
+GROUP BY post_id
+HAVING SUM(viewing_time) > 5;
+
+Notes:
+- When subtracting between timestamps, an interval datatype is the result, use EXTRACT(EPOCH)
+- Initially used WHERE > 5, that didn't sound right to me initially and HAVING > 5 made more sense.
+  Remember to GROUP BY if possible and use SUM() aggregations too.
+  
+############################
