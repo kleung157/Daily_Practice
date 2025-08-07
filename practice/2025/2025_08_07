@@ -1,0 +1,330 @@
+Date: 08/07/2025
+
+############################
+
+Website:
+StrataScratch - ID 2069
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Meta - Sales with Valid Promotion
+The marketing manager wants you to evaluate how well the previously ran advertising campaigns are working.
+Particularly, they are interested in the promotion IDs from the online_promotions table.
+Find the percentage of orders with promotion IDs from the online_promotions table applied.
+
+Data Dictionary:
+Table name = 'online_promotions'
+promotion_id: numeric (int)
+Table name = 'online_orders'
+product_id: numeric (int)
+promotion_id: numeric (int)
+cost_in_dollars: numeric (int)
+customer_id: numeric (int)
+units_sold: numeric (int)
+date_sold: POSIXct, POSIXt
+
+Code:
+# Question:
+# How well the previously ran advertising campaigns are working from the promotion_ids
+# from the online_promotions table.
+# Find the percentage of orders with promotion IDs from the online_promotions table applied.
+
+# Output:
+# percentage of orders with promotion IDs
+
+# Import libraries
+#install.package(tidyverse)
+library(tidyverse)
+
+# Load and preview data
+#online_promotions <- read_csv('online_promotions.csv')
+#online_orders <- read_csv('online_orders.csv')
+df <- data.frame(online_promotions)
+df2 <- data.frame(online_orders)
+head(df, 5)
+head(df2, 5)
+
+# Check datatypes, nulls, rows - df(0 nulls, 2 rows) - df2(0 nulls, 33 rows)
+lapply(df, class)
+lapply(df2, class)
+colSums(is.na(df))
+colSums(is.na(df2))
+nrow(df)
+nrow(df2)
+
+# Join promotions and orders tables
+orders_with_online_promotions = inner_join(df, df2, by='promotion_id')
+
+# Find number of rows for orders with online promotions and for original orders table
+# Calculate percentage, multiply by 100 and round.
+percentage <- round((nrow(orders_with_online_promotions) / nrow(df2)) * 100, digits = 0)
+
+# Convert to DataFrame and rename column
+result_df <- data.frame(percentage_of_orders_with_promotions = percentage)
+
+# Result
+result_df
+
+Notes:
+- POSIXct, POSIXt means Portable Operating System Interface, ct = Calendar Time, lt/t = time or local time
+- nrow() similar to len() from Python to count the number of rows 
+- round() function defaults to 0 and rounds to nearest whole nubmer unless specifying digits
+  ex. round(100.50, digits = 1) = 100.5
+- %in% function similar to WHERE IN ('value', 'value') from SQL
+  ex.  promotional_promos <- unique(online_promotions$promotion_id)
+       promotional_orders <- sum(online_orders$promotion_id %in% promotional_promos)
+- %in% function more memory efficient than inner_join() 
+
+############################
+
+Website:
+StrataScratch - ID 2032
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Asana - Signups By Billing Cycle
+Write a query that returns a table containing the number of signups for each weekday and for each billing cycle frequency. 
+The day of the week standard we expect is from Sunday as 0 to Saturday as 6.
+Output the weekday number (e.g., 1, 2, 3) as rows in your table and the billing cycle frequency (e.g., annual, monthly, quarterly) as columns. 
+If there are NULLs in the output replace them with zeroes.
+
+Data Dictionary:
+Table name = 'signups'
+signup_id: int64 (int)
+signup_start_date: datetime64 (dt)
+signup_stop_date: datetime64 (dt)
+plan_id: int64 (int)
+location: object (str)
+Table name = 'plans'
+id: int64 (int)
+billing_cycle: object (str)
+avg_revenue: float64 (flt)
+currency: object (str)
+
+Code:
+# Question:
+# Return a table containing the number of signups for each weekday and for each billing cycle frequency.
+# The day of the week standard we expect is from Sunday as 0 to Saturday as 6.
+# If there are NULLS in the output replace them with zeroes.
+
+# Output:
+# weekday number (ex.1,2,3) as rows, billing cycle frequency(ex.annual,monthly,quarterly) as columns
+
+# Import libraries
+import pandas as pd
+
+# Load and preview data
+#signups = pd.read_csv('signups.csv')
+#plans = pd.read_csv('plans.csv')
+df = pd.DataFrame(signups)
+df2 = pd.DataFrame(plans)
+df.head(5)
+df2.head(5)
+
+# Check datatypes, nulls, rows - signups(0 nulls, 50 rows) - plans(0 nulls, 6 rows)
+#df.info()
+#df.isna().sum()
+#df2.info()
+#df2.isna().sum()
+
+# Merge signups and plans DataFrames
+merged_df = pd.merge(df, df2, left_on='plan_id', right_on='id', how='inner')
+
+# Create day of the week standard 0-6 for signups
+merged_df['day_of_week'] = merged_df['signup_start_date'].dt.strftime('%w').astype(int)
+
+# Weekday number as rows, billing cycle frequency as columns
+result_df = (
+    merged_df.groupby('day_of_week')['billing_cycle']
+    .value_counts()               # Count annual, monthly, quarterly values
+    .unstack(fill_value=0)        # Fill any null values with 0
+    .reset_index()                # Reset index to display day of week
+)
+
+# Create a new index for day of week 0-6
+all_weekdays = pd.Series(range(7), name='day_of_week')
+
+# Reindex the working DataFrame with all weekday numbers, fill any nulls with 0
+result_df = result_df.reindex(all_weekdays, fill_value=0)
+
+# Reset the index to display the index in the DataFrame
+result_df = result_df.reset_index()
+
+# Sort day of week values 0-6 ascending
+result_df = result_df.sort_values(by='day_of_week', ascending=True)
+
+# Rearrange columns based on length of time
+result_df = result_df[['day_of_week', 'quarterly', 'annual', 'monthly']]
+
+# Result
+result_df
+
+Notes:
+- df['col_date'].dt.weekday makes Monday = 0 and Sunday = 6
+- df['col_date'].dt.strftime('%w').astype(int) makes Sunday = 0 and Saturday = 6
+  returns as a string so have to convert to integer using .astype(int)
+- Multiple ways to add new rows and fill in with 0
+  df.loc[] method
+  ex. df.loc[0] = {'col1': 0, 'col2': 0, 'col3': 0, 'col4': 0}     # speciy col names for dictionary
+      df.loc[0] = [0, 0, 0, 0]                                     # if column names are defined, using a list
+  Create new series with a range, reindex with fill values, and then reset index
+  ex. df = df.groupby('day_of_week')['billing_cycle].value_counts().unstack(fill_value=0)
+      all_weekdays = pd.Series(range(7), name='day_of_week')       # create range of numbers 0-6
+      df = df.reindex(all_weekdays, fill_value=0)                  # reindex DataFrame, fill nulls with 0
+      df = df.reset_index()                                        # reset index to display 
+      df = df.sort_values(by='day_of_week', ascending=True)
+- value_counts() can count numerous categorical values in a column and group them
+  ex. df.groupby('col')['col'].value_counts()
+- unstack() converts long format categorical values from rows into wide format categorical values to columns 
+  and fills nulls values with 0's
+  ex. df.groupby('col')['col'].value_counts().unstack(fill_value=0)
+
+############################
+
+Website:
+StrataScratch - ID 2076
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Uber - Trips in Consecutive Months
+Find the IDs of the drivers who completed at least one trip a month for at least two months in a row.
+
+Data Dictionary:
+Table name = 'uber_trips'
+driver_id: bigint (int)
+fare: bigint (int)
+is_completed: boolean (bool)
+trip_date: date (dt)
+trip_id: bigint (int)
+
+Code:
+Attempt #1 (Lag method with months does not account for year-month differences)
+/* Question:
+Find the IDs of the drivers who completed at least one trip a month for at least two months in a row */
+
+/* Output:
+driver_id */
+
+/* Preview data */
+SELECT * FROM uber_trips LIMIT 5;
+
+/* Check nulls, rows - 0 nulls, 14 rows */
+SELECT 
+    SUM(CASE WHEN driver_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN fare IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN is_completed IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN trip_date IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN trip_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    COUNT(*) AS total_rows
+FROM uber_trips;
+
+/* Iteration */
+WITH OneTripCompletedDrivers AS (
+    -- Drivers who completed at least one trip a month
+    SELECT
+        EXTRACT(MONTH FROM trip_date) AS month,
+        driver_id,
+        SUM(CASE WHEN is_completed = 'TRUE' THEN 1 ELSE 0 END) AS trips_completed 
+    FROM uber_trips
+    GROUP BY
+        EXTRACT(MONTH FROM trip_date),
+        driver_id
+    HAVING SUM(CASE WHEN is_completed = 'TRUE' THEN 1 ELSE 0 END) >= 1
+),
+ConsecutiveMonths AS (
+    -- Calculate consecutive months driving for each driver
+    -- Find previous_month then determine months difference
+    -- Categorize whether month driven was consecutive for each driver
+    SELECT 
+        month,
+        driver_id,
+        LAG(month, 1, 0) OVER(PARTITION BY driver_id ORDER BY month) as previous_month,
+        (month - LAG(month, 1, 0) OVER(PARTITION BY driver_id ORDER BY month)) AS months_difference,
+        CASE
+            WHEN (month - LAG(month, 1, 0) OVER(PARTITION BY driver_id ORDER BY month)) = 1
+            THEN 'Consecutive'
+            ELSE 'Not Consecutive'
+        END AS is_consecutive
+    FROM OneTripCompletedDrivers
+)
+-- Tally up 'Consecutive' months for each driver
+-- Select for drivers that have at least two months in a row
+SELECT
+    driver_id
+FROM ConsecutiveMonths
+GROUP BY driver_id
+HAVING SUM(CASE WHEN is_consecutive = 'Consecutive' THEN 1 ELSE 0 END) >= 2;
+
+Solution #1
+WITH OneTripCompletedDrivers AS (
+    -- Drivers who completed at least one trip a month.
+    -- Normalize all dates to the first of their month.
+    SELECT
+        DATE_TRUNC('month', trip_date) AS month_start_date,
+        driver_id,
+        SUM(CASE WHEN is_completed = 'TRUE' THEN 1 ELSE 0 END) AS trips_completed 
+    FROM uber_trips
+    GROUP BY
+        DATE_TRUNC('month', trip_date),
+        driver_id
+    HAVING SUM(CASE WHEN is_completed = 'TRUE' THEN 1 ELSE 0 END) >= 1
+),
+ConsecutiveMonths AS (
+    -- Identify consecutive months using "gaps and islands" technique.
+    -- month_group constant for consecutive months for a given driver.
+    -- Subtract growing interval based on row number from month_start_date.
+    -- Creates unique identifier  for each consecutive streak.
+    SELECT 
+        month_start_date,
+        driver_id,
+        ROW_NUMBER() OVER(PARTITION BY driver_id ORDER BY month_start_date) as rn,
+        (month_start_date - (ROW_NUMBER() OVER (PARTITION BY driver_id ORDER BY month_start_date) * INTERVAL '1 month')) AS month_group
+    FROM OneTripCompletedDrivers
+)
+-- Count the number of months in each consecutive streak
+-- Filter for streaks of at least two months
+SELECT DISTINCT
+    driver_id
+FROM ConsecutiveMonths
+GROUP BY
+    driver_id,
+    month_group
+HAVING COUNT(*) >= 2;
+
+Notes:
+- DATE_TRUNC() can be used to normalize dates to the first of their month (ex.2020-12-01)
+  ex. DATE_TRUNC('month', 'col_date') 
+- Gaps and islands technique of using ROW_NUMBER(). more reliable for consecutive than LAG()
+  ROW_NUMBER() OVER(PARTITION BY 'col' ORDER BY 'col_date') as rn
+  (col_date' - (ROW_NUMBER() OVER (PARTITION BY 'col' ORDER BY 'col_date') * INTERVAL '1 month') ) AS month_group
+  ex. SELECT 
+      month_start_date,
+      driver_id,
+      ROW_NUMBER() OVER(PARTITION BY driver_id ORDER BY month_start_date) as rn,
+      (month_start_date - (ROW_NUMBER() OVER (PARTITION BY driver_id ORDER BY month_start_date) * INTERVAL '1 month')) AS month_group
+      FROM OneTripCompletedDrivers;
+- Use CTE to wrap the gaps and islands table then group by and select for relevant consecutive streaks
+  ex. SELECT DISTINCT
+          driver_id
+      FROM ConsecutiveMonths
+      GROUP BY
+          driver_id,
+          month_group
+      HAVING COUNT(*) >= 2;
+      
+############################
