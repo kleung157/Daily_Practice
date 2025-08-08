@@ -1,0 +1,283 @@
+Date: 08/08/2025
+
+############################
+
+Website:
+StrataScratch - ID 2072
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Google - Active Users Per Platform
+For each platform (e.g. Windows, iPhone, iPad etc.), calculate the number of users. 
+Count the number of distinct users per platform, regardless of whether they used other platforms. 
+Output the name of the platform with the corresponding number of users.
+
+Data Dictionary:
+Table name = 'user_sessions'
+session_id: numeric (int)
+user_id: character (str)
+session_starttime: POSIXct, POSIXt (dt)
+session_endtime: POSIXct, POSIXt (dt)
+platform: character (str)
+
+Code:
+# Question:
+# For each platform (ex. Windows, Iphone, Ipad) calculate the users.
+# Count the number of distinct users per platform, regardless of whether they used other platforms.
+
+# Output:
+# name of platform, corresponding number of users
+
+# Import libraries
+#install.package(tidyverse)
+library(tidyverse)
+
+# Load and preview data
+#user_sessions <- read_csv('user_sessions.csv')
+df <- data.frame(user_sessions)
+head(df, 5)
+
+# Check datatypes, nulls, rows - 0 nulls - 11 rows
+lapply(df, class)
+colSums(is.na(df))
+nrow(df)
+
+# Iteration
+result_df <- df %>%
+    group_by(platform) %>%                                      # Group by platforms
+    summarise(distinct_user_count = n_distinct(user_id)) %>%    # Count distinct users
+    ungroup() %>%                                               # Preserve DataFrame for later use
+    arrange(platform)                                           # Arrange ASC order
+    
+# Result
+result_df
+
+Notes:
+- POSIX = Portable Operating System Interface, POSIXct = calendar time, POSIXlt = local time
+
+############################
+
+Website:
+StrataScratch - Id 2034
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+DoorDash - Avg Earnings per Weekday and Hour
+You have been asked to calculate the average earnings per order segmented by a combination of weekday (all 7 days) and hour using the column customer_placed_order_datetime.
+You have also been told that the column order_total represents the gross order total for each order. 
+Therefore, you'll need to calculate the net order total.
+The gross order total is the total of the order before adding the tip and deducting the discount and refund.
+Note: In your output, the day of the week should be represented in text format (i.e., Monday). 
+Also, round earnings to 2 decimals
+
+Data Dictionary:
+Table name = 'doordash_delivery'
+customer_placed_order_datetime: datetime64 (dt)
+placed_order_with_restaurant_datetime: datetime64 (dt)
+driver_at_restaurant_datetime: datetime64 (dt)
+delivered_to_consumer_datetime: datetime64 (dt)
+driver_id: int64 (int)
+restaurant_id: int64 (int)
+consumer_id: int64 (int)
+is_new: bool (bool)
+delivery_region: object (str)
+is_asap ; bool (bool)
+order_total: float64 (flt)
+discount_amount: int64 (int)
+tip_amount: float64 (flt)
+refunded_amount: float64 (flt)
+
+Code:
+Solution #1
+# Question:
+# Calculate the average earnings per order segmented by a combination of weekdays (all 7 days)
+# and hour using the column customer_placed_order_datetime.
+# The column order_total represents the gross order total for each order.
+# Therefore you'll need to calculate the net order total.
+# The gross order total is the total of the order before adding the tip, deducting the discount, and refund.
+
+# Output:
+# day of week represented in text format (ex.Monday), hour, avg earnings (round earnings to 2 decimals)
+
+# Import libraries
+import pandas as pd
+
+# Load and preview data
+#doordash_delivery = pd.read_csv('doordash_delivery.csv')
+df = pd.DataFrame(doordash_delivery)
+df.head(5)
+
+# Check datatypes, nulls, rows 
+# 96 total rows, 
+# placed_order_with_restaurant_datetime - 1 null, 
+# driver_at_restaurant_datetime - 23 null, delivery_region - 2 null
+#df.info()
+#df.isna().sum()
+
+# Create weekday (text), hour, and day of week (numerical) columns
+df['weekday'] = df['customer_placed_order_datetime'].dt.strftime('%A')
+df['hour'] = df['customer_placed_order_datetime'].dt.hour
+df['day_of_week'] = df['customer_placed_order_datetime'].dt.strftime('%w')
+
+# Calculate gross order total (order_total + tip_amount - discount_amount - refunded_amount)
+df['net_order_total'] = (
+    (df['order_total'] + df['tip_amount'] - df['discount_amount'] - df['refunded_amount'])
+)
+
+# Calculate average earnings per weekday and hour
+result_df = (
+    df
+    .groupby(['day_of_week', 'weekday', 'hour'])['net_order_total']
+    .mean()                                                     # Calculate average earnings
+    .reset_index(name='avg_earnings_per_order')                 # Display index, rename averaged column
+    .sort_values(by=['day_of_week', 'hour'], ascending=True)    # Sort by numerical weekday and hour ASC
+)
+
+# Round to two decimal places, include trailing zeros for 2 decimal places 
+result_df['avg_earnings_per_order'] = (
+    result_df['avg_earnings_per_order'].round(2).apply(lambda x: f'{x:.2f}')  
+)
+
+# Select relevant columns
+result_df = result_df[['weekday', 'hour', 'avg_earnings_per_order']]
+
+# Result
+result_df
+
+Notes:
+- Converts datetime column to day of week in text format (ex. Monday)
+  df['col_date'].dt.strftime('%A')
+- Converts datetime column to day of week in numerical format (Sunday = 0, Saturday = 6)
+  df['col_date'].dt.strftime('%w')
+- To preserve trailing zeros, use round() and and f-string with apply() or map()
+  ex. df = pd.DataFrame({'value': [28.612, 28.6, 28.5]})
+      df['formatted_value'] = df['value'].round(2).apply(lambda x: f'{x:.2f}')
+      value    formatted_value
+      28.612   28.61
+      28.6     28.60
+      28.5     28.50
+      
+############################
+
+Website:
+StrataScratch - ID 2078
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+LinkedIn - From Microsoft to Google
+Consider all LinkedIn users who, at some point, worked at Microsoft. 
+For how many of them was Google their next employer right after Microsoft (no employers in between)?
+
+Data Dictionary:
+Table name = 'linkedin_users'
+employer: text (str)
+end_date: date (dt)
+position: text (str)
+start_date: date (dt)
+user_id: bigint (int)
+
+Code:
+Attempt #1
+(assumed that user's first job was Microsoft, but it should be at any point in time, used row_number)
+/* Question: 
+Consider all LinkedIn users who at some point worked at Microsoft.
+For how many of them was Google their next employer right after Microsoft (no employer in between)? */
+
+/* Output:
+number of users */
+
+/* Preview data */
+SELECT * FROM linkedin_users LIMIT 5;
+
+/* Check nulls, rows - end_date(5 nulls) - 11 rows */
+SELECT 
+    SUM(CASE WHEN employer IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN end_date IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN position IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN start_date IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    COUNT(*) as total_rows
+FROM linkedin_users;
+
+/* Iteration */
+WITH UsersRowNumber AS (
+    -- Order start dates by row numbers
+    SELECT
+        user_id,
+        employer,
+        start_date,
+        end_date,
+        ROW_NUMBER() OVER(PARTITION BY user_id ORDER BY start_date) AS row_number
+    FROM linkedin_users
+),
+FirstEmployerMicrosoft AS (
+    -- Find users where their first row number indicates that they started at Microsoft
+    SELECT 
+        user_id
+    FROM UsersRowNumber
+    WHERE row_number = 1
+        AND employer = 'Microsoft'
+),
+NextEmployerGoogle AS (
+    -- Find users where their second row number indicates that their next employer was Google
+    SELECT 
+    user_id
+    FROM UsersRowNumber
+    WHERE row_number = 2
+        AND employer = 'Google'
+)
+-- Use inner join to find match between users with first job as Microsoft then next job Google
+-- Count number of users 
+SELECT 
+    COUNT(*) AS users_next_employer_google
+FROM FirstEmployerMicrosoft AS fem
+JOIN NextEmployerGoogle AS neg
+    ON fem.user_id = neg.user_id;
+
+Solution #1 (not my answer, uses LEAD() )
+"""
+WITH user_job_history AS (
+    -- Assign each user's jobs a rank based on start date, and get the next employer's name
+    -- Use LEAD() to get the employer for the job immediately following the current one
+    SELECT
+        user_id,
+        employer,
+        LEAD(employer) OVER (PARTITION BY user_id ORDER BY start_date) AS next_employer
+    FROM linkedin_users
+)
+-- Count the distinct users who went from Microsoft to Google
+SELECT
+    COUNT(DISTINCT user_id) AS user_next_employer_google
+FROM user_job_history
+WHERE employer = 'Microsoft' 
+    AND next_employer = 'Google';
+"""
+
+Notes:
+- Use LEAD('col') OVER (PARTITION BY 'col' ORDER BY 'col_date') to find next row 
+  ex. LEAD(employer) OVER (PARTITION BY user_id ORDER BY start_date) AS next_employer
+      user_id  employer  next_employer
+      1        Microsoft Google
+      1        Google    
+      2        Google    Microsoft
+      2        Microsoft
+- LAG() can find the previous row
+- Misunderstood question for users to have their first job as Microsoft then second job as Google.
+  Question states at some point (any point) that they worked at Microsoft then transitioned to Google.
+  
+############################
