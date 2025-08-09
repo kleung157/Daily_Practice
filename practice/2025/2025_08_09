@@ -1,0 +1,348 @@
+Date: 08/09/2025
+
+############################
+
+Website:
+StrataScratch - ID 2080
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+Meta - Mobile and Web Logins
+Count the number of unique users per day who logged in from both a mobile device and web. 
+Output the date and the corresponding number of users.
+
+Data Dictionary:
+Table name = 'mobile_logs'
+user_id: character (str)
+log_date: POSIXct, POSIXt
+Table name = 'web_logs'
+user_id: character (str)
+log_date: POSIXct, POSIXt
+
+Code:
+Attempt #1 (missing conversion from datetime to date only)
+# Question:
+# Count the number of unique users per day who logged in from both a mobile device and web.
+
+# Output:
+# date, corresponding unique users
+
+# Import libraries
+#install.package(tidyverse)
+library(tidyverse)
+
+# Load and preview data
+#mobile_logs <- read_csv('mobile_logs.csv')
+#web_logs <- read_csv('web_logs.csv')
+df <- data.frame(mobile_logs)
+df2 <- data.frame(web_logs)
+head(df, 5)
+head(df2, 5)
+
+# Check datatypes, nulls, rows - mobile(0), web(0) nulls - mobile(19), web(17) rows
+lapply(df, class)
+lapply(df2, class)
+colSums(is.na(df))
+colSums(is.na(df2))
+nrow(df)
+nrow(df2)
+
+# Join user and date values between mobile and web DataFrames to find users who used both login types
+result_df <- inner_join(df, df2, by= c("user_id" = "user_id", "log_date" = "log_date")) %>%
+    group_by(log_date) %>%
+    summarise(unique_users_logged_mobile_and_web = n_distinct(user_id)) %>%    # Count unique users
+    ungroup() %>%                                                              # Preserve DataFrame for later
+    arrange(log_date)                                                          # Arrange by date ASC
+
+# Result
+result_df
+
+Solution # 1 (converting log date to date only format and finding distinct user logins per day)
+"""
+# Prepare DataFrames by converting log_date to a date-only format and find distinct user logins per day
+df_clean <- df %>%
+    mutate(log_date = date(log_date)) %>%
+    distinct(user_id, log_date)
+df2_clean <- df2 %>%
+    mutate(log_date = date(log_date)) %>%
+    distinct(user_id, log_date)
+
+# Join user and date values between mobile and web DataFrames to find users who used both login types
+result_df <- inner_join(df_clean, df2_clean, by= c("user_id" = "user_id", "log_date" = "log_date")) %>%
+    group_by(log_date) %>%
+    summarise(unique_users_logged_mobile_and_web = n_distinct(user_id)) %>%    # Count unique users
+    ungroup() %>%                                                              # Preserve DataFrame for later
+    arrange(log_date)                                                          # Arrange by date ASC
+
+# Result
+result_df
+"""
+
+Notes:
+- To join multiple columns with different names from two different DataFrames
+  ex. inner_join( df, df2, by= c("df1_col_id" = "df2_col_id", "df1_date" = "df2_date) ) 
+- Use lubridate package to extract date from POSIXct, POSIXT timestamp datetime column
+  ex. library(lubridate)
+      df %>%
+      mutate('new_col_name' = date('date_col'))
+- Use distinct() to find distinct combination of column values
+  ex. df %>%
+      distinct('col_id', 'col_date')
+  
+
+############################
+
+Website:
+StrataScratch - ID 2035
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+DoorDash - Avg Order Cost During Rush Hours
+The company you work for has asked you to look into the average order value per hour during rush hours in the San Jose area. 
+Rush hour is from 15H - 17H inclusive.
+You have also been told that the column order_total represents the gross order total for each order. Therefore, you'll need to calculate the net order total.
+The gross order total is the total of the order before adding the tip and deducting the discount and refund.
+Use the column customer_placed_order_datetime for your calculations.
+
+Data Dictionary:
+Table name = 'delivery_details'
+customer_placed_order_datetime: datetime64 (dt)
+placed_order_with_restaurant_datetime: datetime64 (dt)
+driver_at_restaurant_datetime: datetime64 (dt)
+delivered_to_consumer_datetime: datetime64 (dt)
+driver_id: int64 (int)
+restaurant_id: int64 (int)
+consumer_id: int64 (int)
+is_new: bool (bool)
+delivery_region: object (str)
+is_asap: bool (bool)
+order_total: float64 (flt)
+discount_amount: float64 (flt)
+tip_amount: float64 (flt)
+refunded_amount: float64 (flt)
+
+Code:
+Attempt #1 (filter for San Jose and hours before the groupby calculation)
+# Question:
+# Look into the average order value per hour during rush hours in the San Jose area.
+# Rush hour is from 15H - 17H inclusive.
+# The column order_total represents the gross order total for each order.
+# Therefore, you'll need to calculate the net order total.
+# The gross order total is the total of the order before adding tip, deducting discount and refund.
+# Use the column customer_placed_order_datetime for your calculations.
+
+# Output:
+# Hours (15H-17H), average order value
+
+# Import libraries
+import pandas as pd
+
+# Load and preview data
+#delivery_details = pd.read_csv('delivery_details.csv')
+df = pd.DataFrame(delivery_details)
+df.head(5)
+
+# Check datatypes, nulls, rows
+# Nulls: placed_order_with_restaurant_datetime(2), driver_at_restaurant_datetime(244), delivery_region(2) 
+# Rows: 998
+#df.info()
+#df.isna().sum()
+
+# Create hours column
+df['hour'] = df['customer_placed_order_datetime'].dt.hour
+
+# Calculate net order total = order_total + tip_amount - discount_amount - refunded_amount
+df['net_order_total'] = (
+    df['order_total'] + df['tip_amount'] - df['discount_amount'] - df['refunded_amount']
+)
+
+# Calculate average order value per hour
+result_df = df.groupby('hour')['net_order_total'].mean().reset_index(name='avg_order_value')
+
+# Filter for rush hour (15-17H)
+result_df = result_df[
+    (df['hour'] >= 15) &
+    (df['hour'] <= 17)
+]
+
+# Result
+result_df
+
+Solution #1 (filter before groupby calculation, reindex with a range of hours and fill missing values with 0)
+# Create hours column
+df['hour'] = df['customer_placed_order_datetime'].dt.hour
+
+# Filter for rush hour (15-17H) and San Jose
+filtered_df = df[
+    (df['delivery_region'] == 'San Jose') &
+    (df['hour'].isin([15, 16, 17]))
+].copy()
+
+# Calculate net order total = order_total + tip_amount - discount_amount - refunded_amount
+filtered_df['net_order_total'] = (
+    filtered_df['order_total'] + filtered_df['tip_amount'] - filtered_df['discount_amount'] - filtered_df['refunded_amount']
+)
+
+# Calculate average order value per hour
+result_df = filtered_df.groupby('hour')['net_order_total'].mean()
+
+# Create a full range of hours to reindex with
+full_hours = pd.Index(range(15, 18), name='hour')
+
+# Reindex and fill missing values with 0, reset index and rename averaged column from earlier
+result_df = result_df.reindex(full_hours, fill_value=0).reset_index(name='avg_order_value')
+
+# Result
+result_df
+
+Notes:
+- Filter using >= <= and &
+  ex. result_df = df[
+      (df['hour'] >= 15) &
+      (df['hour'] <= 17) 
+      ]
+- Filter using isin() have to create a list of values
+  ex. result_df = df[
+      df['hour'].isin([15, 16, 17])
+      ]
+- Filter using .between() for a range of values
+  ex. result_df = df[
+      df['hour'].between(15, 17, inclusive='both')
+      ]
+- When filtering, use copy() to avoid SettingWithCopyWarning because there is a view of df not a new DataFrame
+  ex. filtered_df = df[
+      (df['delivery_region'] == 'San Jose') &
+      (df['hour'].isin([15, 16, 17]))
+      ].copy()
+- Reindexing a DataFrame using pd.Index(range(value, value), name='col') as an object,
+  filing in missing values with 0, then reset_index() to show index and rename column
+  ex. result_df = filtered_df.groupby('hour')['net_order_total'].mean()
+      full_hours = pd.Index(range(15, 18), name='hour')
+      result_df = result_df.reindex(full_hours, fill_value=0).reset_index(name='avg_order_value')
+      
+############################
+
+Website:
+StrataScratch - ID 2082
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Deloitte - Minimum Number of Platforms
+You are given a day worth of scheduled departure and arrival times of trains at one train station. 
+One platform can only accommodate one train from the beginning of the minute it's scheduled to arrive until the end of the minute it's scheduled to depart. 
+Find the minimum number of platforms necessary to accommodate the entire scheduled traffic.
+
+Data Dictionary:
+Table name = 'train_arrivals'
+arrival_time: text (str)
+train_id: bigint (int)
+Table name = 'train_departures
+departure_time: text (str)
+train_id: bigint (int)
+
+Code:
+Attempt #1 (not sure how to continue the query, thought about using LAG/LEAD)
+/* Question:
+You are given a day worth of scheduled departure and arrival times of trains at one train station.
+One platform can only accomodate one train from the beginning of the minute it's scheduled to arrive
+until the end of the minute it's scheduled to depart.
+Find the minimum number of platforms necessary to accomodate the entire scheduled traffic. */
+
+/* Output:
+minimum number of platforms */
+
+/* Preview data */
+SELECT * FROM train_arrivals LIMIT 5;
+SELECT * FROM train_departures LIMIT 5;
+
+/* Check nulls, rows 
+Nulls: train_arrivals (0), train_departures(0)
+Rows: train_arrivals (14), train_departures(14) */
+SELECT
+    SUM(CASE WHEN arrival_time IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN train_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    COUNT(*) AS total_rows
+FROM train_arrivals;
+
+SELECT
+    SUM(CASE WHEN departure_time IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN train_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    COUNT(*) AS total_rows
+FROM train_departures;
+
+/* Iteration */
+-- Join arrivals and departure tables
+-- Calculate accomodation time departure_time - arrival_time
+SELECT 
+    ta.train_id,
+    ta.arrival_time,
+    td.departure_time,
+    (td.departure_time::time - ta.arrival_time::time) / 60 AS accomodation_time_min,
+    DENSE_RANK() OVER(ORDER BY arrival_time)
+FROM train_arrivals AS ta
+JOIN train_departures AS td
+    ON ta.train_id = td.train_id
+
+Solution #1
+"""
+WITH platform_events AS (
+    -- Combine all arrival and departure times into a single list of events.
+    -- An arrival increases the number of platforms needed by 1.
+    SELECT
+        CAST(arrival_time AS time) AS event_time,
+        1 AS platform_change
+    FROM train_arrivals
+    
+    UNION ALL
+    
+    -- A departure decreases the number of platforms needed by 1.
+    SELECT
+        CAST(departure_time AS time) AS event_time,
+        -1 AS platform_change
+    FROM train_departures
+),
+total_running_platforms AS (
+    -- Calculate the running total of platforms needed at each event.
+    SELECT 
+        SUM(platform_change) OVER (ORDER BY event_time) AS running_platforms
+    FROM platform_events
+)
+-- The maximum value of this running total is the minimum number of platforms required.
+SELECT
+   MAX(running_platforms) AS min_platforms_needed
+FROM total_running_platforms;
+"""
+
+Notes:
+- CTE creates a single unified list of all relevant events
+  Arrival is represented as an event with platform change of +1
+  Departure is represented as an event with platform change of -1
+  CAST(arrival_time AS time), text-based times convertd to time format
+- SELECT MAX(running_platforms) finds maximum value of running total
+- SUM(platform_change) OVER (ORDER BY event_time) calculates cumulative sum
+  Iterates through platform_events table ordered by event_time
+  At each event, adds platform_change to running total.
+  Total represents the number of platforms currently occupied.
+  Ex. Train arrives at 10:00, running total becomes 1.
+      If another arrives at 10:05, it becomes 2.
+      If one departs at 10:10, it goes back to 1
+- The max value of running total is maximum number of trains simultaneously at train station
+  This is minimum number of paltforms required to handle the entire day's traffic.
+- Not familiar with this type of approach/problem in SQL
+
+############################
