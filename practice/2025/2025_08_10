@@ -1,0 +1,254 @@
+Date: 08/10/2025
+
+############################
+
+Website:
+StrataScratch - ID 2083
+
+Difficulty:
+Easy
+
+Question Type:
+R
+
+Question:
+CVS Health - Pending Claims
+Count how many claims submitted in December 2021 are still pending. 
+A claim is pending when it has neither an acceptance nor rejection date.
+
+Data Dictionary:
+Table name = 'cvs_claims'
+claim_id: numeric (int)
+account_id: character (str)
+date_submitted: POSIXct, POSIXt
+date_accepted: POSIXct, POSIXt
+date_rejected: POSIXct, POSIXt
+
+Code:
+Solution #1
+# Question: 
+# Count how many claims submitted in December 2021 are still pending.
+# A claim is pending when it has neither an acceptance nor rejection date.
+
+# Output:
+# pending claim count (Dec 2021)
+
+# Import libraries
+#install.package(tidyverse)
+library(tidyverse)
+
+# Load and preview data
+#cvs_claims <- read_csv('cvs_claims.csv')
+df <- data.frame(cvs_claims)
+head(df, 5)
+
+# Check datatypes, nulls, rows
+# Nulls: date_accepted(12), date_rejected(11)
+# Rows: 16 
+lapply(df, class)
+colSums(is.na(df))
+nrow(df)
+
+# Iteration
+result_df <- df %>%
+    filter(year(date_submitted) == 2021 & month(date_submitted) == 12) %>%     # Filter for Dec 2021
+    filter(is.na(date_accepted) & is.na(date_rejected)) %>%                    # Filter for null accept/reject
+    summarise(pending_claim_count = n_distinct(claim_id))                      # Count distinct claims
+
+# Result
+result_df
+
+Notes:
+- When filtering for nulls in columns use is.na('col')
+  ex. result_df <- df %>% 
+           filter(is.na('col1') & is.na('col2'))
+
+############################
+
+Website:
+StrataScratch - ID 2040
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Whole Foods Market - Customers Report Summary
+Summarize the number of customers and transactions for each month in 2017, keeping transactions that were greater or equal to $5.
+
+Data Dictionary:
+Table name = 'wfm_transactions'
+customer_id: int64 (int)
+store_id: int64 (int)
+transaction_date: datetime64 (dt)
+transaction_id: int64 (int)
+product_id: int64 (int)
+sales: int64 (int)
+
+Code:
+Solution #1
+# Question: 
+# Summarize the number of customers and transactions for each month in 2017,
+# keeping transactions that were greater or equal to $5
+
+# Output:
+# number of customers, number of transactions, month (filter for 2017 and sales >= $5)
+
+# Import packages
+import pandas as pd
+
+# Load and preview data
+#wfm_transactions = pd.read_csv('wfm_transactions.csv')
+df = pd.DataFrame(wfm_transactions)
+df.head(5)
+
+# Check datatypes, nulls, rows
+# Nulls: 0
+# Rows: 216
+#df.info()
+#df.isna().sum()
+
+# Filter for year 2017 and transaction sales greater or equal to $5
+filtered_df = df[
+    (df['transaction_date'].dt.year == 2017) &
+    (df['sales'] >= 5)
+].copy()
+
+# Create year_month column
+filtered_df['year_month'] = filtered_df['transaction_date'].dt.to_period('M')
+
+# Iteration
+result_df = (
+    filtered_df.groupby('year_month')                                # Groupby year_month
+    .agg({'customer_id' : 'nunique',                                 # Count unique customers
+          'transaction_id' : 'count'})                               # Count all transactions
+    .reset_index()                                                   # Display index year_month
+    .rename(columns={'customer_id': 'number_of_unique_customers',    # Rename columns
+                     'transaction_id': 'number_of_transactions'})
+    .sort_values(by='year_month', ascending=True)                    # Sort months ASC order
+)
+
+# Result
+result_df
+
+Notes:
+- When using .agg(), can rename columns within the same function or choose not to
+  ex. result_df = (
+          df.groupby('col')
+          .agg({'col_id' : 'nunique',
+                'col2_id' : 'count'})
+          .reset_index()
+      )
+  ex. result_df = (
+          df.groupby('col')
+          .agg(number_of_unique_id = ('col_id', 'nunique'),
+               count_of_id = ('col2_id', 'count')
+          )
+          .reset_index()     
+- Can rename columns using .rename(columns = {})
+  ex. df.rename(columns = {'col_id': 'number_of_unique_id',
+                           'col2_id: 'count_of_id' })
+
+############################
+
+Website:
+StrataScratch - Id 2087
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Instacart - Negative Reviews in New Locations
+Find stores that were opened in the second half of 2021 with more than 20% of their reviews being negative.
+A review is considered negative when the score given by a customer is below 5. 
+Output the names of the stores together with the ratio of negative reviews to positive ones.
+
+Data Dictionary:
+Table name = 'instacart_reviews'
+customer_id: bigint (int)
+id: bigint (int)
+score: bigint (int)
+store_id: bigint (int)
+Table name = 'instacart_stores'
+id: bigint (int)
+name: text (str)
+opening_date: date (dt)
+zipcode: bigint (int)
+
+Code:
+Solution #1
+/* Question:
+Find stores that were opened in the second half of 2021 with more than 20% of their reviews being negative.
+A review is considered negative when the score given by a customer is below 5. */
+
+/* Output:
+names of stores, ratio of negative reviews to positive ones */
+
+/* Preview data */
+SELECT * FROM instacart_reviews LIMIT 5;
+SELECT * FROm instacart_stores LIMIT 5;
+
+/* Check nulls, rows 
+Nulls: reviews (0), stores(0)
+Rows: reviews (36), stores(7) */
+SELECT 
+    SUM(CASE WHEN customer_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN score IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN store_id IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM instacart_reviews;
+
+SELECT 
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN name IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN opening_date IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN zipcode IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM instacart_stores;
+
+/* Iteration */
+WITH StoreReviews AS (
+    -- Join reviews and stores tables
+    -- Find stores opened in second half of 2021
+    -- Categorize scores < 5 as negative and scores >= 5 as positive
+    SELECT 
+        s.name AS store_name,
+        CASE WHEN r.score < 5 THEN 'negative' ELSE 'positive' END AS review_category
+    FROM instacart_reviews AS r
+    JOIN instacart_stores AS s
+        ON r.store_id = s.id
+    WHERE EXTRACT(QUARTER FROM s.opening_date) IN (3, 4)
+        AND EXTRACT(YEAR FROM s.opening_date) = 2021
+),
+    StorePercentRatio AS (
+    -- Sum total positive reviews, total negative reviews to create ratio of reviews negative:positive
+    -- Calculate stores with more than 20% of reviews being negative
+    SELECT
+        store_name,
+        1.0 * COALESCE(SUM(CASE WHEN review_category = 'negative' THEN 1 END), 0) / 
+            SUM(CASE WHEN review_category = 'positive' THEN 1 END) AS negative_to_positive_ratio_reviews,
+        100 * COALESCE(SUM(CASE WHEN review_category = 'negative' THEN 1 END), 0) / 
+            COUNT(review_category) AS percent_negative_reviews
+    FROM StoreReviews
+    GROUP BY store_name
+)
+-- Filter for stores with more than 20% of reviews being negative
+-- Select columns store_name, ratio of reviews
+SELECT 
+    store_name,
+    negative_to_positive_ratio_reviews
+FROM StorePercentRatio
+WHERE percent_negative_reviews > 20;
+
+Notes:
+- To find the second half of a year, use EXTRACT(QUARTER FROM 'col_date') IN (3, 4)
+- When performing aggregation functions, use COALESCE('function', 0) to avoid division by null
+- For alisaes, cannot use 'is' as an alias because 'is' is a SQL keyword
+
+############################
