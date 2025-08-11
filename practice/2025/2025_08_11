@@ -1,0 +1,340 @@
+Date: 08/11/2025
+
+############################
+
+Website:
+StrataScratch - ID 2000
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Credit Karma - Variable vs Fixed Rates
+Show each loan and its rate type. 
+For each loan, create two new columns: fixed and variable. 
+If the loan has a fixed rate, put a 1 in the fixed column and a 0 in the variable column. 
+If the loan has a variable rate, do the opposite.
+
+Data Dictionary:
+Table name = 'submissions'
+id: numeric (int)
+loan_id: numeric (int)
+balance: numeric (int)
+interest_rate: numeric (int)
+rate_type: character (str)
+
+Code:
+Solution #1
+# Question:
+# Show each loan and its rate type.
+# For each loan, create two new columns: fixed and variable.
+# If the loan has a fixed rate, put a 1 in the fixed column and a 0 in the variable column.
+# If the loan has a variable rate, do the opposite.
+
+# Output:
+# loan_id, fixed, variable
+
+# Import libraries
+#install.package(tidyverse)
+library(tidyverse)
+
+# Load and preview data
+#submissions <- read_csv('submissions.csv')
+df <- data.frame(submissions)
+head(df, 5)
+
+# Check datatypes, nulls, rows
+# Nulls: 0
+# Rows: 6 
+lapply(df, class)
+colSums(is.na(df))
+nrow(df)
+
+# Iteration
+result_df <- df %>%
+    mutate(                                                               
+        fixed = case_when(rate_type == 'fixed' ~ 1, TRUE ~ 0),         # If fixed then 1, else 0
+        variable = case_when(rate_type == 'variable' ~ 1, TRUE ~ 0)    # If variable then 1, else 0
+    ) %>%
+    select(loan_id, fixed, variable) %>%                               # Select relevant columns
+    arrange(loan_id)                                                   # Arrange ASC order
+
+# Result
+result_df
+
+Notes:
+- Use mutate() to create a new column, can create multiple columns in one mutate function
+  ex. df %>%
+          mutate(
+              fixed = case_when(rate_type == 'fixed' ~ 1, TRUE ~ 0),
+              variable = case_when(rate_type == 'variable' ~ 1, TRUE ~ 0)
+          )
+- Similar to SQL's CASE WHEN col = value THEN 1 ELSE 0, TRUE acts as the ELSE
+  ex. case_when('col' == 'value' ~ 1, TRUE ~ 0)
+
+############################
+
+Website:
+StrataScratch - ID 2041
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Goldman Sachs - Total Sales In Different Currencies
+You work for a multinational company that wants to calculate total sales across all their countries they do business in.
+You have 2 tables, one is a record of sales for all countries and currencies the company deals with, and the other holds currency exchange rate information.
+Calculate the total sales, per quarter, for the first 2 quarters in 2020, and report the sales in USD currency.
+
+Data Dictionary:
+Table name = 'sf_exchange_rate'
+source_currency: object (str)
+target_currency: object (str)
+exchange_rate: float64 (flt)
+date: datetime64 (dt)
+Table name = 'sf_sales_amount
+sales_date: datetime64 (dt)
+sales_amount: int64 (int)
+currency: object (str)
+
+Code:
+Solution #1
+# Question:
+# Calculate total sales across all countries the company does business in.
+# One table is a record of sales for all countries and currencies the company deals with.
+# The other holds currency exchange rate information.
+# Calculate total sales, per quarter, for first 2 quarters in 2020, and report the sales in USD currency
+
+# Output:
+# total sales (USD currency), quarter (first 2 quarters in 2020)
+
+# Import libraries
+import pandas as pd
+
+# Load and preview data
+#sf_exchange_rate = pd.read_csv('sf_exchange_rate.csv')
+#sf_sales_amount = pd.read_csv('sf_sales_amount.csv')
+df = pd.DataFrame(sf_exchange_rate)
+df2 = pd.DataFrame(sf_sales_amount)
+df.head(5)
+df2.head(5)
+
+# Check datatypes, nulls, rows
+# Nulls: exchange_rate (0), sales_amount (0)
+# Rows: exchange_rate (91), sales_amount (120)
+#df.info()
+#df.isna().sum()
+#df2.info()
+#df2.isna().sum()
+
+# Join exchange rate (columns: source currency, date) and sales amount (columns: currency, sales_date) tables
+merged_df = pd.merge(df, df2, left_on=['source_currency', 'date'], right_on=['currency', 'sales_date'], how='inner')
+
+# Create a quarters column where convert date to quarters and into string datatype values
+merged_df['quarter'] = merged_df['date'].dt.to_period('Q').astype(str)
+
+# Filter for first 2 quarters in 2020
+filtered_df = merged_df[
+    merged_df['quarter'].isin(['2020Q1', '2020Q2'])
+].copy()
+
+# Calculate sales in USD currency, use (exchange_rate * sales_amount)
+filtered_df['sales_usd'] = filtered_df['exchange_rate'] * filtered_df['sales_amount']
+    
+# Iteration
+result_df = (
+    filtered_df.groupby('quarter')['sales_usd'].sum()    # Sum sales per quarter
+    .reset_index(name='total_sales_usd')                 # Rename column
+    .sort_values(by='quarter', ascending=True)           # Sort ASC order by quarter
+)
+
+# Result
+result_df
+
+Notes:
+- When converting date columns to quarters, have to also convert the datatype to a string for filtering/grouping
+  ex. df['quarter'] = df['date'].dt.to_period('Q').astype(str)
+      df[
+          df['quarter'].isin(['2020Q1', '2020Q2'])
+      ]
+
+############################
+
+Website:
+StrataScratch - ID 2088
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+RobinHood - Seat Availability
+A movie theater gave you two tables: seats that are available for an upcoming screening and neighboring seats for each seat listed.
+You are asked to find all pairs of seats that are both adjacent and available.
+Output only distinct pairs of seats in two columns such that the seat with the lower number is always in the first column and the one with the higher number is in the second column.
+
+Data Dictionary:
+Table name = 'theater_availability'
+is_available = boolean (bool)
+seat_number: bigint (int)
+Table name = 'theater_seatmap'
+seat_left: double precision (flt)
+seat_number: bigint (int)
+seat_right: double precision (flt)
+
+Code:
+Attempt #1 (need to account for seat_left column when considering low and high number seats)
+/* Question:
+A movie theater gave you two tables: 
+Seats that are available for an upcoming screening and neighboring seats for each seat listed.
+You are asked to find all pairs of seats that are both adjacent and available. 
+Output only distinct pairs of seats in two columns such that the seat with the lower number is always
+in the first column and the one with the higher number is in the second column. */
+
+/* Output:
+distinct pairs of seats in two columns (lower number in first col, hgiher number in second col) */
+
+/* Preview data */
+SELECT * FROM theater_availability LIMIT 5;
+SELECT * FROM theater_seatmap LIMIT 5;
+
+/* Check nulls, rows
+Nulls: availability(0), seatmap(seat_left(3), seat_right(3))
+Rows: availability(15), seatmap(15) */
+SELECT 
+    SUM(CASE WHEN is_available IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN seat_number IS NULL THEN 1 ELSE 0 END) AS col2,
+    COUNT(*) AS total_rows
+FROM theater_availability;
+
+SELECT 
+    SUM(CASE WHEN seat_left IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN seat_number IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN seat_right IS NULL THEN 1 ELSE 0 END) AS col3,
+    COUNT(*) AS total_rows
+FROM theater_seatmap;
+
+/* Iteration */
+WITH SeatAvailableAdjacent AS (
+    -- Join availability and seatmap tables by seat_number
+    -- Filter for seats that are available
+    -- First column lower number, second column higher number
+    SELECT
+        ta.seat_number,
+        sm.seat_right
+    FROM theater_availability AS ta
+    JOIN theater_seatmap AS sm
+        ON ta.seat_number = sm.seat_number
+    WHERE ta.is_available = 'TRUE'
+        AND seat_right IS NOT NULL
+),
+SeatNotAvailable AS (
+    -- Filter for seats that are not available
+    SELECT
+        ta.seat_number AS seat_number_unavailable
+    FROM theater_availability AS ta
+    JOIN theater_seatmap AS sm
+        ON ta.seat_number = sm.seat_number
+    WHERE ta.is_available = 'FALSE'
+)
+-- Left join seats available adjacent table with the seats unavailable table to find match/non-match
+-- Filter for seats that are available
+-- Select distinct pairs of seats
+SELECT
+    saa.seat_number AS seat_number_1,
+    saa.seat_right AS seat_number_2
+FROM SeatAvailableAdjacent AS saa
+LEFT JOIN SeatNotAvailable AS sna
+    ON saa.seat_right = sna.seat_number_unavailable
+WHERE sna.seat_number_unavailable IS NULL;
+
+Solution #1 (Using multiple joins and where clauses, not sure if correct since missing values)
+"""
+-- Ensure the lower number is always first, higher is second
+-- Join A1 with seatmap to find its neighbors (both left and right)
+-- Join with availability again to check if the neighbor is also available
+-- WHERE condition ensures we only get each pair once (e.g., 1-2, not 2-1)
+-- and that the neighbor exists (not NULL).
+SELECT DISTINCT
+    LEAST(A1.seat_number, COALESCE(SM.seat_left, SM.seat_right)) AS seat1,
+    GREATEST(A1.seat_number, COALESCE(SM.seat_left, SM.seat_right)) AS seat2
+FROM
+    theater_availability A1
+JOIN
+    theater_seatmap SM
+    ON A1.seat_number = SM.seat_number
+JOIN
+    theater_availability A2
+    ON (SM.seat_left = A2.seat_number OR SM.seat_right = A2.seat_number)
+WHERE
+    A1.is_available = TRUE
+    AND A2.is_available = TRUE
+    AND A1.seat_number < COALESCE(SM.seat_left, SM.seat_right)
+ORDER BY
+    seat1, seat2;
+"""
+
+Solution #2 (continued CTE approach to include left and right adjacent seats)
+"""
+WITH AllPotentialAdjacentPairs AS (
+    -- Generate all possible adjacent paris from seat map
+    -- Use UNION ALL to consider left and right neighbors for each seat
+    -- LEAST and GREATEST ensures smaller number is always seat_a
+    -- and the larger is always seat_b
+    SELECT 
+        LEAST(sm.seat_number, sm.seat_right) AS seat_a,
+        GREATEST(sm.seat_number, sm.seat_right) AS seat_b
+    FROM theater_seatmap AS sm
+    WHERE sm.seat_right IS NOT NULL    -- Exclude cases where there's no right neighbor
+    
+    UNION ALL 
+    
+    SELECT
+        LEAST(sm.seat_number, sm.seat_left) AS seat_a,
+        GREATEST(sm.seat_number, sm.seat_left) AS seat_b
+    FROM theater_seatmap AS sm
+    WHERE sm.seat_left IS NOT NULL     -- Exclude cases where there's no left neighbor
+),
+AvailableSeats AS (
+    -- Lists all seat numbers that are available
+    SELECT
+        seat_number
+    FROM theater_availability 
+    WHERE is_available = TRUE
+)
+-- Join AllPotentialAdjacentPairs with AvailableSeats twice
+-- to ensure both seats in the pair are actually available
+SELECT DISTINCT
+    appa.seat_a AS seat1,
+    appa.seat_b AS seat2
+FROM AllPotentialAdjacentPairs AS appa
+JOIN AvailableSeats AS as1
+    ON appa.seat_a = as1.seat_number
+JOIN AvailableSeats AS as2
+    ON appa.seat_b = as2.seat_number
+ORDER BY
+    seat1,
+    seat2;
+"""
+
+Notes:
+- Use LEAST() and GREATEST() to find the lowest number or highest number within multiple columns
+  ex. SELECT 
+          LEAST(sm.seat_number, sm.seat_right) AS seat_a,
+          GREATEST(sm.seat_number, sm.seat_right) AS seat_b
+      FROM theater_seatmap AS sm
+- While my attempt produced the right answer, the seat_left adjacent was not included so did not
+  fulfill the criteria of everything in the problem
+- Using multiple CTEs is a lot easier for readability and clarity compared to the multiple JOINS approach
+- Use of inner joins to match TRUE or FALSE values from multiple tables.
+- Use UNION ALL to find all possible scenarios
+
+############################
