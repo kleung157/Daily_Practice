@@ -1,0 +1,307 @@
+Date: 08/12/2025
+
+############################
+
+Website:
+StrataScratch - ID 2001
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Credit Acceptance - Share of Loan Balance
+Write a query that returns the rate_type, loan_id, loan balance , and a column that shows with what percentage the loan's balance contributes to the total balance among the loans of the same rate type. 
+Sort the final output by rate_type and loan_id.
+
+Data Dictionary:
+Table name = 'submissions'
+id: numeric (int)
+loan_id: numeric (int)
+balance: numeric (int)
+interest_rate: numeric (int)
+rate_type: character (str)
+
+Code:
+Solution #1
+# Question:
+# Return the rate type, loan_id, loan balance and
+# the percentage of a loan's balance that contributes to the total balance among loans of the same rate type.
+# Sort the final output by rate_type and loan_id
+
+# Output:
+# rate type (sort), loan_id (sort), loan balance, percentage of loan balance to total balance of same type
+
+# Import libraries
+#install.package(tidyverse)
+library(tidyverse)
+
+# Load and preview data
+#submissions <- read_csv('submissions.csv')
+df <- data.frame(submissions)
+head(df, 5)
+
+# Check datatypes, nulls, rows
+# Nulls: 0
+# Rows: 6
+lapply(df, class)
+colSums(is.na(df))
+nrow(df)
+
+# Iteration
+result_df <- df %>%
+    group_by(rate_type) %>%
+    mutate(     # create new columns for each mutate function
+        total_balance = sum(balance),     # sum balances for each rate type
+        percentage_of_balance_to_total_balance = round((balance / total_balance) * 100, digits=2)
+    ) %>%    # calculate the percentage of balance to total balance for each rate type
+    ungroup() %>%    # preserve DataFrame for later use
+    arrange(rate_type, loan_id) %>%    # sort in ASC order
+    select(rate_type, loan_id, balance, percentage_of_balance_to_total_balance)    # select relevant columns
+
+# Result
+result_df
+
+Notes:
+- In order to create a new column with group_by(), mutate(), and an aggregation function.
+  Setup should be group_by() then mutate(aggregation()), remember to ungroup() afterwards
+  ex. result_df <- df %>%
+          group_by(rate_type) %>%
+          mutate(    
+              total_balance = sum(balance),    
+              percentage_of_balance_to_total_balance = round((balance / total_balance) * 100, digits=2)
+          ungroup()
+- To round, use round('value', digits = 'number_of_decimal_places')
+  ex. round(balance / total_Balance), digits = 2)
+- Can rename columns in the select() function
+  ex. select('new_col_name' = 'col')
+
+############################
+
+Website:
+StrataScratch - ID 2042
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Uber - Employees' Years In Service
+Find employees who have worked for Uber for more than 2 years (730 days) and check to see if they're still part of the company. 
+Output 'Yes' if they are and 'No' if they are not. 
+Use May 1, 2021 as your date of reference when calculating whether they have worked for more than 2 years since their hire date.
+Output the first name, last name, whether or not the employee is still working for Uber, and the number of years at the company
+
+Data Dictionary:
+Table name = 'uber_employees'
+first_name: object (str)
+last_name: object (str)
+id: int64 (int)
+hire_date: datetime64 (dt)
+termination_date: datetime64 (dt)
+salary: int64 (int)
+
+Code:
+Solution #1
+# Question:
+# Find employees who have worked for Uber for more than 2 years (730 days).
+# Check to see if they're still part of the company.
+# Output 'yes' if they are and 'No' if they are not.
+# Use May 1, 2021 as your date of reference when calculating whether they have worked
+# more than 2 years since their hire date.
+# Output first name, last name, whether employee still working for Uber, number of years at company
+
+# Output:
+# first name, last name, employee status, number of years at company
+
+# Import libraries
+import pandas as pd
+import numpy as np
+
+# Load and preview data
+#uber_employees = pd.read_csv('uber_employees.csv')
+df = pd.DataFrame(uber_employees)
+df.head(5)
+
+# Check datatypes, nulls, rows
+# Nulls: termination_date(34)
+# Rows: 100 
+#df.info()
+#df.isna().sum()
+
+# Create date_of_reference column with May 1, 2021 in datetime format
+df['date_of_reference'] = pd.to_datetime('2021-05-01')
+
+# Create tenure columns and calculate tenure days and years using (date_of_reference - hire_date)
+df['tenure_days'] = (df['date_of_reference'] - df['hire_date']).dt.days
+df['tenure_years'] = (df['date_of_reference'] - df['hire_date']).dt.days / 365.25
+
+# Create employed_status column for whether employee still works at company
+df['employed_status'] = np.where(df['termination_date'].notna(), 'No', 'Yes')
+
+# Filter for employees who worked for more than 2 years (730 days)
+result_df = df[
+    (df['tenure_days'] > 730)
+].copy()
+
+# Select relevant columns (first_name, last_name, employed_status, tenure_years)
+result_df = result_df[['first_name', 'last_name', 'employed_status', 'tenure_years']]
+
+# Sort by employed_status DESC then tenure_years ASC 
+result_df = result_df.sort_values(by=['employed_status', 'tenure_years'], ascending=[False, True])
+
+# Result
+result_df
+
+Notes:
+- For creating string values and converting to date pd.to_datetime('string_date')
+  ex. df['col'] = pd.to_datetime('2021-05-01')
+- When subtracting two date columns and converting to days use .dt.days
+  ex. ( df['col_1'] - df['col_2'] ).dt.days
+- When subtracting two date columns and converting to years use .dt.days / 365.25 to account for leap years
+  ex. ( df['col_1'] - df['col_2'] ) dt.days / 365.25
+- Similar to CASE WHEN df = 'condition' THEN 1 ELSE 0 statement, use np.where(df['col'] == 'condition', 1, 0)
+  .notna() for not NULL, isna() for is NULL
+  ex. df['employed_status'] = np.where(df['termination_date'].notna(), 'No', 'Yes')
+- When filtering between days and years, consider day over year since leap year can be less accurate
+  
+############################
+
+Website:
+StrataScratch - ID 2089
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Ebay - Cookbook Recipes
+You are given a table containing recipe titles and their corresponding page numbers from a cookbook. Your task is to format the data to represent how recipes are distributed across double-page spreads in the book.
+Each spread consists of two pages:
+⦁   The left page (even-numbered) and its corresponding recipe title (if any).
+⦁   The right page (odd-numbered) and its corresponding recipe title (if any).
+The output table should contain the following three columns:
+⦁   left_page_number – The even-numbered page that starts each double-page spread.
+⦁   left_title – The title of the recipe on the left page (if available).
+⦁   right_title – The title of the recipe on the right page (if available).
+For the  k-th  row (starting from 0):
+⦁   The  left_page_number  should be $2 * k$.
+⦁   The  left_title  should be the title from page $2 * k$, or NULL if there is no recipe on that page.
+⦁   The  right_title  should be the title from page $2 * k + 1$, or NULL if there is no recipe on that page.
+Each page contains at most one recipe and  if a page does not contain a recipe, the corresponding title should be NULL. 
+Page 0 (the inside cover) is always empty and included in the output. 
+The table should ensure that all pages up to the maximum recorded page number are included, even if they contain
+
+Data Dictionary:
+Table name = 'cookbook_titles'
+page_number: bigint (int)
+title: text (str)
+
+Code:
+Solution #1 
+/* Question:
+You are given a table containing recipe titles and their corresponding page numbers from a cookbook.
+Format the data to represent how recipes are distributed across double-page spreads in the book.
+Each spread consists of two pages:
+- The left page (even_numbered) and its corresponding recipe title (if any).
+- The right page (odd_numbered) and its corresponding recipe title (if any).
+The output table should contain the following three columns:
+- left_page_number - the even-numbered page that starts each double-page spread.
+- left_title - the title of the recipe on the left page (if available)
+- right_title - the title of the recipe on the right page (if available)
+For the k-th row (starting from 0):
+- The left_page_number should be $2 * k$.
+- The left_title should be the title from page $2 * k$ or NULL if there is no recipe on that page.
+- The right_title should be the title from page $2 * k + 1$, or NULL if there is no recipe on that page.
+Each page contains at most one recipe and if a page does not contain a recipe, 
+the corresponding title should be NULL.
+Page 0 (the inside cover) is always empty and included in the output.
+The table should ensure that all pages up to the maximum record page number are included. */
+
+/* Output:
+left_page_number, lefT_title, right_title */
+
+/* Preview data */
+SELECT * FROM cookbook_titles LIMIT 5;
+
+/* Check nulls, rows
+Nulls: title(1)
+Rows: 9 */
+SELECT 
+    SUM(CASE WHEN page_number IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN title IS NULL THEN 1 ELSE 0 END) AS col2,
+    COUNT(*) AS total_rows
+FROM cookbook_titles;
+
+/* Iteration */
+WITH GeneratePageNum AS (
+    -- Generate a range of numbers 0 to MAX(page_number) that match
+    -- to the max page number from the original dataset
+    SELECT generate_series(0, (SELECT MAX(page_number) FROM cookbook_titles)) AS page_number
+),
+LeftPageNum AS (
+    -- Include all even numbers from generated series of numbers and match with original dataset
+    SELECT
+        gpn.page_number AS left_page_number
+    FROM GeneratePageNum AS gpn
+    LEFT JOIN cookbook_titles AS ct
+        ON gpn.page_number = ct.page_number
+    WHERE gpn.page_number % 2 = 0
+),
+EvenLeftTitle AS (
+    -- Filter even page numbers with left title recipes
+    SELECT
+        page_number AS left_page_number,
+        title AS left_title
+    FROM cookbook_titles
+    WHERE page_number % 2 = 0 
+),
+OddRighttitle AS (
+    -- Filter odd page numbers with right title recipes
+    -- Create column where right title would correspond next to a left title on a left_page_number
+    -- Odd page_number - 1 to create an even left_page_number
+    SELECT
+        page_number,
+        page_number - 1 AS left_page_number,
+        title AS right_title
+    FROM cookbook_titles
+    WHERE page_number % 2 = 1
+)
+-- Match left_page_number with left titles
+-- Match left_page_number with right titles
+-- Each page contains at most one recipe title, if not then exclude in WHERE clause
+-- If page does not contain a recipe, then corresponding left or right title should be NULL
+-- Order left_page_number in ASC order
+SELECT 
+    lpn.left_page_number,
+    elt.left_title,
+    ort.right_title
+FROM LeftPageNum AS lpn 
+LEFT JOIN EvenLeftTitle AS elt
+    ON lpn.left_page_number = elt.left_page_number
+LEFT JOIN OddRightTitle AS ort
+    ON lpn.left_page_number = ort.left_page_number
+WHERE (elt.left_title IS NOT NULL 
+    OR ort.right_title IS NOT NULL)
+ORDER BY lpn.left_page_number;
+
+Notes:
+- When searching for odd numbers ('col' % 2 = 1), for even ('col' % 2 = 0) place in a CASE WHEN or WHERE statement
+  ex. SELECT
+          CASE WHEN page_number % 2 = 0 THEN title END AS left_title,
+          CASE WHEN page_number % 2 = 1 THEN title END AS right_title
+      FROM cookbook_titles;
+- In postgresSQL, use generate_series('val', 'val') to create a range of numbers if original dataset is
+  missing any range of numbers, then left join to fill in the gaps.
+  Can use subqueries in the generate_series function if needed to find a single aggregation function value
+  ex. SELECT generate_series(0, (SELECT MAX(page_number) FROM cookbook_titles)) AS page_number
+- Using LEFT JOINS is starting to feel a little more intuitive with more practice in matching values,
+  still working towards distinguishing more clearly INNER JOIN and LEFT JOIN.
+
+############################
