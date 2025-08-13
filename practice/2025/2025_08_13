@@ -1,0 +1,311 @@
+Date: 08/13/2025
+
+############################
+
+Website:
+StrataScratch - ID 2003
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+MetLife - Recent Refinance Submissions
+Write a query to return the total loan balance for each user based on their most recent "Refinance" submission. 
+The submissions table joins to the loans table using loan_id from submissions and id from loans.
+
+Data Dictionary:
+Table name = 'loans'
+id: numeric (int)
+user_id: numeric (int)
+created_at: POSIXct, POSIXt (dt)
+status: character (str)
+type: character (str)
+Table name = 'submissions'
+id: numeric (int)
+loan_id: numeric (int)
+balance: numeric (int)
+interest_rate: numeric (int)
+rate_type: character (str)
+
+Code:
+solution #1
+# Question:
+# Return the total loan balance for each user based on their most recent "Refinance" submission.
+# The submissions table joins to the loans table using loan_id from submission and id from loan.
+
+# Output:
+# Total loan balance, user_id (based on recent "Refinance" submission)
+
+# Import libraries
+#install.package(tidyverse)
+library(tidyverse)
+
+# Load and preview data
+#loans <- read_csv('loans.csv')
+#submissions <- read_csv('submissions.csv')
+df <- data.frame(loans)
+df2 <- data.frame(submissions)
+head(df, 5)
+head(df2, 5)
+
+# Check datatypes, nulls, rows
+# Nulls: loans(0), submissions(0)
+# Rows: loans(11), submissions(6)
+data.frame(lapply(df, class))
+data.frame(lapply(df2, class))
+colSums(is.na(df))
+colSums(is.na(df2))
+nrow(df)
+nrow(df2)
+
+# Iteration
+result_df <- inner_join(df, df2, by = c("id" = "loan_id")) %>%    # Join loans & submissions DataFrames
+    filter(type == 'Refinance') %>%                               # Filter for 'Refinance' type
+    group_by(user_id) %>%                                         # Groupby user_id
+    mutate(rank_desc = min_rank(desc(created_at))) %>%            # Rank dates by most recent
+    filter(rank_desc == 1) %>%                                    # Filter for most recent date by rank
+    summarise(total_loan_balance = sum(balance)) %>%              # Sum balance 
+    ungroup() %>%                                                 # Preserve DataFrame
+    arrange(user_id)                                              # Arrange user_id ASC order
+
+# Result
+result_df
+
+Notes:
+- When joining between two DataFrames with different id columns, use inner_join(df, df2, by = c ("id1" = "id2"))
+  ex. merged_df <- inner_join(df, df2, by = c("id" = "loan_id"))
+- To rank within groups
+  ex. df_groups %>%
+           group_by(group) %>%
+           mutate(rank = min_rank(desc(score)))
+- To rank and don't skip ranks for ties, use dense_rank()
+  ex. df %>% mutate(dense_rank_desc = dense_rank(desc(score)))
+- To assign a unique rank to each row, use row_number()
+  ex. df %>% mutate(row_num = row_number(desc(score)))
+  
+############################
+
+Website:
+StrataScratch - ID 2045
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Uber - Days Without Hiring/Termination
+Write a query to calculate the longest period (in days) that the company has gone without hiring anyone. 
+Also, calculate the longest period without firing anyone. 
+Limit yourself to dates inside the table (last hiring/termination date should be the latest hiring /termination date from table), don't go into future.
+
+Data Dictionary:
+Table name = 'uber_employees'
+first_name: object (str)
+last_name: object (str)
+id: int64 (int)
+hire_date: datetime64 (dt)
+termination_date: datetime64 (dt)
+salary: int64 (int)
+
+Code:
+Solution #1 (my approach thinking in pseudocode and in SQL functions)
+# Question:
+# Calculate the longest period (in days) that the company has gone without hiring anyone.
+# Calculate the longest period without firing anyone.
+# Limit yourself to dates inside the table (last hiring / termination date) should be the 
+# latest hiring/termination date from table), dont go in to the future.
+
+# Output:
+# longest period in days without hiring, longest period in days without firing (in DataFrame format)
+
+# Import libraries
+import pandas as pd
+import numpy as np
+
+# Load and preview data
+#uber_employees = pd.read_csv('uber_employees.csv')
+df = pd.DataFrame(uber_employees)
+df.head(5)
+
+# Check datatypes, nulls, rows
+# Nulls: termination_date(34)
+# Rows: 100
+#df.info()
+#df.isna().sum()
+
+# Calculate longest period in days that company has gone without hiring anyone
+## 1. Sort by most recent hire_date
+hire_df = df.sort_values(by='hire_date', ascending=True)
+
+## 2. Find previous hire date using shift() and fill any null values with earliest hire_date
+hire_df['previous_hire_date'] = hire_df['hire_date'].shift(periods=1, fill_value=hire_df['hire_date'].min())
+
+## 3. Calculate period between hire_date and it's previous hire_date in days
+hire_df['days_to_hire'] =  (hire_df['hire_date'] - hire_df['previous_hire_date']).dt.days
+
+## 4. Extract the longest(max) days without hiring and convert to a Series
+longest_period_without_hiring = pd.Series(hire_df['days_to_hire'].max())
+
+# Calculate the longest period without firing anyone.
+## 1. Sort by most recent termination_date
+fire_df = df.sort_values(by='termination_date', ascending=True)
+
+## 2. Fill null termination_date rows with latest termination_date, if not null then leave date as is
+fire_df['latest_termination_date'] = np.where(fire_df['termination_date'].isna(), fire_df['termination_date'].max(), fire_df['termination_date'].dt.date)
+
+## 3. Convert latest_termination_date column from timestamp to datetime
+fire_df['latest_termination_date'] = pd.to_datetime(fire_df['latest_termination_date'])
+
+## 4. Find previous termination date using shift() and fill any null values with earliest termination date
+fire_df['previous_termination_date'] = fire_df['latest_termination_date'].shift(periods=1, fill_value=fire_df['latest_termination_date'].min())
+
+## 5. Calculate period between latest termination date and previous termination date in days
+fire_df['days_to_fire'] = (fire_df['latest_termination_date'] - fire_df['previous_termination_date']).dt.days
+
+## 6. Extract the longest(max) days without firing and convert to a Series
+longest_period_without_firing = pd.Series(fire_df['days_to_fire'].max())
+
+# Combine longest_period_without_hiring Series and longest_period_without_firing Series into a Dataframe
+result_df = pd.DataFrame({'longest_period_no_hire': longest_period_without_hiring, 
+                          'longest_period_no_fire': longest_period_without_firing})
+
+# Result
+result_df
+
+Solution #2 (more concise, simplified, not my attempt)
+"""
+# Assuming 'uber_employees' is your DataFrame with 'hire_date' and 'termination_date' in datetime format.
+
+# 1. Calculate the longest period without hiring
+# Get a series of unique, sorted hire dates
+unique_hire_dates = uber_employees['hire_date'].dropna().sort_values().unique()
+
+if len(unique_hire_dates) < 2:
+    longest_period_no_hire = 0
+else:
+    # Calculate the difference between consecutive dates and get the maximum in days
+    longest_period_no_hire = pd.Series(unique_hire_dates).diff().dt.days.max()
+
+# 2. Calculate the longest period without firing
+# Get a series of unique, sorted termination dates
+unique_termination_dates = uber_employees['termination_date'].dropna().sort_values().unique()
+
+if len(unique_termination_dates) < 2:
+    longest_period_no_fire = 0
+else:
+    # Calculate the difference between consecutive dates and get the maximum in days
+    longest_period_no_fire = pd.Series(unique_termination_dates).diff().dt.days.max()
+
+# 3. Create the final DataFrame for the result
+result_df = pd.DataFrame({
+    'longest_period_no_hire': [longest_period_no_hire],
+    'longest_period_no_fire': [longest_period_no_fire]
+})
+
+print(result_df)
+"""
+
+Notes:
+- The shift() function can be used similarly to LAG from SQL,
+  Can adjust the number of periods and fill null values.
+  ex. df['previous_hire_date'] = df['hire_date'].shift(periods=1, fill_value=hdf['hire_date'].min())
+- To combine Series into a DataFrame, convert values to a Series then use {} dictionary brackets in DataFrame
+  ex. longest_period_without_hiring = pd.Series(hire_df['days_to_hire'].max())
+      longest_period_without_firing = pd.Series(fire_df['days_to_fire'].max())
+      result_df = pd.DataFrame({'longest_period_no_hire': longest_period_without_hiring, 
+                                'longest_period_no_fire': longest_period_without_firing})
+- To find unique dates use df['col_date'].dropna().sort_values().unique()
+  ex. unique_termination_dates = uber_employees['termination_date'].dropna().sort_values().unique()
+- Can use diff().dt.days to find the difference in days between dates
+  ex. unique_termination_dates.diff().dt.days
+- Can also use the same function to find the maximum number of days
+  ex. unique_termination_dates.diff().dt.days.max()
+                                
+############################
+
+Website:
+StrataScratch - ID 2090
+
+Difficulty:
+Hard
+
+Question Type:
+Amazon - First Day Retention Rate
+
+Question:
+Calculate the first-day retention rate of a group of video game players. 
+The first-day retention occurs when a player logs in 1 day after their first-ever log-in.
+Return the proportion of players who meet this definition divided by the total number of players.
+
+Data Dictionary:
+Table name = 'players_logins'
+login_date: date (dt)
+player_id: bigint (int)
+
+Code:
+/* Question:
+Calculate the first-day retention rate of a group of video game players.
+The first-day retention occurs when a player logs in 1 day after their first_ever log-in.
+Return the proportion of players who meet this definition divided by the total number of players. */
+
+/* Output:
+retention_rate */
+
+/* Preview data */
+SELECT * FROM players_logins LIMIT 5;
+
+/* Check nulls, rows
+Nulls: 0
+Rows: 21 */
+SELECT
+    SUM(CASE WHEN player_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN login_date IS NULL THEN 1 ELSE 0 END) AS col2,
+    COUNT(*) AS total_rows
+FROM players_logins;
+
+/* Iteration */
+WITH PlayerRetention AS (
+    -- Create ordered row for each login_date by each player 
+    -- Find previous login date for each player row
+    -- Calculate days to next login 
+    SELECT 
+        player_id,
+        login_date,
+        ROW_NUMBER() OVER(PARTITION BY player_id ORDER BY login_date) AS row_number,
+        LAG(login_date) OVER(PARTITION BY player_id ORDER BY login_date) AS previous_login_date,
+        login_date - LAG(login_date) OVER(PARTITION BY player_id ORDER BY login_date) AS days_to_login
+    FROM players_logins
+),
+FirstDayRetentionPlayers AS (
+    -- The first-day retention occurs when a player logs in 1 day after their first_ever log-in.
+    -- Filter for second login of players using row_number = 2 and days to next login being 1 day
+    -- Count number of players that fulfill condition for one day retention
+    SELECT 
+        COUNT(DISTINCT player_id) AS retention_player_count
+    FROM PlayerRetention
+    WHERE row_number = 2
+        AND days_to_login = 1
+),
+TotalPlayers AS (
+    -- Count distinct number of players in the entire player_logins dataset
+    SELECT
+        COUNT(DISTINCT player_id) As total_player_count
+    FROM players_logins
+)
+-- Calculate rate of one day retention using counts from first day retention players / total players
+-- Use 1.0 to convert to float datatype then round to two decimal places
+SELECT
+    ROUND(1.0 * retention_player_count / total_player_count, 2) AS first_day_retention_rate
+FROM FirstDayRetentionPlayers AS fdrp, TotalPlayers AS tp;
+
+Notes:
+- Attempts are not as optimized and efficient at finding the solution for the moment but at least
+  getting the correct solution through logically thinking through the problem and answering every
+  part of the question.
+
+############################
