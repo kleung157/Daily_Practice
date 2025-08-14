@@ -1,0 +1,302 @@
+Date: 08/14/2025
+
+############################
+
+Website:
+StrataScratch - ID 2005
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Meta - Share of Active Users
+Calculate the percentage of users who are both from the US and have an 'open' status, as indicated in the fb_active_users table.
+
+Data Dictionary:
+Table name = 'fb_active_users'
+user_id: numeric (int)
+name: character (str)
+status: character (str)
+country: character (str)
+
+Code:
+Solution #1
+# Question:
+# Calculate the percentage of users who are both from the US and have an 'open' status,
+# as indicated in the fb_active_users table
+
+# Output:
+# percentage of users from US and have 'open' status
+
+# Import libraries
+#install.package(tidyverse)
+library(tidyverse)
+
+# Load and preview data
+#fb_active_users <- read_csv('fb_active_users.csv')
+df <- data.frame(fb_active_users)
+head(df, 5)
+
+# Check datatypes, nulls, rows
+# Nulls: 0
+# Rows: 23
+data.frame(lapply(df, class))
+colSums(is.na(df))
+nrow(df)
+
+# Filter for users that are from the USA and have an open status, count distinct users
+users_us_open <- df %>%
+    filter(status == 'open', country == 'USA') %>%
+    summarise(user_count = n_distinct(user_id))
+
+# Count the total distinct users in original dataframe 
+total_users <- df %>%
+    summarise(user_count = n_distinct(user_id))
+    
+# Calculate percentage of (US and open users / total users) then round values to 2 decimal places
+percentage <- (round((users_us_open$user_count / total_users$user_count) * 100, digits = 2)) 
+
+# Assign percentage to a dataframe and rename column
+result_df <- data.frame(percentage_of_users_from_us_and_open = percentage)
+
+# Result
+result_df
+
+Notes:
+- When using data.frame(), can rename column in a variable using format data.frame('new_col_name' = 'variable')
+  ex. percentage <- (round((users_us_open$user_count / total_users$user_count) * 100, digits = 2)) 
+      result_df <- data.frame(percentage_of_users_from_us_and_open = percentage)
+    
+############################
+
+Website:
+StrataScratch - ID 2047
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Uber - Total Monetary Value Per Month/Service
+Find the total monetary value for completed orders by service type for every month. 
+Output your result as a pivot table where there is a column for month and columns for each service type.
+
+Data Dictionary:
+Table name = 'uber_orders'
+order_date: datetime64 (dt)
+number_of_orders: int64 (int)
+status_of_order: object (str)
+monetary_value: float64 (flt)
+service_name: object (str)
+
+Code:
+Solution #1
+# Question:
+# Find the monetary value for completed orders by service type for every month.
+# Output your results as a pivot table where there is a column for month and columns for each service type
+
+# Output:
+# total monetary value, months, service types
+
+# Import packages
+import pandas as pd
+
+# Load and preview data
+#uber_orders = pd.read_csv('uber_orders.csv')
+df = pd.DataFrame(uber_orders)
+df.head(5)
+
+# Check datatypes, nulls, rows
+# Nulls: monetary_value(133)
+# Rows: 3210
+#df.info()
+#df.isna().sum()
+
+# Create months column from order_date
+df['month'] = df['order_date'].dt.month
+
+# Check value counts for status of order to see variation of values
+df['status_of_order'].value_counts().reset_index()
+
+# Filter for 'Completed' status_of_order
+# Pivot DataFrame to create columns for each month and each service type 
+# Sum monetary_values for each service per month
+result_df = pd.pivot_table(
+    data=df[df['status_of_order'] == 'Completed'],
+    values='monetary_value', 
+    index='month', 
+    columns='service_name', 
+    aggfunc='sum',
+    fill_value = 0
+).reset_index()
+
+# Result
+result_df
+
+Notes:
+- Instead of using df.groupby(['col1', 'col2'])['col3'].sum().reset_index()
+- Can use pd.pivot_table() to shift the 'columns' to a horizontal format rather than vertical format
+  ex. (data=df, values='col3', index='col1', columns='col2', aggfunc='sum', fill_value=0).reset_index()
+- The fill_values = 0 fills any null values in the aggregation of values
+- For data in pivot_tables, can filter values 
+  ex. data = df[df['col'] == 'value']
+  ex. result_df = pd.pivot_table(
+          data=df[df['status_of_order'] == 'Completed']
+          values='monetary_value', 
+          index='month', 
+          columns='service_name', 
+          aggfunc='sum',
+          fill_value = 0
+      ).reset_index()
+          
+############################
+
+Website:
+StrataScratch - ID 2094
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+DoorDash - Highest Earning Merchants
+For each day, you have been asked to find a merchant who earned the most money on the day before.
+Before comparing totals between merchants, round the total amounts to the nearest 2 decimals places.
+Your output should include the date in the format 'YYYY-MM-DD' and the merchant's name, but only for days where data from the previous day is available.
+Note: In the case of multiple merchants having the same highest shared amount, your output should include all the names in different rows.
+
+Data Dictionary:
+Table name = 'order_details'
+customer_id: bigint (int)
+id: bigint (int)
+merchant_id: bigint (int)
+n_items: bigint (int)
+order_timestamp: timestamp (dt)
+total_amount_earned: double precision (flt)
+Table name = 'merchant_details'
+category: text (str)
+id: bigint (int)
+name: text (str)
+zipcode: bigint (int)
+
+Code:
+/* Question:
+For each day, you have been asked to find a merchant who earned the most money on the day before.
+Before comparing totals between merchants, round the total amounts to the nearest 2 decimal places.
+Output should include date in format 'YYYY-MM-DD',
+and the merchant's name but only for days where data from the previous day is available.
+Note in the case of multiple merchants having the same highest amount,
+your output should include all the names in different rows. */
+
+/* Output:
+date (YYYY-MM-DD), merchant name (all in different rows) */
+
+/* Preview data */
+SELECT * FROM order_details LIMIT 5;
+SELECT * FROM merchant_details LIMIT 5;
+
+/* Check nulls, rows 
+Nulls: order(0), merchant(0) 
+Rows: order(52), merchant(7) */
+SELECT
+    SUM(CASE WHEN customer_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN merchant_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN n_items IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN order_timestamp IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN total_amount_earned IS NULL THEN 1 ELSE 0 END) AS col6,
+    COUNT(*) AS total_rows
+FROM order_details;
+
+SELECT
+    SUM(CASE WHEN category IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN name IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN zipcode IS NULL THEN 1 ELSE 0 END) AS col1,
+    COUNT(*) AS total_rows
+FROM merchant_details;
+
+/* Iteration */
+-- Join order and merchant tables
+-- Convert order_timestamp table to date format (YYYY-MM-DD)
+-- Sum total_amount_earned and round to 2 decimal places for each merchant and date
+-- Use LAG() to find previous day earnings based on merchant name
+WITH MerchantOrderEarnings AS (
+    SELECT 
+        od.order_timestamp::date AS date,
+        md.name AS merchant_name,
+        ROUND(SUM(od.total_amount_earned)::numeric, 2) 
+            AS total_earnings,
+        LAG(ROUND(SUM(od.total_amount_earned)::numeric, 2)) OVER(PARTITION BY md.name) 
+            AS previous_day_earnings
+    FROM order_details AS od
+    JOIN merchant_details AS md
+        ON od.merchant_id = md.id
+    GROUP BY 
+        date,
+        merchant_name
+    ORDER BY 
+        merchant_name,
+        date
+),
+DatesHighestPreviousDayEarnings AS (
+    -- For each date, find the highest earnings from the previous day
+    -- Don't include dates where data from the previous day is not available
+    SELECT 
+        date,
+        MAX(previous_day_earnings) AS highest_earnings_of_previous_day
+    FROM MerchantOrderEarnings
+    GROUP BY
+        date
+    HAVING MAX(previous_day_earnings) > 0
+)
+-- Join MerchantOrderEarnings and DatesHighestPreviousDayEarnings tables
+-- Match by date and earnings 
+-- Output date and merchant name and order by date
+SELECT
+    moe.date,
+    moe.merchant_name
+FROM MerchantOrderEarnings AS moe
+JOIN DatesHighestPreviousDayEarnings AS dhpde 
+    ON dhpde.date = moe.date
+    AND dhpde.highest_earnings_of_previous_day = moe.previous_day_earnings
+ORDER BY moe.date;
+
+Notes:
+- When performing windows functions, can't use alias columns but can insert calculated columns,
+  and don't necessarily have to ORDER BY in the window function, can ORDER BY overall in the query
+  ex. SELECT 
+        od.order_timestamp::date AS date,
+        md.name AS merchant_name,
+        ROUND(SUM(od.total_amount_earned)::numeric, 2) 
+            AS total_earnings,
+        LAG(ROUND(SUM(od.total_amount_earned)::numeric, 2)) OVER(PARTITION BY md.name) 
+            AS previous_day_earnings
+    FROM order_details AS od
+    JOIN merchant_details AS md
+        ON od.merchant_id = md.id
+    GROUP BY 
+        date,
+        merchant_name
+    ORDER BY 
+        merchant_name,
+        date;
+- Matching values from two different tables, use inner join,
+  if trying to keep values from one table and match to the other, use left join
+- When performing aggregation functions, can use the HAVING clause to filter out null values
+  ex. SELECT 
+          date,
+          MAX(previous_day_earnings) AS highest_earnings_of_previous_day
+      FROM MerchantOrderEarnings
+      GROUP BY
+          date
+      HAVING MAX(previous_day_earnings) > 0;
+
+############################
