@@ -21,31 +21,33 @@ Notes:
 ############################
 
 SQL - Code Format:
-/* Question: */
-/* Output: */
+-- Question:
 
-/* SELECT to preview data */
+-- Output:
 
-/* Check null values and total rows */
+-- Preview data:
 
-/* Iteration */
+-- Check nulls and rows:
+-- Nulls -
+-- Rows -
+
+-- Iteration:
 
 ############################
 
 R & Python - Code Format:
 # Question:
+
 # Output:
 
-# Import libraries
+# Import libraries:
 
-# Load and preview data
+# Load and preview data:
 
-# Check datatypes
+# Check datatypes, nulls, rows:
 
-# Check for nulls
+# Iteration:
 
-# Iteration
-
-# Result
+# Result:
 
 ############################
