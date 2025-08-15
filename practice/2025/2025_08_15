@@ -1,0 +1,321 @@
+Date: 08/15/2025
+
+############################
+
+Website:
+StrataScratch - ID 2010
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Twitch - Top Streamers
+List the top 3 users who accumulated the most sessions. 
+Include only the user who had more streaming sessions than viewing. 
+Return the user_id, number of streaming sessions, and number of viewing sessions.
+
+Data Dictionary:
+Table name = 'twitch_sessions'
+user_id: numeric (int)
+session_id: numeric (int)
+session_start: POSIXct, POSIXt (dt)
+session_type: character (str)
+
+Code:
+Solution #1
+# Question:
+# List the top 3 users who accumulated the most sessions.
+# Include only the user who had more streaming sessions than viewing.
+# Return the user_id, number of streaming sessions, and number of viewing sessions.
+
+# Output:
+# user_id (top 3 and stream > view), number of streaming sessions, number of viewing sessions
+
+# Import libraries
+#install.package(tidyverse)
+library(tidyverse)
+
+# Load and preview data
+#twitch_sessions <- read_csv('twitch_sessions.csv')
+df <- data.frame(twitch_sessions)
+head(df, 5)
+
+# Check datatypes, nulls, rows
+# Nulls: 0
+# Rows: 19
+data.frame(lapply(df, class))
+colSums(is.na(df))
+nrow(df)
+
+# Iteration
+result_df <- df %>%
+    group_by(user_id) %>%
+    summarise(
+        number_of_streaming_sessions = sum(session_type == 'streamer'),                 # Count streams
+        number_of_viewing_sessions = sum(session_type == 'viewer'),                     # Count views
+        total_sessions = (number_of_streaming_sessions + number_of_viewing_sessions)    # Sum total sessions
+    ) %>%
+    ungroup() %>%                                                                       # Preserve DataFrame
+    filter(number_of_streaming_sessions > number_of_viewing_sessions) %>%               # Filter for
+    mutate(                                                                             # streams > views
+        session_ranking = dense_rank(desc(total_sessions))                              # Rank total sessions
+    ) %>%
+    filter(session_ranking <= 3) %>%                                                    # Filter for top 3
+    arrange(session_ranking) %>%                                                        # Arrange rank ASC
+    select(user_id, number_of_streaming_sessions, number_of_viewing_sessions)           # Select columns
+
+# Result
+result_df
+
+Notes:
+- Managed to figure out the whole problem by thinking in terms of SQL functions
+
+############################
+
+Website:
+StrataScratch - ID 2048
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Uber - Percentage Of Revenue Loss
+For each service, calculate the percentage of incomplete orders along with the percentage of revenue loss from incomplete orders relative to total revenue.
+Your output should include:
+•  The name of the service
+•  The percentage of incomplete orders
+•  The percentage of revenue loss from incomplete orders
+
+Data Dictionary:
+Table name = 'uber_orders'
+order_date: datetime64 (dt)
+number_of_orders: int64 (int)
+status_of_order: object (str)
+monetary_value: float64 (flt)
+service_name: object (str)
+
+Code:
+Solution #1 (Two pass approach)
+# Question:
+# For each service, calculate the percentage of incomplete orders 
+# along with the percentage of revenue loss from incomplete orders relative to tatal revenue.
+# Output name of service, percentage of incomplete orders, percentage of revenue loss from incomplete orders
+
+# Output:
+# name of service, percentage of incomplete orders, percentage of revenue loss from incomplete orders
+# output type should be DataFrame
+
+# Import libraries
+import pandas as pd
+
+# Load and preview data
+#uber_orders = pd.read_csv('uber_orders.csv')
+df = pd.DataFrame(uber_orders)
+df.head(5)
+
+# Check datatypes, nulls, rows
+# Nulls: monetary_value(133)
+# Rows 3210
+#df.info()
+#df.isna().sum()
+
+# Filter for status of orders that are not 'Completed' 
+incomplete_orders_df = df[
+    df['status_of_order'] != 'Completed'
+].copy()
+
+# For each service name, sum number of orders and sum monetary value for incomplete orders
+incomplete_orders_df = (
+    incomplete_orders_df.groupby('service_name')
+    .agg({
+        'number_of_orders': 'sum',
+        'monetary_value': 'sum'})
+    .rename(columns={'number_of_orders': 'total_incomplete_orders',
+                     'monetary_value': 'total_revenue_loss'})
+    .reset_index()
+)
+
+# For each service name, sum number of orders and sum monetary value for all orders
+total_orders_df = (
+    df.groupby('service_name')
+    .agg({
+        'number_of_orders': 'sum',
+        'monetary_value': 'sum'})
+    .rename(columns={'number_of_orders': 'total_orders',
+                     'monetary_value': 'total_monetary_value'})
+    .reset_index()
+)
+
+# Merge incomplete orders and total orders DataFrames
+merged_df = pd.merge(incomplete_orders_df, total_orders_df, on='service_name', how='inner')
+
+# Create a copy of merged_df to instantiate to result_df 
+result_df = merged_df.copy()
+
+# Calculate percentage of incomplete orders
+result_df['percentage_incomplete_orders'] = (
+    round((result_df['total_incomplete_orders'] / result_df['total_orders']) * 100, 2)
+)
+
+# Calculate percentage of revenue loss from incomplete orders
+result_df['percentage_revenue_loss_from_incomplete_orders'] = (
+    round((result_df['total_revenue_loss'] / result_df['total_monetary_value']) * 100, 2)
+)
+
+# Select relevant columns 
+result_df = result_df[['service_name', 'percentage_incomplete_orders', 'percentage_revenue_loss_from_incomplete_orders']]
+
+# Result
+result_df
+
+Solution #2 (single DataFrame pass approach)
+"""
+# Single pass calculation
+result_df = uber_orders.groupby('service_name').agg(
+    total_orders=('number_of_orders', 'sum'),
+    total_revenue=('monetary_value', 'sum'),
+    incomplete_orders=('number_of_orders', lambda x: x[uber_orders.loc[x.index, 'status_of_order'] != 'Completed'].sum()),
+    lost_revenue=('monetary_value', lambda x: x[uber_orders.loc[x.index, 'status_of_order'] != 'Completed'].sum())
+).reset_index()
+
+# Handle potential zero division and calculate percentages
+result_df['percentage_incomplete_orders'] = result_df.apply(
+    lambda row: round((row['incomplete_orders'] / row['total_orders']) * 100, 2) if row['total_orders'] > 0 else 0,
+    axis=1
+)
+result_df['percentage_revenue_loss'] = result_df.apply(
+    lambda row: round((row['lost_revenue'] / row['total_revenue']) * 100, 2) if row['total_revenue'] > 0 else 0,
+    axis=1
+)
+
+# Select the final columns
+result_df = result_df[['service_name', 'percentage_incomplete_orders', 'percentage_revenue_loss']]
+
+# Result
+result_df
+"""
+
+Notes:
+- Initially used the wrong column 'status_of_order' as an aggregation to count rather than
+  use 'number_of_orders' as an aggregation to sum for answering the problem
+- Two pass approach is easier to understand but one pass approach is more efficient and performant
+- Using lambda x in agg() function can be used to filter for conditions
+  ex. lambda x: x[uber_orders.loc[x.index, 'status_of_order'] != 'Completed']
+  ex. result_df = uber_orders.groupby('service_name').agg(
+      total_orders=('number_of_orders', 'sum'),
+      total_revenue=('monetary_value', 'sum'),
+      incomplete_orders=('number_of_orders', lambda x: x[uber_orders.loc[x.index, 'status_of_order'] != 'Completed'].sum()),
+      lost_revenue=('monetary_value', lambda x: x[uber_orders.loc[x.index, 'status_of_order'] != 'Completed'].sum())
+      ).reset_index()
+- To handle potential zero division when calculating percentages
+  use apply(), lambda row:, combined with an if else statement
+  ex. result_df['percentage_incomplete_orders'] = result_df.apply(
+      lambda row: round((row['incomplete_orders'] / row['total_orders']) * 100, 2) if row['total_orders'] > 0 else 0,
+      axis=1
+      )
+
+############################
+
+Website:
+StrataScratch - ID 2103
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Google - Reviewed flags of top videos
+For the video (or videos) that received the most user flags, how many of these flags were reviewed by YouTube? 
+Output the video ID and the corresponding number of reviewed flags.
+
+Data Dictionary:
+Table name = 'user_flags'
+flag_id: text (str)
+user_firstname: text (str)
+user_lastname: text (str)
+video_id: text (str)
+Table name = 'flag_review'
+flag_id: text (str)
+reviewed_by_yt: boolean (bool)
+reviewed_date: date (dt)
+reviewed_outcome: text (str)
+
+Code:
+Solution #1
+-- Question:
+-- For the video or videos that recieved the most user flags,
+-- how many of these flags were reviewed by YouTube?
+-- Output the video ID and the corresponding number of reviewed flags. 
+
+-- Output:
+-- video_id, number of reviewed flags 
+
+-- Preview data:
+SELECT * FROM user_flags LIMIT 5;
+SELECT * FROM flag_review LIMIT 5;
+
+-- Check nulls, rows:
+-- Nulls - user_flags: flag_id(4), user_firstname(3), user_lastname(3), video_id(1)
+--        flag_review: reviewed_date(9), reviewed_outcome(9) 
+-- Rows - user_flags: 29
+--       flag_review: 27 
+SELECT 
+    SUM(CASE WHEN flag_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN user_firstname IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN user_lastname IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN video_id IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM user_flags;
+
+SELECT
+    SUM(CASE WHEN flag_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN reviewed_by_yt IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN reviewed_date IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN reviewed_outcome IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM flag_review;
+
+-- Iteration:
+WITH VideoUserFlagCountRank AS (
+    -- Join user_flags and flag_review tables
+    -- Group by videos
+    -- Count number of user flags, count number of user flags reviewed by youtube
+    -- Rank the count of user flags in DESC order and account for ties
+    SELECT 
+        uf.video_id,
+        COUNT(fr.flag_id) AS user_flag_count,
+        COUNT(fr.flag_id) FILTER (WHERE fr.reviewed_by_yt = 'TRUE') AS youtube_reviewed_flag_count,
+        DENSE_RANK() OVER(ORDER BY COUNT(fr.flag_id) DESC) AS flag_rank
+    FROM user_flags AS uf
+    JOIN flag_review AS fr
+        ON uf.flag_id = fr.flag_id
+    GROUP BY uf.video_id
+)
+-- Filter for videos that received the most user flags by ranking
+-- Select relevant columns to output
+SELECT 
+    video_id,
+    youtube_reviewed_flag_count
+FROM VideoUserFlagCountRank
+WHERE flag_rank = 1;
+
+Notes:
+- Instead of COUNT(CASE WHEN 'col2' = 'value' THEN 'col1' END),
+  can use COUNT('col1') FILTER (WHERE 'col2' = 'condition') in PostgresSQL
+  ex. COUNT(CASE WHEN fr.reviewed_by_yt = 'TRUE' THEN fr.flag_id END)
+  ex. COUNT(fr.flag_id) FILTER (WHERE fr.reviewed_by_yt = 'TRUE')
+- In different SQL dialects, when filtering for booleans in WHERE clause,
+  can just do WHERE 'col' = TRUE rather than WHERE 'col' = 'TRUE'
+  ex. COUNT(fr.flag_id) FILTER (WHERE fr.reviewed_by_yt = TRUE)
+- Thought about using MAX() as a subquery in the WHERE clause,
+  but using windows functions seems more feasible, performant and efficient.
+  
+############################
