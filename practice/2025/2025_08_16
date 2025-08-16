@@ -1,0 +1,351 @@
+Date: 08/16/2025
+
+############################
+
+Website:
+StrataScratch - ID 2014
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Postmates - Hour With The Highest Order Volume
+Which hour of the day has the highest average number of orders across all recorded days? 
+Your output should include the hour that satisfies this condition and the corresponding average number of orders per hour. 
+The "order volume" refers to the count of orders placed within each hour of the day.
+
+Data Dictionary:
+Table name = 'postmates_orders'
+id: numeric (num)
+customer_id: numeric (num)
+courier_id: numeric (num)
+seller_id: numeric (num)
+city_id: numeric (num)
+order_timestamp_utc: POSIXct, POSIXt
+amount: numeric (num)
+
+Code:
+Solution #1
+# Question:
+# Which hour of the day has the highest average number of orders across all recorded days?
+# Output should include the hour that satisfies this condition and
+# the corresponding average number of orders per hour.
+# The "order volume" refers to the count of orders placed within each hour of the day.
+
+# Output:
+# hour, average number of orders per hour 
+# (which hour of day has highest average number of orders across all recorded days)
+
+# Import libraries:
+#install.package(tidyverse)
+#install.package(lubridate)
+library(tidyverse)
+library(lubridate)
+
+# Load and preview data:
+#postmates_orders <- read_csv('postmates_orders.csv')
+df <- data.frame(postmates_orders)
+head(df ,5)
+
+# Check datatypes, nulls, rows:
+# Nulls - 0
+# Rows - 20
+data.frame(lapply(df, class))
+colSums(is.na(df))
+nrow(df)
+
+# Iteration:
+result_df <- df %>%
+    mutate(
+        date = date(order_timestamp_utc),                                  # Create date column from timestamp
+        hour = hour(order_timestamp_utc)                                   # Create hour column from timestamp
+    ) %>%
+    group_by(date, hour) %>%                                               # Groupby date, hour
+    summarise(
+        order_volume = n_distinct(id), .groups = "drop"                    # Count distinct number of orders
+    ) %>%    
+    group_by(hour) %>%                                                     # Groupby hour
+    summarise(
+        average_number_of_orders = mean(order_volume), .groups = "drop"    # Calculate average orders
+    ) %>%    
+    mutate(
+        ranking = dense_rank(desc(average_number_of_orders))               # Rank average orders by DESC
+    ) %>%
+    filter(ranking == 1) %>%                                               # Filter for highest order rank
+    select(hour, average_number_of_orders) %>%                             # Select relvant columns
+    arrange(hour)                                                          # Arrange hour ASC order
+
+# Result
+result_df
+    
+Notes:
+- Instead of having a separate line for ungroup() after a summarise() function,
+  can use .groups = "drop" in the summarise() function.
+  ex. df %>%
+          group_by(hour) %>%
+          summarise(
+              average_number_of_orders = mean(order_volume), .groups = "drop"
+          )
+- An alternative to using rank function would be to use slice_max(),
+  more concise and efficient method.
+  ex. slice_max(order_by = col, n = 1, with_ties = TRUE)
+  ex. df %>%
+          slice_max(
+              order_by = average_number_of_orders, n = 1, with_ties = TRUE
+          )
+
+############################
+
+Website:
+StrataScratch - ID 2050
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Workday - Daily Active Users
+Find the average daily active users for January 2021 for each account. 
+Your output should have account_id and the average daily count for that account.
+
+Data Dictionary:
+Table name = 'sf_events'
+record_date: datetime64 (dt)
+account_id: object (str)
+user_id: object (str)
+
+Code:
+Solution #1
+# Question:
+# Find the average daily active users for January 2021 for each account.
+# Output should have account_id and average daily count for that account.
+
+# Output:
+# account id, average daily count 
+# (for Jan 2021)
+
+# Import libraries:
+import pandas as pd
+
+# Load and preview data:
+#sf_events = pd.read_csv('sf_events.csv')
+df = pd.DataFrame(sf_events)
+df.head(5)
+
+# Check datatypes, nulls, rows:
+# Nulls - 0
+# Rows - 23
+#df.info()
+#df.isna().sum()
+
+# Iteration:
+
+# Filter for year 2021 and month 1 (January)
+filtered_df = df[
+    (df['record_date'].dt.year == 2021) &
+    (df['record_date'].dt.month == 1)
+].copy()
+
+# Calculate unique daily user count for each date and account id
+result_df = (
+    filtered_df.groupby(['record_date', 'account_id'])['user_id']
+    .nunique()
+    .reset_index(name='daily_user_count')
+)
+
+# Calculate average user count for each account id
+result_df = (
+    result_df.groupby('account_id')['daily_user_count']    
+    .mean()
+    .reset_index(name='average_user_count')
+    .sort_values(by='account_id', ascending=True)          # Sort account_id in ASC order
+)
+
+# Result
+result_df
+
+Notes:
+- While count() can work for aggregation, 
+  the use of nunique() may also be useful for distinct id columns
+  ex. result_df = (
+          filtered_df.groupby(['record_date', 'account_id'])['user_id']
+          .nunique()
+          .reset_index(name='daily_user_count')
+      )
+  ex. result_df = (
+          filtered_df.groupby(['record_date', 'account_id'])['user_id']
+          .count()
+          .reset_index(name='daily_user_count')
+      )
+  
+############################
+
+Website:
+StrataScratch - ID 2105
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Google - Videos Removed on Latest Date
+
+Data Dictionary:
+Table name = 'user_flags'
+flag_id: text (str)
+user_firstname: text (str)
+user_lastname: text (str)
+video_id: text (str)
+Table name = 'flag_review'
+flag_id: text (str)
+reviewed_by_yt: boolean (bool)
+reviewed_date: date (d)
+reviewed_outcome: text (str)
+
+Code:
+Attempt #1 
+(misread the part of the problem that says to count videos "removed on that date (by any user),
+ attempt incorrectly restricts the count to a single user's activity) 
+-- Question:
+-- For each unique user in the dataset, find the latest date when their flags got reviewed.
+-- Then, find total number of distinct videos that were removed on that that date (by any user).
+-- Output the first and last name of the user (in two columns), the date and the number of removed videos.
+-- Only include these users who had at least one of their flags reviewed by Youtube.
+-- If no videos got removed on a certain date, output 0.
+
+-- Output:
+-- user_firstname, user_lastname, reviewed_date (latest date), number of removed videos (distinct)
+-- (only include uesrs who had at least one of their flags reviewed by Youtube)
+-- (if no videos got removed on a date, output 0)
+
+-- Preview data:
+SELECT * FROM user_flags LIMIT 5;
+SELECT * FROM flag_review LIMIT 5;
+
+-- Check nulls, rows:
+-- Nulls - user_flags: flag_id(4), user_firstname(3), user_lastname(3), video_id(1)
+--       - flag_review: reviewed_date(9), reviewed_outcome(9)
+-- Rows - user_flags: 29
+--      - flag_review: 27
+SELECT
+    SUM(CASE WHEN flag_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN user_firstname IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN user_lastname IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN video_id IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM user_flags;
+
+SELECT
+    SUM(CASE WHEN flag_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN reviewed_by_yt IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN reviewed_date IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN reviewed_outcome IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM flag_review;
+
+-- Iteration:
+WITH UserFlagsReview AS (
+    -- Join user_flags and flag_review tables
+    -- Filter for where flags were reviewed by youtube
+    -- Only include users who had at least one of their flags reviewed by Youtube
+    SELECT 
+        uf.user_firstname,
+        uf.user_lastname,
+        uf.video_id,
+        fr.reviewed_date,
+        fr.reviewed_outcome
+    FROM user_flags AS uf
+    JOIN flag_review AS fr
+        ON uf.flag_id = fr.flag_id
+    WHERE fr.reviewed_by_yt = TRUE
+),
+LatestDateFlagsReviewed AS (
+    -- For each unique user in the dataset, find the latest date when their flags got reviewed.
+    SELECT 
+        user_firstname,
+        user_lastname,
+        MAX(reviewed_date) AS latest_date
+    FROM UserFlagsReview
+    GROUP BY 
+        user_firstname,
+        user_lastname
+)
+-- Find total number of distinct videos that were removed on that that date (by any user).
+-- If no videos got removed on a certain date, output 0.
+SELECT
+    ufr.user_firstname,
+    ufr.user_lastname,
+    ldfr.latest_date,
+    COALESCE(COUNT(DISTINCT video_id), 0) AS removed_videos_count
+FROM UserFlagsReview AS ufr
+JOIN LatestDateFlagsReviewed AS ldfr
+    ON ufr.user_firstname = ldfr.user_firstname
+    AND ufr.user_lastname = ldfr.user_lastname
+    AND ufr.reviewed_date = ldfr.latest_date
+WHERE ufr.reviewed_outcome = 'REMOVED'
+GROUP BY
+    ufr.user_firstname,
+    ufr.user_lastname,
+    ldfr.latest_date
+ORDER BY 
+    ufr.user_firstname,
+    ufr.user_lastname;
+
+Solution #1 (revised approach to account for missing users and counts)
+WITH LatestDateFlagsReviewed AS (
+    -- Join user_flags and flag_review tables.
+    -- Filter for where flags were reviewed by youtube.
+    -- For each unique user in the dataset, find the latest date when their flags got reviewed.
+    SELECT 
+        uf.user_firstname,
+        uf.user_lastname,
+        MAX(reviewed_date) AS latest_date
+    FROM user_flags AS uf
+    JOIN flag_review AS fr
+        ON uf.flag_id = fr.flag_id
+    WHERE fr.reviewed_by_yt = TRUE
+    GROUP BY 
+        uf.user_firstname,
+        uf.user_lastname
+),
+DatesVideosRemovedCount AS (
+    -- Find total number of distinct videos that were removed on that that date (by any user).
+    SELECT 
+        fr.reviewed_date,
+        COUNT(DISTINCT uf.video_id) AS removed_videos_count
+    FROM user_flags AS uf
+    JOIN flag_review AS fr
+        ON uf.flag_id = fr.flag_id
+    WHERE fr.reviewed_outcome = 'REMOVED'
+    GROUP BY fr.reviewed_date
+)
+-- Only include users who had at least one of their flags reviewed by Youtube
+-- If no videos got removed on a certain date, output 0.
+SELECT
+    ldfr.user_firstname,
+    ldfr.user_lastname,
+    ldfr.latest_date,
+    COALESCE(dvrc.removed_videos_count, 0) AS removed_videos_count
+FROM LatestDateFlagsReviewed AS ldfr
+LEFT JOIN DatesVideosRemovedCount AS dvrc
+    ON ldfr.latest_date = dvrc.reviewed_date
+ORDER BY
+    ldfr.user_firstname,
+    ldfr.user_lastname;
+
+Notes:
+- The key part of the problem that I missed was (by an user) from
+  "Then, find total number of distinct videos that were removed on that date (by any user)."
+  Only included single unique users rather than account for users all that had videos removed on a similar date.
+- Overall difficulty wasn't as hard but few missteps in my approach.
+- Still have to work on distinctions between LEFT JOIN AND INNER JOIN for what values get outputted.
+  Some days it seems intuitive, other days it feels foreign. Have to practice more.
+  
+############################
