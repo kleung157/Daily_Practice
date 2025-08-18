@@ -1,0 +1,383 @@
+Date: 08/18/2025
+
+############################
+
+Website:
+StrataScratch - ID
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Postmates - City With The Highest and Lowest Income Variance
+What cities recorded the largest growth and biggest drop in order amount between March 11, 2019, and April 11, 2019. 
+Just compare order amounts on those two dates. 
+Your output should include the names of the cities and the amount of growth/drop.
+
+Data Dictionary:
+Table name = 'postmates_orders'
+id: numeric (num)
+customer_id: numeric (num)
+courier_id: numeric (num)
+seller_id: numeric (num)
+city_id: numeric (num)
+order_timestamp_utc: POSIXct, POSIXt (dt)
+amount: numeric (num)
+Table name = 'postmakes_markets'
+id: numeric (num)
+name: character (str)
+timezone: character (str)
+
+Code:
+Solution #1
+# Question:
+# What cities recorded the largest growth and biggest drop in order amount between Mar 11 and Apr 11 2019?
+# Just compare order amounts on those two dates.
+# Output should include names of the cities and the amount of growth/drop
+
+# Output:
+# city name, amount of growth drop
+
+# Import libraries:
+#install.packages(tidyverse)
+#install.packages(lubridate)
+library(tidyverse)
+library(lubridate)
+
+# Load and preview data:
+#postmates_orders <- read_csv('postmates_orders.csv')
+#postmates_markets <- read_csv('postmates_markets.csv')
+df <- data.frame(postmates_orders)
+df2 <- data.frame(postmates_markets)
+head(df, 5)
+head(df2, 5)
+
+# Check datatypes, nulls, rows:
+# Nulls - orders(0)
+#       - markets(0)
+# Rows - orders(20)
+#        markets(4)
+data.frame(lapply(df, class))
+data.frame(lapply(df2, class))
+colSums(is.na(df))
+colSums(is.na(df2))
+nrow(df)
+nrow(df2)
+
+# Iteration:
+result_df <- inner_join(df, df2, by=c("city_id" = "id")) %>%             # Join orders and markets DataFrames
+    mutate(date = as.character(date(order_timestamp_utc))) %>%           # Create date column from timestamp
+    filter(date %in% c('2019-03-11', '2019-04-11')) %>%                  # Filter for Mar 11, Apr 11 2019
+    group_by(date, name) %>%
+    summarise(total_amount = sum(amount), .groups = "drop") %>%          # Sum amount for date, city
+    group_by(name) %>%                                                   
+    mutate(amount_growth_drop = total_amount - lag(total_amount)) %>%    # Calculate growth drop for city
+    ungroup() %>%                                                        # Preserve DataFrame
+    filter(date == '2019-04-11') %>%                                     # Filter for most recent date
+    select(city_name = name, amount_growth_drop) %>%                     # Select relevant columns, rename
+    arrange(city_name)                                                   # Arrange ASC order
+
+# Find the cities that had largest growth and biggest drop in order amount
+largest_growth_city <- result_df %>%
+    slice_max(amount_growth_drop)
+biggest_drop_city <- result_df %>%
+    slice_min(amount_growth_drop)
+
+# Combine results into a single DataFrame
+result_df <- bind_rows(largest_growth_city, biggest_drop_city)
+
+# Result:
+result_df
+
+Notes:
+- For inner_join between two DataFrames with different columns names
+  ex. result_df <- inner_join(df, df2, by = c("id1" = "id2")
+  For the same column names
+  ex. result_df <- inner_join(df, df2, by = "id")
+- For filtering with %in%
+  ex. df %>%
+          filter(col %in% c('value', 'value2'))
+- Conversion of timestamp to date, normally can use date() or as.Date(),
+  on StrataScratch have to convert to a character or end up with numbers
+  ex. df %>%
+          mutate('new_col_name' = as.character(date('timestamp_col')))
+- Instead of using ungroup(), can use .groups = "drop") in the summarise function
+  ex. summarise('new_col_name' = sum('col'), .groups = "drop")
+- Similar to SQL's LAG() function is lag() in R dplyr
+  ex. df %>%
+           mutate(amount_growth_drop = total_amount - lag(total_amount))
+- Use slice_max() or slice_min() to find the highest or lowest values in a DataFrame
+  ex. largest_growth_city <- result_df %>%
+          slice_max(amount_growth_drop)
+      biggest_drop_city <- result_df %>%
+          slice_min(amount_growth_drop)
+- The bind_rows() function can bind multiple rows together from different named variables
+  ex. result_df <- bind_rows(largest_growth_city, biggest_drop_city)
+- Similar to SQL's COALESCE() function is coalesce() in R dplyr
+  ex. df %>% 
+          mutate(new_col_name = coalesce(value_a, value_b)
+- Forgetting a few basic functions, have to remember to think in terms of SQL functions
+  then apply R rules to them
+
+############################
+
+Website:
+StrataScratch - ID 2055
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+LinkedIn - Average Customers Per City
+Write a query that will return all cities with more customers than the average number of  customers of all cities that have at least one customer. 
+For each such city, return the country name,  the city name, and the number of customers
+
+Data Dictionary:
+Table name = 'linkedin_customers'
+id: int64 (int)
+business_name: object (str)
+city_id: int64 (int)
+Table name = 'linkedin_city'
+id: int64 (int)
+city_name: object (str)
+country_id: int64 (int)
+Table name = 'linkedin_country'
+id: int64 (int)
+country_name: object (str)
+
+Code:
+Solution #1
+# Question: 
+# Return all cities with more customers than the average number of customers of all cities that have
+# at least one customer.
+# For each such city, return the country name, the city name, and the number of customers.
+
+# Output:
+# country name, city name, number of customers
+
+# Import libraries:
+import pandas as pd
+
+# Load and preview data:
+#linkedin_customers = pd.read_csv('linkedin_customers.csv')
+#linkedin_city = pd.read_csv('linkedin_city.csv')
+#linkedin_country = pd.read_csv('linkedin_country.csv')
+df = pd.DataFrame(linkedin_customers)
+df2 = pd.DataFrame(linkedin_city)
+df3 = pd.DataFrame(linkedin_country)
+df.head(5)
+df2.head(5)
+df3.head(5)
+
+# Check datatypes, nulls, rows:
+# Nulls - customers: 0
+#       - city: 0
+#       - country: 0
+# Rows - customers: 9
+#      - city: 4
+#      - country: 3
+#df.info()
+#df.isna().sum()
+#df2.info()
+#df2.isna().sum()
+#df3.info()
+#df3.isna().sum()
+
+# Iteration:
+# Merge customer, city and country DataFrames together
+merged_df = pd.merge(df, df2, left_on='city_id', right_on='id', how='inner')
+merged_df = pd.merge(merged_df, df3, left_on='country_id', right_on='id', how='inner')
+
+
+# Count number of customers per country and city
+result_df = (
+    merged_df.groupby(['country_name', 'city_name'])['id_x']
+    .count()
+    .reset_index(name='number_of_customers')
+)
+
+# Filter for all cities with more customers than the average number of customers of all cities 
+# that have at least one customer.
+result_df = result_df[
+    (result_df['number_of_customers'] >= 1) &
+    (result_df['number_of_customers'] > result_df['number_of_customers'].mean())
+]
+
+# Result:
+result_df
+
+Notes:
+- Question wording was a bit difficult to interpret, just kept rereading, eventually figured it out as a filter
+  Tried to create a new column with the mean in all rows, not necessary if it the filter can be used.
+  
+############################
+
+Website:
+StrataScratch - ID 2111
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Shopify - Sales Growth per Territory
+Write a query to return Territory and corresponding Sales Growth. 
+Compare growth between periods Q4-2021 vs Q3-2021.
+If Territory (say T123) has Sales worth $100 in Q3-2021 and Sales worth $110 in Q4-2021, then the Sales Growth will be 10% [ i.e. = ((110 - 100)/100) * 100 ]
+Output the ID of the Territory and the Sales Growth. 
+Only output these territories that had any sales in both quarters.
+
+Data Dictionary:
+Table name = 'fct_customer_sales'
+cust_id: text (str)
+order_date: date (d)
+order_id: text (str)
+order_value: bigint (int)
+prod_sku_id: text (str)
+Table name = 'map_customer_territory'
+cust_id: text (str)
+territory_id: text (str)
+
+Code:
+Solution #1 (two scan approach, more readable, less optimal)
+-- Question:
+-- Return territory and corresponding sales growth.
+-- Compare growth between periods Q4-2021 vs Q3-2021.
+-- If territory (T123) has sales worth $100 in Q3-2021 and sales worth $110 in Q4-2021,
+-- then the sales growth will be 10% [ i.e. ((110 - 100) / 100) * 100 ]
+-- Output ID of territory and sales growth.
+-- Only output these territories that had any sales in both quarters.
+
+-- Output:
+-- territory_id, sales_growth (only output these territories that had any sales in both quarters)
+
+-- Preview data:
+SELECT * FROM fct_customer_sales LIMIT 5;
+SELECT * FROM map_customer_territory LIMIT 5;
+
+-- Check nulls, rows:
+-- Nulls - sales(0)
+--       - territory(0)
+-- Rows - sales(78)
+--      - territory(15)
+SELECT
+    SUM(CASE WHEN cust_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN order_date IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN order_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN order_value IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN prod_sku_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    COUNT(*) AS total_rows
+FROM fct_customer_sales;
+
+SELECT
+    SUM(CASE WHEN cust_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN territory_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    COUNT(*) AS total_rows
+FROM map_customer_territory;
+
+-- Iteration:
+WITH quarter_three AS (
+    -- Join sales and territory table.
+    -- Filter for period Q3-2021.
+    -- Sum order value for total sales
+    SELECT
+        TO_CHAR(fcs.order_date, 'Q-YYYY') AS period,
+        mct.territory_id,
+        SUM(fcs.order_value) AS total_order_value
+    FROM fct_customer_sales AS fcs
+    JOIN map_customer_territory AS mct
+        ON fcs.cust_id = mct.cust_id
+    WHERE EXTRACT(QUARTER FROM fcs.order_date) = 3
+        AND EXTRACT(YEAR FROM fcs.order_date) = 2021
+    GROUP BY
+        TO_CHAR(fcs.order_date, 'Q-YYYY'),
+        mct.territory_id
+),
+quarter_four AS (
+-- Join sales and territory tables.
+-- Filter for period Q4-2021.
+-- Sum order value for total sales.
+    SELECT
+        TO_CHAR(fcs.order_date, 'Q-YYYY') AS period,
+        mct.territory_id,
+        SUM(fcs.order_value) AS total_order_value
+    FROM fct_customer_sales AS fcs
+    JOIN map_customer_territory AS mct
+        ON fcs.cust_id = mct.cust_id
+    WHERE EXTRACT(QUARTER FROM fcs.order_date) = 4
+        AND EXTRACT(YEAR FROM fcs.order_date) = 2021
+    GROUP BY
+        TO_CHAR(fcs.order_date, 'Q-YYYY'),
+        mct.territory_id
+)
+-- Match territory_id between quarters three and four tables
+-- to show territories that had any sales in both quarters.
+-- Calculate sales growth, 
+-- sales_growth = (q4 order value - q3 order value) / (q3 order value)  * 100
+SELECT 
+    qt.territory_id,
+    ROUND(1.0 * ((qf.total_order_value - qt.total_order_value) / 
+        (qt.total_order_value)) * 100) || '%' AS sales_growth
+FROM quarter_three AS qt
+JOIN quarter_four AS qf
+    ON qt.territory_id = qf.territory_id
+ORDER BY qt.territory_id ASC;
+
+Solution #2 (single scan approach then pivot, more optimal)
+"""
+WITH QuarterlySales AS (
+    SELECT
+        mct.territory_id,
+        CASE
+            WHEN EXTRACT(YEAR FROM fcs.order_date) = 2021 AND EXTRACT(QUARTER FROM fcs.order_date) = 3 THEN 'Q3_2021'
+            WHEN EXTRACT(YEAR FROM fcs.order_date) = 2021 AND EXTRACT(QUARTER FROM fcs.order_date) = 4 THEN 'Q4_2021'
+            ELSE NULL
+        END AS quarter_period,
+        SUM(fcs.order_value) AS total_sales
+    FROM
+        fct_customer_sales AS fcs
+    INNER JOIN
+        map_customer_territory AS mct ON fcs.cust_id = mct.cust_id
+    WHERE
+        (EXTRACT(YEAR FROM fcs.order_date) = 2021 AND EXTRACT(QUARTER FROM fcs.order_date) IN (3, 4))
+    GROUP BY
+        mct.territory_id,
+        quarter_period
+),
+PivotedSales AS (
+    SELECT
+        territory_id,
+        SUM(CASE WHEN quarter_period = 'Q3_2021' THEN total_sales ELSE 0 END) AS Q3_Sales,
+        SUM(CASE WHEN quarter_period = 'Q4_2021' THEN total_sales ELSE 0 END) AS Q4_Sales
+    FROM
+        QuarterlySales
+    GROUP BY
+        territory_id
+)
+SELECT
+    ps.territory_id,
+    ((ps.Q4_Sales - ps.Q3_Sales)::NUMERIC / ps.Q3_Sales) * 100.0 AS SalesGrowth
+FROM
+    PivotedSales AS ps
+WHERE
+    ps.Q3_Sales IS NOT NULL AND ps.Q3_Sales > 0 AND -- Ensures Q3 sales exist and are not zero
+    ps.Q4_Sales IS NOT NULL -- Ensures Q4 sales exist
+ORDER BY
+    SalesGrowth DESC;
+"""
+
+Notes:
+- Originally thought of using CASE WHEN statements but the 
+  " Only output these territories that had any sales in both quarters."
+  part of the question had me think of inner joins to have separate CTEs for the periods/quarters.
+- For calculating sales_growth, had to recalculate a few times to make sure the percentages made sense.
+
+############################
