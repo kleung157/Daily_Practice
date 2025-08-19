@@ -1,0 +1,316 @@
+Date: 08/19/2025
+
+############################
+
+Website:
+StrataScratch - ID 2016
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Postmates - Pizza Partners
+Which partners have ‘pizza’ in their name and are located in Boston? 
+And what is the average order amount? 
+Output the partner name and the average order amount.
+
+Data Dictionary:
+Table name = 'postmates_orders'
+id: numeric (num)
+customer_id: numeric (num)
+courier_id: numeric (num)
+seller_id: numeric (num)
+city_id: numeric (num)
+order_timestamp_utc: POSIXct, POSIXt (dt)
+amount: numeric (num)
+Table name = 'postmates_markets'
+id: numeric (num)
+name: character (str)
+timezone: character (str)
+Table name = 'postmates_partners'
+id: numeric (num)
+name: character (str)
+category: character (str)
+
+Code:
+Solution #1
+# Question:
+# Which partners have 'pizza' in their name and are located in Boston?
+# What is the average order amount?
+# Output the partner name and the average order amount.
+
+# Output:
+# partner_name, average order amount 
+# ('pizza' in partner name and are located in Boston)
+
+# Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+# Load and preview data:
+#postmates_orders <- read_csv('postmates_orders.csv')
+#postmates_markets <- read_csv('postmates_markets.csv')
+#postmates_partners <- read_csv('postmates_partners.csv')
+df <- data.frame(postmates_orders)
+df2 <- data.frame(postmates_markets)
+df3 <- data.frame(postmates_partners)
+head(df, 5)
+head(df2, 5)
+head(df3, 5)
+
+# Check datatypes, nulls, rows:
+# Nulls - orders: 0
+#       - markets: 0
+#       - partners: 0
+# Rows - orders: 20
+#      - markets: 4
+#      - partners: 4
+data.frame(lapply(df, class))
+data.frame(lapply(df2, class))
+data.frame(lapply(df3, class))
+colSums(is.na(df))
+colSums(is.na(df2))
+colSums(is.na(df3))
+nrow(df)
+nrow(df2)
+nrow(df3)
+
+# Iteration:
+# Join orders, markets, and partners DataFrames.
+merged_df <- inner_join(df, df2, by = c("city_id" = "id"))
+
+result_df <- inner_join(merged_df, df3, by = c("seller_id" = "id")) %>%    
+    filter(str_detect(name.y, "(?i)pizza") & name.x == 'Boston') %>%       # Filter 'pizza' in partner name
+    group_by(name.x) %>%                                                   # and 'Boston' in market name.
+    summarise(average_order_amount = mean(amount), .groups = "drop") %>%   # Calculate average order amount.
+    rename(partner_name = name.x)                                          # Rename column.
+
+# Result:
+result_df
+
+Notes:
+- Can use grepl() similarly as a SQL WHERE ILIKE clause to find values with certain matching strings.
+  grep is a UNIX/Linux command.
+  ex. df %>% 
+          filter(grepl("pizza", name.y, ignore.case = TRUE))
+- Similarly can use str_detect() from stringr package of tidyverse
+  ex. df %>%
+          filter(str_detect(product, "(?i)apple"))    # for case insensitive, use (?i)
+  ex. df %>%
+          filter(str_detect(product, "Apple"))    # for case sensitive
+  ex. df %>%
+          mutate(is_phone = str_detect(product, "Phone|Galaxy|Pixel"))    # to match multiple strings
+
+############################
+
+Website:
+StrataScratch - ID 2060
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Ebay - Manager of the Largest Department
+Given a list of a company’s employees,  find the first and last names of all employees whose position contains the word “manager” 
+and who work in the largest department(s) — that is, departments with the highest number of employees. 
+If multiple departments share the same largest size, return managers from all such departments.
+
+Data Dictionary:
+Table name = 'az_employees'
+id: int64 (int)
+first_name: object (str)
+last_name: object (str)
+department_id: int64 (int)
+department_name: object (str)
+position: object (str)
+
+Code:
+Solution #1
+## Question:
+# Find the first and last names of all employees whose position contains "manager"
+# and who work in the largest department(s) - departments with the highest number of employees.
+# If multiple departments share same largest size, return managers from all such departments.
+
+## Output:
+# first_name, last_name
+# (position contains "manager", work in largest department, for department ties return all managers)
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#az_employees = pd.read_csv('az_employees.csv')
+df = pd.DataFrame(az_employees)
+df.head(5)
+
+## Check datatypes, nulls, rows:
+# Nulls - 0
+# Rows - 100
+#df.info()
+#df.isna().sum()
+
+## Iteration:
+# Calculate number of employees per department.
+departments_df = df.groupby('department_id')['id'].count().reset_index(name='number_of_employees')
+
+# Filter for employees whose position contains "manager".
+managers_df = df[
+    df['position'].str.contains('manager', case=False)
+].copy()
+
+# Filter for largest departments, departments with highest number of employees.
+largest_departments = departments_df[
+    departments_df['number_of_employees'] == departments_df['number_of_employees'].max()
+].copy()
+
+# Match department ids that are largest with managers that work in those departments with the same id.
+result_df = managers_df[
+    managers_df['department_id'].isin(largest_departments['department_id'])
+]
+
+# Select relevant columns (first and last name of employees).
+result_df = result_df[['first_name', 'last_name']]
+
+# Sort names by ASC order
+result_df = result_df.sort_values(by=['first_name', 'last_name'], ascending=True)
+
+## Result:
+result_df
+
+
+Notes:
+- To filter for case insensitive strings, use str.contains()
+  ex. filtered_df = df[
+          df['position'].str.contains('manager', case=False)
+      ].copy()
+
+############################
+
+Website:
+StrataScratch - ID 2112
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Shopify - Product Market Share
+Write a query to find the market share at the product brand level for each territory, for the Q4-2021 time period.
+Market share is defined as the number of orders of a certain product brand sold in a territory divided by the total number of orders sold in this territory.
+Output the ID of the territory, name of the product brand and the corresponding market share in percentages. 
+Only include these product brands that had at least one sale in a given territory.
+
+Data Dictionary:
+Table name = 'fct_customer_sales'
+cust_id: text (str)
+order_date: date (d)
+order_id: text (str)
+order_value: bigint (int)
+prod_sku_id: text (str)
+Table name = 'map_customer_territory'
+cust_id: text (str)
+territory_id: text (str)
+Table name = 'dim_product'
+market_name: text (str)
+prod_brand: text (str)
+prod_sku_id: text (str)
+prod_sku_name: text (str)
+
+Code:
+Solution #1
+-- Question:
+-- Find the market share at the product brand level for each territory, for the Q4-2021 time period.
+-- Market share is defined as number of orders of a certain product brand sold in a territory
+-- divided by the total number of orders sold in this territory.
+-- Output ID of the territory, name of product brand, corresponding market share in percentages.
+-- Only include product brands that had at least one sale in a given territory.
+
+-- Output:
+-- territory_id, prod_brand, market_share_percentage
+-- (Q4-2021, product brands with at least one sale in territory)
+
+-- Preview data:
+SELECT * FROM fct_customer_sales LIMIT 5;
+SELECT * FROM map_customer_territory LIMIT 5;
+SELECT * FROM dim_product LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - sales: 0
+--       - territory: 0
+--       - product: 0
+-- Rows - sales: 78
+--      - territory: 15
+--      - product: 18
+SELECT
+    SUM(CASE WHEN cust_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN order_date IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN order_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN order_value IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN prod_sku_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    COUNT(*) AS total_rows
+FROM fct_customer_sales;
+
+SELECT
+    SUM(CASE WHEN cust_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN territory_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    COUNT(*) AS total_rows
+FROM map_customer_territory;
+
+SELECT
+    SUM(CASE WHEN market_name IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN prod_brand IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN prod_sku_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN prod_sku_name IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM dim_product;
+
+-- Iteration:
+-- Join sales, territory, and product tables
+-- Filter for dates in quarter 4 and year 2021 (Q4-2021)
+-- Market share = number of orders of a certain product brand sold in a territory /
+-- total number of orders sold in this territory.
+-- Only include product brands with at least one sale in territory
+SELECT 
+    mct.territory_id,
+    dp.prod_brand,
+    ROUND(
+        100.0 * COUNT(fcs.order_id) / 
+        SUM(COUNT(fcs.order_id)) OVER(PARTITION BY mct.territory_id)
+    , 2) || '%' AS market_share_percentage
+FROM 
+    fct_customer_sales AS fcs
+JOIN 
+    map_customer_territory AS mct ON fcs.cust_id = mct.cust_id
+JOIN 
+    dim_product AS dp ON fcs.prod_sku_id = dp.prod_sku_id
+WHERE 
+    EXTRACT(QUARTER FROM fcs.order_date) = 4
+    AND EXTRACT(YEAR FROM fcs.order_date) = 2021
+GROUP BY 
+    mct.territory_id,
+    dp.prod_brand
+HAVING 
+    COUNT(fcs.order_id) >= 1
+ORDER BY
+    mct.territory_id,
+    dp.prod_brand;
+
+Notes:
+- When calculating divisions with aggregations use 1.0 * for floating point division,
+  for calculating divisions with aggregations and percentages, use 100.0 *.
+  ex. ROUND(
+         100.0 * COUNT(fcs.order_id) / 
+          SUM(COUNT(fcs.order_id)) OVER(PARTITION BY mct.territory_id)
+       , 2) || '%' AS market_share_percentage
+- For initial steps in exploring the data, initial queries leading up to solutioncan be less formal,
+  but the final query should be be in formal format spacing.
+
+############################
