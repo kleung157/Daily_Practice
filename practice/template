@@ -36,18 +36,21 @@ SQL - Code Format:
 ############################
 
 R & Python - Code Format:
-# Question:
+## Question:
 
-# Output:
+## Output:
 
-# Import libraries:
+## Import libraries:
 
-# Load and preview data:
+## Load and preview data:
 
-# Check datatypes, nulls, rows:
+## Check datatypes, nulls, rows:
+# Nulls -
+# Rows - 
 
-# Iteration:
+## Iteration:
+#
 
-# Result:
+## Result:
 
 ############################
