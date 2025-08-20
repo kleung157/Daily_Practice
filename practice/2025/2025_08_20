@@ -1,0 +1,288 @@
+Date: 08/20/2025
+
+############################
+
+Website:
+StrataScratch - ID 2019
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Ring Central - Top 2 Users With Most Calls
+Return the top 2 users in each company that called the most. 
+Output the company_id, user_id, and the user's rank. 
+If there are multiple users in the same rank, keep all of them.
+
+Data Dictionary:
+Table name = 'rc_calls'
+user_id: numeric (num)
+call_id: numeric (num)
+call_date: POSIXct, POSIXt
+Table name = 'rc_users'
+user_id: numeric (num)
+company_id: numeric (num)
+status: character (str)
+
+Code:
+Solution #1
+## Question:
+# Return the top 2 users in each company that called the most.
+# Output the company_id, user_id, and the user's rank.
+# If there are multiple users in the same rank, keep all of them.
+
+## Output:
+# company_id, user_id, user_rank (keep ties, top 2)
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#rc_calls <- read_csv('rc_calls.csv')  
+#rc_users <- read_csv('rc_users.csv')
+df <- data.frame(rc_calls)
+df2 <- data.frame(rc_users)
+head(df, 5)
+head(df2, 5)
+
+## Check datatypes, nulls, rows:
+# Nulls - calls: 0
+#       - users: 0
+# Rows - calls: 40
+#      - users: 20
+data.frame(lapply(df, class))
+data.frame(lapply(df2, class))
+colSums(is.na(df))
+colSums(is.na(df2))
+nrow(df)
+nrow(df2)
+
+## Iteration:
+result_df <- inner_join(df, df2, by="user_id") %>%          # Join calls and users DataFrames
+    group_by(company_id, user_id) %>%
+    summarise(call_count = n_distinct(call_id)) %>%         # Count distinct calls per company and user
+    mutate(user_rank = dense_rank(desc(call_count))) %>%    # Rank company and users by call_count DESC,
+    ungroup() %>%                                           # account for ties using dense_rank
+    filter(user_rank <= 2) %>%                              # Filter for top 2 ranks
+    arrange(company_id, user_rank, user_id) %>%             # Arrange in ASC order
+    select(company_id, user_id, user_rank)                  # Select relevant columns
+    
+## Result:
+result_df
+
+Notes:
+- Question was pretty straightfoward using SQL syntax in R to solve the problem.
+- Keep an eye on ASC and DESC values for rankings and arranging, sometimes accidentally do the reverse.
+
+############################
+
+Website:
+StrataScratch - ID 2064
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+EY - Difference Between Times
+In a marathon, gun time is counted from the moment of the formal start of the race while net time is counted from the moment a runner crosses a starting line. 
+Both variables are in seconds.
+You are asked to check if the interval between the two times is different for male and female runners. 
+First, calculate the average absolute difference between the gun time and net time. 
+Group the results by available genders (male and female). 
+Output the absolute difference between those two values.
+
+Data Dictionary:
+Table name = 'marathon_male'
+place: int64 (int)
+div_tot: object (str)
+num: int64 (int)
+person_name: object (str)
+age: int64 (int)
+hometown: object (str)
+pace: int64 (int)
+gun_time: int64 (int)
+net_time: int64 (int)
+Table name = 'marathon_female'
+place: int64 (int)
+div_tot: object (str)
+num: int64 (int)
+person_name: object (str)
+age: int64 (int)
+hometown: object (str)
+pace: int64 (int)
+gun_time: int64 (int)
+net_time: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# In a marathon, the gun time is counted from the moment of the formal start of the race
+# while net time is counted from the moment a runner crosses a starting line.
+# Both variables are in seconds.
+# Check if the interval between the two times is different for male and female runners.
+# Calculate the average absolute difference between gun time and net time.
+# Group the results by available genders (male and female).
+# Output the absolute difference between those two values.
+
+## Output:
+# absolute_difference
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#marathon_male = pd.read_csv('marathon_male.csv')
+#marathon_female = pd.read_csv('marathon_female.csv')
+df = pd.DataFrame(marathon_male)
+df2 = pd.DataFrame(marathon_female)
+df.head(5)
+df2.head(5)
+
+## Check datatypes, nulls, rows:
+# Nulls - male: 0
+#       - female: 0
+# Rows - male: 100
+#      - female: 98
+#df.info()
+#df.isna().sum()
+#df2.info()
+#df2.isna().sum()
+
+## Iteration:
+# Calculate average absolute difference between gun_time and net_time for each gender.
+df['absolute_difference'] = abs(df['net_time'] - df['gun_time'])
+male_average_difference = df['absolute_difference'].mean()
+
+df2['absolute_difference'] = abs(df2['net_time'] - df2['gun_time'])
+female_average_difference = df2['absolute_difference'].mean()
+
+# Calculate absolute difference between genders in Series format.
+result_series = (
+    pd.Series(abs(male_average_difference - female_average_difference), name='absolute_difference')
+)
+
+## Result:
+result_series
+
+Notes:
+- Question was straightfoward using SQL syntax in Python, abs() for absolute value is the same.
+
+############################
+
+Website:
+StrataScratch - ID 2115
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Salesforce - More Than 100 Dollars
+The company for which you work is reviewing its 2021 monthly sales.
+For each month of 2021, calculate what percentage of restaurants have reached at least 100$ or more in monthly sales.
+Remember that if an order has a blank value for actual_delivery_time, it has been canceled and therefore does not count towards monthly sales.
+
+Data Dictionary:
+Table name = 'delivery_orders'
+actual_delivery_time: timestamp (dt)
+consumer_id: text (str)
+delivery_id: text (str)
+delivery_rating: double precision (flt)
+driver_id: text (str)
+order_placed_time: timestamp (dt)
+predicted_delivery_time: timestamp (dt)
+restaurant_id: text (str)
+Table name = 'order_value'
+delivery_id: text (str)
+sales_amount: double precision (flt)
+
+Code:
+Solution #1
+-- Question:
+-- Company is reviewing its 2021 monthly sales.
+-- For each month of 2021, 
+-- calculate percentage of restaurants that reached at least $100 or more in monthly sales.
+-- If an order has a blank value for actual_delivery_time,
+-- it has been canceled and does not count towards monthly sales.
+
+-- Output:
+-- month, percentage_of_restaurants ($100 or more in monthly sales in 2021)
+-- (null values for actual_delivery_time do not count towards monthly sales)
+
+-- Preview data:
+SELECT * FROM delivery_orders LIMIT 5;
+SELECT * FROM order_value LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - orders: actual_delivery_time(3), delivery_rating(3)
+--       - value: 0
+-- Rows - orders: 50
+--      - value: 50
+SELECT
+    SUM(CASE WHEN actual_delivery_time IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN consumer_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN delivery_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN delivery_rating IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN driver_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN order_placed_time IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN predicted_delivery_time IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN restaurant_id IS NULL THEN 1 ELSE 0 END) AS col8,
+    COUNT(*) AS total_rows
+FROM delivery_orders;
+
+SELECT
+    SUM(CASE WHEN delivery_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN sales_amount IS NULL THEN 1 ELSE 0 END) AS col2,
+    COUNT(*) AS total_rows
+FROM order_value;
+
+-- Iteration:
+WITH MonthlyRestaurantSales AS (
+    -- Calculate total sales for each restaurant in each month of 2021
+    SELECT 
+        EXTRACT(MONTH FROM order_placed_time) AS month,
+        restaurant_id,
+        SUM(sales_amount) AS total_sales   -- Sum sales for each restaurant per month.
+    FROM 
+        delivery_orders AS o
+    JOIN 
+        order_value AS v ON o.delivery_id = v.delivery_id    -- Join delivery_orders and order_value tables.
+    WHERE 
+        EXTRACT(YEAR FROM o.order_placed_time) = 2021    -- Filter for orders in 2021.
+        AND o.actual_delivery_time IS NOT NULL   -- Filter out null values for actual_delivery_time, 
+    GROUP BY                                     -- orders are canceled and do not count towards sales.
+        EXTRACT(MONTH FROM order_placed_time),
+        restaurant_id
+)
+-- Calculate percentage of restaurants that reached $100 or more in sales for each month
+-- Percentage = number of restaurants > 100 in sales per month / total restaurants per month
+SELECT
+    month,
+    ROUND(
+        100.0 * COUNT(CASE WHEN total_sales >= 100 THEN restaurant_id END) /
+        COUNT(restaurant_id)
+    , 2) AS percentage_of_restaurants_100_or_more_monthly_sales
+FROM 
+    MonthlyRestaurantSales
+GROUP BY 
+    month
+ORDER BY 
+    month;
+
+Notes:
+- Instructions were clear were this question, 
+  tried to do the entire query in one pass using windows functions and without CTEs.
+  Turns out it was better to use the CTE in this case to not have the query be too difficult to interpret.
+- Trying to keep a formal format for the final query with appropriate line spacing
+  and include comments on each line similarly to R and Python.
+  
+############################
