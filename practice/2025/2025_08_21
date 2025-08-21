@@ -1,0 +1,296 @@
+Date: 08/21/2025
+
+############################
+
+Website:
+StrataScratch - ID 2020
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Ring Central - Call Declines
+Which company had the biggest month call decline from March to April 2020? 
+Return the company_id and calls difference for the company with the highest decline.
+
+Data Dictionary:
+Table name = 'rc_calls'
+user_id: numeric (num)
+call_id: numeric (num)
+call_date: POSIXct, POSIXt (dt)
+Table name = 'rc_users'
+user_id: numeric (num)
+company_id: numeric (num)
+status: character (str)
+
+Code:
+Solution #1
+## Question:
+# Which company had the biggest month call decline from March to April 2020?
+# Return the company_id and calls difference for the company with the highest decline.
+
+## Output:
+# company_id, calls_difference (company with highest month decline Mar to Apr 2020)
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#rc_calls <- read_csv('rc_calls.csv')
+#rc_users <- read_csv('rc_users.csv')
+df <- data.frame(rc_calls)
+df2 <- data.frame(rc_users)
+head(df, 5)
+head(df2, 5)
+
+## Check datatypes, nulls, rows:
+# Nulls - calls: 0
+#       - users: 0
+# Rows - calls: 40
+#      - users: 20
+data.frame(lapply(df, class))
+data.frame(lapply(df2, class))
+colSums(is.na(df))
+colSums(is.na(df2))
+nrow(df)
+nrow(df2)
+
+## Iteration:
+result_df <- inner_join(df, df2, by="user_id") %>%   # Join calls and users tables
+    filter(year(call_date) == 2020 & month(call_date) %in% c(3,4)) %>%    # Filter for Mar and Apr 2020
+    mutate(month = month(call_date)) %>%   # Create a months column from call_date
+    group_by(month, company_id) %>%
+    summarise(call_count = n_distinct(call_id), .groups = "drop") %>%   # Count calls for month and company
+    group_by(company_id) %>%
+    arrange(month) %>%    # Arrange months in ASC order
+    mutate(
+        calls_difference = coalesce(call_count - lag(call_count), 0)   # Calculate calls difference,
+    ) %>%                                                              # fill previous rows with 0.
+    ungroup(company_id) %>%
+    slice_min(calls_difference) %>%    # Slice for highest decline using minimum.
+    select(company_id, calls_difference)   # Select relevant columns.
+
+## Result:
+result_df
+
+Notes:
+- When filtering using %in%, make sure values have a c in front
+  ex. df %>%
+          filter(year(call_date) == 2020 & month(call_date) %in% c(3,4))
+- coalesce() function works similarly to SQL syntax
+  ex. df %>%
+        mutate(
+            calls_difference = coalesce(call_count - lag(call_count), 0)   
+        )
+- Before using lag(), group_by() and arrange() the relevant columns
+  ex. df %>%
+          group_by(company_id) %>%
+          arrange(month) %>%    
+          mutate(
+              calls_difference = coalesce(call_count - lag(call_count)
+          ) %>%  
+- Thinking was in SQL syntax, was trying to figure out the translation in R,
+  could remember the function but missed a letter or number to carry out the function.
+
+############################
+
+Website:
+StrataScratch - ID 2065
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+EY - Time from 10th Runner
+In a marathon, gun time is counted from the moment of the formal start of the race while net time is counted from the moment a runner crosses a starting line. 
+Both variables are in seconds.
+How much net time separates Chris Doe from the 10th best net time (in ascending order)? 
+Avoid gaps in the ranking calculation. 
+Output absolute net time difference.
+
+Data Dictionary:
+Table name = 'marathon_male'
+place: int64 (int)
+div_total: object (str)
+num: int64 (int)
+person_name: object (str)
+age: int64 (int)
+hometown: object (str)
+pace: int64 (int)
+gun_time: int64 (int)
+net_time: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# In a marathon, gun time is counted from the moment of the formal start of the race
+# while net time is counted from the moment a runner crosses a starting line.
+# Both variables are in seconds.
+# How much net time separates Chris Doe from the 10th best net time (in ASC order)?
+# Avoid gaps in ranking calculation.
+# Output absolute net time difference.
+
+## Output:
+# absolute net time difference (Chris Doe from 10th best net time ASC, avoid gaps in ranking)
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#marathon_male = pd.read_csv('marathon_male.csv')
+df = pd.DataFrame(marathon_male)
+df.head(5)
+
+## Check datatypes, nulls, rows:
+# Nulls - 0
+# Rows - 100
+#df.info()
+#df.isna().sum()
+
+## Iteration:
+# Rank net time in ASC order and avoid gaps in ranking using dense rank.
+df['net_time_ranking'] = df['net_time'].rank(method='dense', ascending=True)
+
+# Filter for Chris Doe and 10th ranking.
+filtered_df = df[
+    (df['person_name'] == 'Chris Doe') |
+    (df['net_time_ranking'] == 10)
+].copy()
+
+# Calculate absolute net time between Chris Doe (max) and 10th best net time (min), convert to Series.
+result_series = pd.Series(
+    abs(filtered_df['net_time'].max() - filtered_df['net_time'].min()), 
+    name="absolute_net_time_difference"
+)
+
+## Result:
+result_series
+
+Notes:
+- Question was straightfoward and used SQL syntax to solve in Python.
+  Had multiple rows for the same ranking, used max() and min() functions to return only 1 value for calculation.
+
+############################
+
+Website:
+StrataScratch - ID 2120
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Meta - First and Last Day Promotion Results
+The marketing team is evaluating the performance of their previously ran promotions.
+They are particularly interested in comparing the number of transactions on the first and last day of each promotion.
+Segment the results by promotion and calculate the percentage of total transactions that occurred on these days.
+Your output should include the promotion ID, the percentage of transactions on the first day, and the percentage of transactions on the last day.
+
+Data Dictionary:
+Table name = 'online_sales_promotions'
+cost: bigint (int)
+end_date: date (d)
+media_type: text (str)
+promotion_id: bigint (int)
+start_date: date (d)
+Table name = 'online_orders'
+cost_in_dollars: bigint (int)
+customer_id: bigint (int)
+date_sold: date (d)
+product_id: bigint (int)
+promotion_id: bigint (int)
+units_sold: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Marketing team is evaluating the performance of their previously ran promotions.
+-- They are interested in comparing the number of transactions on the first and last day of each promotion.
+-- Segment the results by promotion and calculate percentage of total transactions that occured on these days.
+-- Output should include promotion id, percentage of transactions on first day and last day.
+
+-- Output:
+-- promotion_id, percentage of transactions first day, percentage of transactions last day
+
+-- Load and preview data:
+SELECT * FROM online_sales_promotions LIMIT 5;
+SElECT * FROM online_orders LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - promotions: 0
+--       - orders: 0
+-- Rows - promotions: 5
+--      - orders: 33
+SELECT 
+    SUM(CASE WHEN cost IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN end_date IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN media_type IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN promotion_id IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN start_date IS NULL THEN 1 ELSE 0 END) AS col5,
+    COUNT(*) AS total_rows
+FROM online_sales_promotions;
+
+SELECT 
+    SUM(CASE WHEN cost_in_dollars IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN customer_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN date_sold IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN product_id IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN promotion_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN units_sold IS NULL THEN 1 ELSE 0 END) AS col6,
+    COUNT(*) AS total_rows
+FROM online_orders;
+
+-- Iteration:
+SELECT 
+    p.promotion_id,
+    SUM(CASE WHEN p.start_date = o.date_sold THEN 1 ELSE 0 END) AS first_day_transactions,
+    SUM(CASE WHEN p.end_date = o.date_sold THEN 1 ELSE 0 END) AS last_day_transactions,
+    COUNT(customer_id) AS total_transactions
+FROM online_sales_promotions AS p
+JOIN online_orders AS o
+    ON p.promotion_id = o.promotion_id
+GROUP BY p.promotion_id;
+
+-- Result:
+-- Join promotions and orders tables.
+-- Segment results by promotion_id.
+-- Count transactions where first day transactions where start_date = date_sold.
+-- Count transactions where last day transactions where end_date = date_sold.
+-- Calculate percentage for first day, 
+-- First day percentage = transactions on first day / total transactions for promotion * 100.0
+-- Calculate percentage for last day, 
+-- Last day percentage = transactions on last day / total transactions for promotion * 100.0
+SELECT 
+    p.promotion_id,
+    ROUND(
+        100.0 * SUM(CASE WHEN p.start_date = o.date_sold THEN 1 ELSE 0 END) / COUNT(customer_id) 
+    , 2) AS percentage_transactions_first_day,
+    ROUND(
+        100.0 * SUM(CASE WHEN p.end_date = o.date_sold THEN 1 ELSE 0 END) / COUNT(customer_id)
+    , 2) AS percentage_transactions_last_day
+FROM 
+    online_sales_promotions AS p
+JOIN 
+    online_orders AS o ON p.promotion_id = o.promotion_id
+GROUP BY 
+    p.promotion_id;
+
+Notes:
+- Incorporating a final results section for the final query rather than having it be in the iteration section.
+  Allows me to keep any mental processes and earlier query attempts in the iteration section.
+- Using COUNT(*) or COUNT(customer_id) works the same in counting the rows for this question.
+- Considered using COUNT(DISTINCT customer_id), however interpretted the question as total transactions
+  and not unique total transactions.
+- Filled null values with 0 in the CASE WHEN statement rather than having to use COALESCE()
+  and a separate aggregation function.
+  
+############################
