@@ -1,0 +1,308 @@
+Date: 08/22/2025
+
+############################
+
+Website:
+StrataScratch - ID 2021
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Redfin - Initial Call Duration
+Redfin helps clients to find agents. 
+Each client will have a unique request_id and each request_id has several calls. 
+For each request_id, the first call is an “initial call” and all the following calls are “update calls”.  
+What's the average call duration for all initial calls?
+
+Data Dictionary:
+Table name = 'redfin_call_tracking'
+request_id: numeric (num)
+call_duration: numeric (num)
+id: numeric (num)
+created_on: POSIXct, POSIXt
+
+Code:
+Solution #1
+## Question:
+# Redfin helps clients to find agents. 
+# Each client will have a unique request_id and each request_id has several calls. 
+# For each request_id, the first call is an “initial call” and all the following calls are “update calls”.  
+# What's the average call duration for all initial calls?
+
+## Output:
+# average initial call duration
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#redfin_call_tracking <- read_csv('redfin_call_tracking.csv')
+df <- data.frame(redfin_call_tracking)
+head(df, 5)
+
+## Check datatypes, nulls, rows:
+# Nulls - 0
+# Rows - 20
+data.frame(lapply(df, class))
+colSums(is.na(df))
+nrow(df)
+
+## Iteration:
+result_df <- df %>%
+    group_by(request_id) %>%
+    mutate(call_ranking = rank(created_on)) %>%          # Rank calls by earliest date time for each request_id.
+    filter(call_ranking == 1) %>%                                    # Filter for initial calls with first rank.
+    summarise(average_initial_call_duration = mean(call_duration))    # Average call duration for initial calls.
+
+## Result:
+result_df
+
+Notes:
+- Originally used dense_rank function but switched to rank since not covering for gaps or ties.
+- Question was straightforward thinking in SQL syntax and using R functions.
+
+############################
+
+Website:
+StrataScratch - ID 2066
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+EY - Fastest Hometowns
+Find the hometowns with the top 3 average net times. 
+Output the hometowns and their average net time. 
+Keep in mind that a lower net_time is better. 
+In case there are ties in net time, return all unique hometowns.
+
+Data Dictionary:
+Table name = 'marathon_male'
+place: int64 (int)
+div_tot: object (str)
+num: int64 (int)
+person_name: object (str)
+age: int64 (int)
+hometown: object (str)
+pace: int64 (int)
+gun_time: int64 (int)
+net_time: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# Find the hometowns with the top 3 average net times.
+# Output the hometowns and their average net time.
+# Keep in mind that a lower net_time is better.
+# In case there are ties in net time, return all unique hometowns.
+
+## Output:
+# hometown, average_net_time (lower the better, keep all ties)
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#marathon_male = pd.read_csv('marathon_male.csv')
+df = pd.DataFrame(marathon_male)
+df.head(5)
+
+## Check datatypes, nulls, rows:
+# Nulls - 0
+# Rows - 100
+#df.info()
+#df.isna().sum()
+
+## Iteration:
+# Calculate the mean net_time for each hometown.
+hometown_net_time = df.groupby('hometown')['net_time'].mean().reset_index(name='average_net_time')
+
+# Rank average_net_time by lowest value (ASC order), account for ties.
+hometown_net_time['net_time_rank'] = (
+    hometown_net_time['average_net_time'].rank(method='dense', ascending=True)
+)
+
+# Filter for top 3 ranks.
+result_df = hometown_net_time[
+    hometown_net_time['net_time_rank'] <= 3
+]
+
+# Select relevant columns (hometowns, average_net_time).
+result_df = result_df[['hometown','average_net_time']]
+
+# Arrange values by lowest average_net_time (ASC order)
+result_df = result_df.sort_values(by='average_net_time', ascending=True)
+
+## Result:
+result_df
+
+Notes:
+- Question was straightforward thinking in SQL syntax and using Python functions.
+- Spent more time thinking about how to format the code in a formal manner and making it easier to read.
+
+############################
+
+Website:
+StrataScratch - ID 2123
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Meta - Product Families
+The CMO is interested in understanding how the sales of different product families are affected by promotional campaigns. 
+To do so, for each product family, show the total number of units sold, as well as the percentage of units sold that had a valid promotion among total units sold. 
+If there are NULLS in the result, replace them with zeroes. 
+Promotion is valid if it's not empty and it's contained inside promotions table.
+
+Data Dictionary:
+Table name = 'facebook_products'
+brand_name: text (str)
+is_low_fat: text (str)
+is_recyclable: text (str)
+product_category: bigint (int)
+product_class: text (str)
+product_family: text (str)
+product_id: bigint (int)
+Table name = 'facebook_sales_promotions'
+cost: bigint (int)
+end_date: date (d)
+media_type: text (str)
+promotion_id: bigint (int)
+start_date: date (d)
+Table name = 'facebook_sales'
+cost_in_dollars: bigint (int)
+customer_id: bigint (int)
+date: date (d)
+product_id: bigint (int)
+promotion_id: bigint (int)
+units_sold: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- CMO is interested in understanding how the sales of different product
+-- families are affected by promotional campaigns.
+-- To do so, for each product family, show the total number of units sold,
+-- as well as the percentage of units sold that had a valid promotion among total units sold.
+-- If there are NULLS in the result, replace them with zeroes.
+-- Promotion is valid if it's not empty and it's contained inside promotions table.
+
+-- Output:
+-- product_family, total_units_sold, percentage_of_units_sold_with_promotion
+-- (replace NULLs with zeroes in result, promotion valid if not empty and in promotions table)
+
+-- Preview data:
+SELECT * FROM facebook_products LIMIT 5;
+SELECT * FROM facebook_sales_promotions LIMIT 5;
+SELECT * FROM facebook_sales LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - products: 0
+--       - promotions: 0
+--       - sales: 0
+-- Rows - products: 12
+--      - promotions: 4
+--      - sales: 30
+SELECT 
+    SUM(CASE WHEN brand_name IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN is_low_fat IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN is_recyclable IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN product_category IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN product_class IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN product_family IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN product_id IS NULL THEN 1 ELSE 0 END) AS col7,
+    COUNT(*) AS total_rows
+FROM facebook_products;
+
+SELECT 
+    SUM(CASE WHEN cost IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN end_date IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN media_type IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN promotion_id IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN start_date IS NULL THEN 1 ELSE 0 END) AS col5,
+    COUNT(*) AS total_rows
+FROM facebook_sales_promotions;
+
+SELECT 
+    SUM(CASE WHEN cost_in_dollars IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN customer_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN date IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN product_id IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN promotion_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN units_sold IS NULL THEN 1 ELSE 0 END) AS col6,
+    COUNT(*) AS total_rows
+FROM facebook_sales;
+
+-- Iteration:
+-- Join products, promotions and sales tables.
+-- Calculate total number of units sold.
+-- Calculate percentage of units sold that had a valid promotion among total units sold.
+-- Promotion valid if not empty and in promotions table.
+-- Replace NULLs with zeroes if there are any in the result.
+SELECT 
+    fp.product_family,
+    SUM(fs.units_sold) AS total_units_sold,
+    SUM(CASE WHEN fsp.promotion_id IS NOT NULL THEN fs.units_sold ELSE 0 END) AS total_units_sold_promotions,
+    ROUND(
+        100.0 * SUM(CASE WHEN fsp.promotion_id IS NOT NULL THEN fs.units_sold ELSE 0 END) /
+        SUM(fs.units_sold)
+    , 2) AS percentage_of_units_sold_with_promotion
+FROM facebook_sales AS fs
+LEFT JOIN facebook_sales_promotions AS fsp  
+    ON fs.promotion_id = fsp.promotion_id
+LEFT JOIN facebook_products AS fp
+    ON fs.product_id = fp.product_id
+GROUP BY fp.product_family
+ORDER BY fp.product_family;
+
+-- Result:
+-- For each product family, calculate percentage of units sold with valid promotion among total units sold. 
+-- Promotion valid if not empty and in promotions table.
+-- Replace NULLs with zeroes if there are any in the result.
+SELECT 
+    fp.product_family,
+    SUM(fs.units_sold) AS total_units_sold,   -- Calculate total number of units sold.     
+    ROUND(    
+        -- Calculate percentage of units sold with a valid promotion.
+        100.0 * SUM(CASE WHEN fsp.promotion_id IS NOT NULL THEN fs.units_sold ELSE 0 END) /
+        SUM(fs.units_sold)    
+    , 2) AS percentage_of_units_sold_with_promotion 
+FROM 
+    facebook_sales AS fs
+LEFT JOIN    
+    -- Join sales with promotions to identify valid promotion_id
+    facebook_sales_promotions AS fsp ON fs.promotion_id = fsp.promotion_id
+LEFT JOIN
+    -- Join sales with products to get product family
+    facebook_products AS fp ON fs.product_id = fp.product_id
+GROUP BY 
+    fp.product_family
+ORDER BY 
+    fp.product_family;
+
+Notes:
+- Question wasn't too difficult to dissect and solve one part at a time.
+- Initially used FILTER(WHERE) for finding promotion_ids since it's more optimal with Postgres
+  ex. SUM(fs.units_sold) FILTER(WHERE fsp.promotion_id IS NOT NULL),
+  however wanted to account for promotion_id null values to be replaced with zero so switched to CASE WHEN
+  ex. SUM(CASE WHEN fsp.promotion_id IS NOT NULL THEN fs.units_sold ELSE 0 END)
+- Considered using COALESCE() but didn't want to use it at the end result,
+  if I could cover null values within the query beforehand.
+- Was able to discern an INNER JOIN and LEFT JOIN for this scenario, 
+  needed null values instead of all matches.
+- Didn't need to use windows functions for this query suprisingly.
+- Trying to keep the final result query in a proper formal format and with easy to read notes
+
+############################
