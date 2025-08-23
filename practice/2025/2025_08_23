@@ -1,0 +1,493 @@
+Date: 08/23/2025
+
+############################
+
+Website:
+StrataScratch - ID 2022
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Redfin - Update Call Duration
+Redfin helps clients to find agents. 
+Each client will have a unique request_id and each request_id has several calls. 
+For each request_id, the first call is an “initial call” and all the following calls are “update calls”.  
+What's the average call duration for all update calls?
+
+Data Dictionary:
+Table name = 'redfin_call_tracking'
+request_id: numeric (num)
+call_duration: numeric (num)
+id: numeric (num)
+created_on: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1
+# Redfin helps clients to find agents. 
+# Each client will have a unique request_id and each request_id has several calls.
+# For each request_id, the first call is an "initial call" and all the following are "update calls".
+# What's the average call duration for all update calls?
+
+## Output:
+# average_update_call_duration
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#redfin_call_tracking <- read_csv('redfin_call_tracking.csv')
+df <- data.frame(redfin_call_tracking)
+head(df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 20
+data.frame(lapply(df, class))
+colSums(is.na(df))
+nrow(df)
+
+## Iteration:
+# Find the average call duration for all update calls.
+result_df <- df %>%
+    group_by(request_id) %>%
+    mutate(call_rank = rank(created_on)) %>%                         # Rank calls by earliest datetime. 
+    filter(call_rank > 1) %>%                                        # Filter for update calls (not rank 1).
+    ungroup() %>%
+    summarise(average_update_call_duration = mean(call_duration))    # Average all update call durations.
+    
+## Result:
+result_df
+
+Notes:
+- Question was similar to yesterday's R problem. Method of solving was similar as well.
+- Working on the formattiing of the iteration and result code. Put an objective at the top.
+
+############################
+
+Website:
+StrataScratch - ID 2068
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Meta - Successful Lower Priced Product
+The sales department wants to identify lower-priced products that still sell well.
+Find product IDs that meet both of the following criteria:
+⦁    The product has been sold at least twice (i.e., appeared in at least two different purchases).
+⦁    The unit-weighted average sale price (cost_in_dollars) for that product is at least $3. 
+     A unit-weighted average sales price is defined as the total revenue for the product divided by the total number of units sold.
+Return a list containing product IDs along with their corresponding brand name.
+
+Data Dictionary:
+Table name = 'online_products'
+product_id: int64 (int)
+product_class: object (str)
+brand_name: object (str)
+is_low_fat: object (str)
+is_recyclable: object (str)
+product_category: int64 (int)
+product_family: object (str)
+Table name = 'online_orders'
+customer_id: int64 (int)
+product_id: int64 (int)
+promotion_id: int64 (int)
+cost_in_dollars: int64 (int)
+date_sold: datetime64 (dt)
+units_sold: int64 (int)
+
+Code:
+Solution #1 (less efficient but more clear and concise to debug)
+## Question:
+# The sales department wants to identify lower-priced products that still sell well.
+# Find product IDs that meet both of the following criteria.
+# The product has been sold at least twice (ex. appeared in at least two different purchases).
+# The unit-weighted average sale price (cost_in_dollars) for that product is at least $3.
+# A unit-weighted average sales price is defined as total revenue for product / total number of units sold.
+# Return a list containing product IDs along with their corresponding brand name.
+
+## Output:
+# product_id, brand_name
+# (meets both criteria: 
+# - product sold at least twice appeared >=2 two different purchases
+# - unit weighted average sale price (cost_in_dollars) >= $3)
+# (unit weighted average sales price = total revenue for product / total number of units sold)
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#online_products = pd.read_csv('online_products.csv')
+#online_orders = pd.read_csv('online_orders.csv')
+df = pd.DataFrame(online_products)
+df2 = pd.DataFrame(online_orders)
+df.head(5)
+df2.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - products: 0
+#       - orders: 0
+# Rows - products: 12
+#      - orders: 32
+#df.info()
+#df.isna().sum()
+#df2.info()
+#df2.isna().sum()
+
+## Iteration:
+# Join products and orders DataFrames.
+merged_df = pd.merge(df, df2, on='product_id', how='inner')
+
+# 1. First criteria:
+# Count number of purchases for each product and brand name.
+first_criteria_df = (
+    merged_df.groupby(['product_id', 'brand_name'])['customer_id']
+    .count()
+    .reset_index(name='purchase_count')
+)
+# Filter for product sold at least twice (>= two different purchases).
+first_criteria_df = first_criteria_df[
+    (first_criteria_df['purchase_count'] >= 2) 
+]
+
+# 2. Second criteria:
+# Make a copy of the merged_df DataFrame
+second_criteria_df = merged_df.copy()
+
+# Calculate revenue for each purchase. 
+# revenue = cost_in_dollars * units_sold
+second_criteria_df['revenue'] = second_criteria_df['cost_in_dollars'] * second_criteria_df['units_sold']
+
+# Calculate total revenue and units sold for each product_id and brand_name
+second_criteria_df = (
+    second_criteria_df.groupby(['product_id', 'brand_name'])
+    .agg({'revenue': 'sum',
+          'units_sold': 'sum'})
+    .rename(columns={'revenue': 'total_revenue',
+                     'units_sold': 'total_units_sold'})
+    .reset_index()
+)
+
+# Calculate unit weighted average sales price for each product and brand name.
+# unit_weighted_average_sale_price = total_revenue / total_units_sold
+second_criteria_df['unit_weighted_average_sale_price'] = (
+    second_criteria_df['total_revenue'] / second_criteria_df['total_units_sold']
+)
+
+# Filter for unit weighted average sale price (cost_in_dollars) >= $3.
+second_criteria_df = second_criteria_df[
+    (second_criteria_df['unit_weighted_average_sale_price'] >= 3)
+]
+
+# 3. Join first and second criteria DataFrames, to find products and brands that meet both criterias.
+result_df = pd.merge(first_criteria_df, second_criteria_df, on=['product_id','brand_name'], how='inner')
+
+# Select relevant columns and sort product values in ASC order
+result_df = result_df[['product_id', 'brand_name']].sort_values(by='product_id', ascending=True)
+
+## Result:
+result_df
+
+Solution #2 (more optimized)
+# Join products and orders DataFrames.
+merged_df = pd.merge(df, df2, on='product_id', how='inner')
+
+# Calculate revenue for each purchase. 
+# revenue = cost_in_dollars * units_sold
+merged_df['revenue'] = merged_df['cost_in_dollars'] * merged_df['units_sold']
+
+# Calculate purchase count, total revenue, and total units sold for each product_id and brand_name
+result_df = (
+    merged_df.groupby(['product_id', 'brand_name'])
+    .agg(
+        purchase_count=('customer_id', 'count'),
+        total_revenue=('revenue', 'sum'),
+        total_units_sold=('units_sold', 'sum')
+    ).reset_index()
+)
+
+# Calculate unit weighted average sales price.
+# unit_weighted_average_sale_price = total_revenue / total_units_sold
+result_df['unit_weighted_average_sale_price'] = (
+    result_df['total_revenue'] / result_df['total_units_sold']
+)
+
+# Filter for product sold at least twice (>= two different purchases).
+# Filter for unit weighted average sale price (cost_in_dollars) >= $3.
+result_df = result_df[
+    (result_df['purchase_count'] >= 2) &
+    (result_df['unit_weighted_average_sale_price'] >= 3)
+]
+
+# Select relevant columns and sort product values in ASC order
+result_df = result_df[['product_id', 'brand_name']].sort_values(by='product_id', ascending=True)
+
+## Result:
+result_df
+
+Notes:
+- Originally went by how the question was asked but there was actually more interpretation that was needed.
+  When following the second criteria,
+  "The unit-weighted average sale price (cost_in_dollars) for that product is at least $3. 
+  A unit-weighted average sales price is defined as
+  the total revenue for the product divided by the total number of units sold."
+  It became apparent that there weren't any values >=3 when doing the initial calculation.
+  Had to calculate a revenue column for each row in DataFrame using cost_in_dollars * units_sold.
+  Then could actually calculate the unit weighted average sales price, 
+  rather than just going by cost_in_dollars as the question seemed to show.
+- Since my first iteration Solution #1 was spent trying to break down each step,
+  I made separate DataFrames for the criteria to make sure I could figure out each instance before combining.
+- On a final iteration, 
+  it would be best to consolidate all calculations in a single groupby with less intermediate DataFrames,
+  as seen in Solution #2 vs Solution #1.
+- As for using the .agg() function, keep defaulting to a dictionary and renaming the column,
+  it's easier to just name the column and perform the aggregate function in a tuple.
+  ex. Default
+      second_criteria_df = (
+          second_criteria_df.groupby(['product_id', 'brand_name'])
+          .agg({'revenue': 'sum',
+                'units_sold': 'sum'})
+          .rename(columns={'revenue': 'total_revenue',
+                     'units_sold': 'total_units_sold'})
+          .reset_index()
+      )
+ ex. Revised
+     result_df = (
+         merged_df.groupby(['product_id', 'brand_name'])
+         .agg(
+             purchase_count=('customer_id', 'count'),
+             total_revenue=('revenue', 'sum'),
+             total_units_sold=('units_sold', 'sum')
+         ).reset_index()
+     )
+- Still trying to find a balance on formatting and making the code easier to read with notes.
+
+############################
+
+Website:
+StrataScratch - ID 2131
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+LinkedIn - User Streaks
+Provided a table with user id and the dates they visited the platform, 
+find the top 3 users with the longest continuous streak of visiting the platform as of August 10, 2022. 
+Output the user ID and the length of the streak.
+In case of a tie, display all users with the top three longest streaks.
+
+Data Dictionary:
+Table name = 'user_streaks'
+date_visited: date (d)
+user_id: text (str)
+
+Code:
+Solution #1
+-- Question:
+-- Provided a table with user_id and the dates they visited the platform,
+-- find the top 3 users with longest continuous streak of visiting the platform as of Aug 10, 2022.
+-- Output user id and the length of streak.
+-- In case of a tie, display all users with the top 3 longest streaks.
+
+-- Output:
+-- user_id, streak_length
+-- (top 3 users with longest streak as of Aug 10, 2022, account for ties)
+
+-- Preview data:
+SELECT * FROM user_streaks LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - 0
+-- Rows - 65
+SELECT 
+    SUM(CASE WHEN date_visited IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    COUNT(*) AS total_rows
+FROM user_streaks;
+
+-- Iteration:
+WITH RankedVisits AS (
+-- Assign row number to each visit for each user, ordered by date
+SELECT 
+    user_id,
+    date_visited,
+    ROW_NUMBER() OVER(PARTITION BY user_id ORDER BY date_visited) AS rn
+FROM user_streaks
+WHERE date_visited <= '2022-08-10'
+),
+ConsecutiveGroups AS (
+-- Create a grouping key by subtracting row number from date
+-- Key will be same for all consecutive dates
+SELECT 
+    user_id,
+    date_visited,
+    date_visited::DATE - (rn * INTERVAL '1 day') AS grouping_key
+FROM RankedVisits
+),
+UserStreakLengths AS (
+-- Group by user and grouping key to count length of each streak
+-- Assign row number to streak lengths of each user
+SELECT
+    user_id,
+    COUNT(date_visited) AS streak_length,
+    ROW_NUMBER() OVER(PARTITION BY user_id ORDER BY COUNT(date_visited) DESC) AS row_number
+FROM ConsecutiveGroups
+GROUP BY
+    user_id,
+    grouping_key
+),
+UserStreakRanks AS (
+-- Filter for users longest continuous streak with row number 1
+-- Dense rank each user id's longest continuous streak to account for ties
+SELECT
+    user_id,
+    streak_length,
+    DENSE_RANK() OVER(ORDER BY streak_length DESC) AS dense_rank
+FROM UserStreakLengths
+WHERE row_number = 1
+)
+-- Filter for top 3 users with longest streaks
+SELECT
+    user_id,
+    streak_length
+FROM UserStreakRanks
+WHERE dense_rank <= 3
+ORDER BY dense_rank;
+
+-- Result:
+WITH RankedVisits AS (
+    -- Assign row number to each visit for each user, ordered by date.
+    SELECT 
+        user_id,
+        date_visited,
+        ROW_NUMBER() OVER(PARTITION BY user_id ORDER BY date_visited) AS rn
+    FROM 
+        user_streaks
+    WHERE date_visited <= '2022-08-10'
+),
+ConsecutiveGroups AS (
+    -- Create a grouping key by subtracting row number from date.
+    -- Key will be same for all consecutive dates.
+    SELECT 
+        user_id,
+        date_visited,
+        date_visited::DATE - (rn * INTERVAL '1 day') AS grouping_key
+    FROM 
+        RankedVisits
+),
+UserStreakLengths AS (
+    -- Group by user and grouping key to count length of each streak.
+    -- Assign row number to streak lengths of each user.
+    SELECT
+        user_id,
+        COUNT(date_visited) AS streak_length,
+        ROW_NUMBER() OVER(PARTITION BY user_id ORDER BY COUNT(date_visited) DESC) AS row_number
+    FROM 
+        ConsecutiveGroups
+    GROUP BY
+        user_id,
+        grouping_key
+),
+UserStreakRanks AS (
+    -- Filter for users longest continuous streak with row number 1.
+    -- Dense rank each user id's longest continuous streak to account for ties.
+    SELECT
+        user_id,
+        streak_length,
+        DENSE_RANK() OVER(ORDER BY streak_length DESC) AS dense_rank
+    FROM 
+        UserStreakLengths
+    WHERE 
+        row_number = 1
+)
+-- Filter for top 3 users with longest streaks
+SELECT
+    user_id,
+    streak_length
+FROM 
+    UserStreakRanks
+WHERE 
+    dense_rank <= 3
+ORDER BY 
+    dense_rank;
+
+Solution #2 (StrataScratch's solution, don't think this is correct, does not match with dataset)
+"""
+WITH unique_visits AS (           -- remove duplicates, cap at 10-Aug-2022
+    SELECT DISTINCT user_id, date_visited
+    FROM   user_streaks
+    WHERE  date_visited <= DATE '2022-08-10'
+),
+streak_flags AS (                 -- mark where a new streak starts
+    SELECT *,
+           CASE
+               WHEN date_visited
+                    - LAG(date_visited) OVER (PARTITION BY user_id
+                                              ORDER BY date_visited) = 1
+               THEN 0
+               ELSE 1
+           END AS new_streak
+    FROM   unique_visits
+),
+streak_ids AS (                   -- assign an id to every streak
+    SELECT *,
+           SUM(new_streak) OVER (PARTITION BY user_id
+                                 ORDER BY date_visited) AS streak_id
+    FROM   streak_flags
+),
+streak_lengths AS (               -- length of each streak (now counts *all* days)
+    SELECT user_id,
+           streak_id,
+           COUNT(*) AS streak_length
+    FROM   streak_ids
+    GROUP  BY user_id, streak_id
+),
+longest_per_user AS (             -- keep only each user’s longest streak
+    SELECT user_id,
+           MAX(streak_length) AS streak_length
+    FROM   streak_lengths
+    GROUP  BY user_id
+),
+ranked_lengths AS (               -- rank *distinct* streak lengths
+    SELECT DISTINCT
+           streak_length,
+           DENSE_RANK() OVER (ORDER BY streak_length DESC) AS len_rank
+    FROM   longest_per_user
+),
+top_lengths AS (                  -- top-3 streak-length values
+    SELECT streak_length
+    FROM   ranked_lengths
+    WHERE  len_rank <= 3
+)
+SELECT u.user_id,
+       u.streak_length
+FROM   longest_per_user u
+JOIN   top_lengths       t USING (streak_length)
+ORDER  BY u.streak_length DESC,   -- longest first
+          u.user_id;              -- tie-break for readability
+"""
+
+Notes:
+- This question was a lot of headache since StrataScratch provided a solution and method
+  that doesn't make sense with the data provided. I personally counted some of the 
+  consecutive streaks in the data and they did not add up with the method.
+- Used row_number(), date - (rn * INTERVAL '1 day'), and CTEs to generate a grouping key
+  for finding continuous streaks and their lengths
+- On my first attempt, for my first CTE, forgot to filter for dates up to August 10, 2022.
+  Later added a WHERE clause to filter for dates <= '2022-08-10'.
+- Think my solution is more of the correct method to approach the problem but the solution
+  provided made me confused and sidetracked for a while. Will stick to my approach for now.
+
+############################
