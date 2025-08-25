@@ -1,0 +1,380 @@
+Date: 08/25/2025
+
+############################
+
+Website:
+StrataScratch - ID 2023
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Redfin - Rush Hour Calls
+Redfin helps clients to find agents. 
+Each client will have a unique request_id and each request_id has several calls. 
+For each request_id, the first call is an “initial call” and all the following calls are “update calls”.  
+How many customers have called 3 or more times between 3 PM and 6 PM (initial and update calls combined)?
+
+Data Dictionary:
+Table name = 'redfin_call_tracking'
+request_id: numeric (num)
+call_duration: numeric (num)
+id: numeric (num)
+created_on: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1
+## Question:
+# Redfin helps clients to find agents.
+# Each client will have a unique request_id and each request_id has several calls.
+# For each request_id, the first call is an "initial call" and following calls are "update calls".
+# How many customers have called 3 or more times between 3PM and 6PM (initial and update calls combined)?
+
+## Output:
+# number_of_customers_called_three_or_more
+# (unique request_id, between 3PM and 6PM, initial and update calls combined)
+
+## Import libraries:
+#install.packages(tidyverse)
+#install.packages(lubridate)
+library(tidyverse)
+library(lubridate)
+
+## Load and preview data:
+#redfin_call_tracking <- read_csv('redfin_call_tracking.csv')
+df <- data.frame(redfin_call_tracking)
+head(df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 20
+data.frame(lapply(df, class))
+colSums(is.na(df))
+nrow(df)
+
+## Iteration:
+# Number of customers called 3 or more times between 3PM-6PM (initial and update calls combined).
+result_df <- df %>%
+    filter(hour(created_on) >= 15 & hour(created_on) < 19) %>%    # Filter for hours between 3PM-6PM.
+    group_by(request_id) %>%
+    summarise(call_count = n_distinct(id)) %>%    # Count calls for each request_id.
+    filter(call_count >= 3) %>%    # Filter for customers who called 3 or more times.
+    summarise(number_of_customer_called_three_or_more = n_distinct(request_id)) %>%   # Count customers.
+    ungroup()
+    
+## Results:
+result_df
+
+Notes:
+- On StrataScratch, have to import lubridate package with tidyverse package for lubridate to work.
+- For time format, remember that date time is in 24 hour military time format and not PM and AM.
+- Interpretation of hours between 3-6PM was filtering for 3PM, 4PM, 5PM and 6PM. 
+
+############################
+
+Website:
+StrataScratch - ID 2070
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Meta - Top Three Classes
+The marketing department wants to identify the top-performing product classes based on the number of orders placed for each class.
+If multiple product classes have the same number of sales and qualify for the top 3, include all of them in the output.
+
+Data Dictionary:
+Table name = 'online_products'
+product_id: int64 (int)
+product_class: object (str)
+brand_name: object (str)
+is_low_fat: object (str)
+is_recyclable: object (str)
+product_category: int64 (int)
+product_family: object (str)
+Table name = 'online_orders'
+product_id: int64 (int)
+promotion_id: int64 (int)
+cost_in_dollars: int64 (int)
+customer_id: int64 (int)
+date_sold: datetime64 (dt)
+units_sold: int64 (int)
+
+Code:
+Solution #1
+## Questions:
+# Marketing department wants to identify the top-performing product classes
+# based on the number of orders placed for each class.
+# If multiple product classes have the same number of sales and qualify for the top 3, include them all.
+
+## Output:
+# product_class
+# (number of orders for each class, top 3 sales include ties)
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#online_products = pd.read_csv('online_products.csv')
+#online_orders = pd.read_Csv('online_orders.csv')
+df = pd.DataFrame(online_products)
+df2 = pd.DataFrame(online_orders)
+df.head(5)
+df2.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - products: 0
+#       - orders: 0
+# Rows - products: 12
+#      - orders: 33
+#df.info()
+#df.isna().sum()
+#df2.info()
+#df2.isna().sum()
+
+## Iteration:
+# Find the top 3 product classes based on number of orders placed for each class.
+
+# Join products and orders DataFrames.
+merged_df = pd.merge(df, df2, on='product_id', how='inner')
+
+# Calculate number of orders placed for each product class.
+result_df = merged_df.groupby('product_class')['customer_id'].count().reset_index(name='order_count')
+
+# Rank product classes based on number of orders.
+result_df['rank'] = result_df['order_count'].rank(method='dense', ascending=False)
+
+# Filter for top 3 ranks.
+result_df = result_df[result_df['rank'] <= 3]
+
+# Select for relevant columns (product_class).
+result_df = result_df[['product_class']]
+
+## Results:
+print("Top 3 product classes based on number of orders placed for each class:")
+result_df
+
+Notes:
+- Trying to remember to place an objective at the top of the iteration section and
+  include a print statement that restates the objective in the results section for formatting.
+- If line of code can fit in one line and still look clean and easy to read then
+  no need to split in into multiple lines for Python.
+- Interpretation of numbers of orders placed was based on customer_id count in online_orders DataFrame.
+
+############################
+
+Website:
+StrataScratch - ID 2134
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Uber - Completed Trip within 168 Hours
+For each city and date, 
+determine the percentage of successful signups in the first 7 days of 2022 that completed a trip within 168 hours of the signup date.
+A trip is considered completed if the status column in the trip_details table is marked as 'completed', 
+and the actual_time_of_arrival occurs within 168 hours of the signup timestamp. 
+The driver_id column in trip_details corresponds to the rider_id column in signup_events.
+
+Data Dictionary:
+Table name = 'signup_events'
+city_id: text (str)
+event_name: text (str)
+rider_id: text (str)
+timestamp: timestamp (dt)
+Table name = 'trip_details'
+actual_time_of_arrival: timestamp (dt)
+city_id: text (str)
+client_id: text (str)
+client_rating: double precision (flt)
+driver_id: text (str)
+driver_rating: double precision (flt)
+id: text (str)
+predicted_eta: timestamp (dt)
+request_at: timestamp (dt)
+status: text (str)
+
+Code:
+Solution #1 (two step CTE, easier to understand and debug)
+-- Question:
+-- For each city and date, determine the percentage of successful signups in the first 7 days of 2022
+-- that completed a trip within 168 hours of the signup date.
+-- A trip is considered completed if the status column in the trip_details table is marked as 'completed',
+-- and the actual_time_of_arrival occurs within 168 hours of the signup timestamp.
+-- The driver_id column in trip_details corresponds to the rider_id column in signup_events.
+
+-- Output:
+-- city_id, date, successful_signups_percentage
+-- (sign ups within first 7 days of 2022 that completed trip within 168 hours of signup date)
+-- ('completed': status = 'completed' and actual_time_of_arrival within 168 hours of signup timestamp)
+-- (driver_id corresponds to rider_id)
+
+-- Preview data:
+SELECT * FROM signup_events LIMIT 5;
+SELECT * FROM trip_details LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - events: 0
+--       - details: 72
+-- Rows - events: 37
+--      - details: actual_time_of_arrival(6), client_rating(7), driver_rating(7), predicted_eta(6)
+SELECT
+    SUM(CASE WHEN city_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN event_name IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN rider_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN timestamp IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM signup_events;
+
+SELECT
+    SUM(CASE WHEN actual_time_of_arrival IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN city_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN client_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN client_rating IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN driver_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN driver_rating IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN predicted_eta IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN request_at IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN status IS NULL THEN 1 ELSE 0 END) AS col10,
+    COUNT(*) AS total_rows
+FROM trip_details;
+
+-- Iteration:
+-- For each city and date, determine the percentage of successful signups in the first 7 days of 2022
+-- that completed a trip within 168 hours of the signup date.
+-- Left join signup_events and trip_details tables to include all signup events.
+-- Convert timestamp to date format.
+-- Filter for 'su_success' as successful signups in signup_events table.
+-- Filter for first 7 days of 2022 in signup_events table.
+-- Calculate hours to complete a trip, extract epoch from calculated interval,
+-- hours = (actual_time_of_arrival - timestamp) / 3600.
+-- Count total number of trips with successful sign ups in first 7 days of 2022.
+-- Count number of trips with successful sign ups in first 7 days of 2022 and completed trip within 168 hours
+-- 'completed': status = 'completed' and actual_time_of_arrival within 168 hours of signup timestamp.
+WITH SuccessfulSignupsTripDetails AS (
+SELECT 
+    se.city_id,
+    se.rider_id,
+    DATE(se.timestamp) AS date,
+    EXTRACT(EPOCH FROM (td.actual_time_of_arrival - se.timestamp)) / 3600 AS hours,
+    td.status
+FROM signup_events AS se
+LEFT JOIN trip_details AS td
+    ON se.city_id = td.city_id
+    AND se.rider_id = td.driver_id
+WHERE se.event_name = 'su_success'
+    AND EXTRACT(YEAR FROM se.timestamp) = '2022'
+    AND EXTRACT(DAY FROM se.timestamp) <= 7
+)
+SELECT
+    city_id,
+    date,
+    COUNT(DISTINCT rider_id) FILTER (WHERE status = 'completed' AND hours <= 168) AS successful_signup_trips,
+    COUNT(DISTINCT rider_id) AS total_trips,
+    ROUND(
+        100.0 * COUNT(*) FILTER (WHERE status = 'completed' AND hours <= 168) / 
+        COUNT(*)
+    , 2) AS successful_signups_percentage
+FROM SuccessfulSignupsTripDetails AS sstd
+GROUP BY 
+    city_id, 
+    date
+ORDER BY
+    city_id,
+    date;
+
+-- Result:
+-- For each city and date, determine the percentage of successful signups in the first 7 days of 2022
+-- that completed a trip within 168 hours of the signup date.
+WITH SuccessfulSignupsTripDetails AS (
+    SELECT 
+        se.city_id,
+        se.rider_id,
+        DATE(se.timestamp) AS date,    -- Convert timestamp to date format.
+        EXTRACT(EPOCH FROM
+            -- Calculate hours to complete a trip, extract epoch from calculated interval
+            -- hours = (actual_time_of_arrival - timestamp) / 3600.
+            (td.actual_time_of_arrival - se.timestamp)) / 3600
+        AS hours,
+        td.status
+    FROM 
+        signup_events AS se
+    LEFT JOIN 
+        -- Left join signup_events and trip_details tables to include all signup events.
+        trip_details AS td 
+        ON se.city_id = td.city_id
+        AND se.rider_id = td.driver_id
+    WHERE 
+        se.event_name = 'su_success'    -- Filter for 'su_success' as successful signups.
+        AND EXTRACT(YEAR FROM se.timestamp) = '2022'    -- Filter for first 7 days of 2022
+        AND EXTRACT(DAY FROM se.timestamp) <= 7
+)
+-- Count total number of trips with successful sign ups.
+-- Count number of trips with successful sign ups and completed trip within 168 hours.
+-- 'completed': status = 'completed' and actual_time_of_arrival within 168 hours of signup timestamp.
+SELECT
+    city_id,
+    date,
+    ROUND(
+        100.0 * COUNT(DISTINCT rider_id) FILTER (WHERE status = 'completed' AND hours <= 168) / 
+        COUNT(DISTINCT rider_id)
+    , 2) AS successful_signups_percentage
+FROM 
+    SuccessfulSignupsTripDetails
+GROUP BY 
+    city_id, 
+    date
+ORDER BY
+    city_id,
+    date;
+
+Solution #2 (single query, concise and more efficient)
+SELECT
+  s.city_id,
+  CAST(s.timestamp AS DATE) AS signup_date,
+  COALESCE(
+    CAST(COUNT(DISTINCT CASE WHEN t.status = 'completed' AND t.actual_time_of_arrival <= s.timestamp + INTERVAL '168 hours' THEN s.rider_id END) AS NUMERIC) * 100
+    /
+    CAST(COUNT(DISTINCT s.rider_id) AS NUMERIC),
+    0
+  ) AS completed_trip_percentage
+FROM
+  signup_events AS s
+LEFT JOIN
+  trip_details AS t
+ON
+  s.rider_id = t.driver_id
+WHERE
+  s.timestamp BETWEEN '2022-01-01 00:00:00' AND '2022-01-07 23:59:59'
+GROUP BY
+  s.city_id,
+  signup_date
+ORDER BY
+  s.city_id,
+  signup_date;
+
+Notes:
+- Converting a timestamp to a date, can be done using DATE() function for most SQL platforms,
+  for PostgresSQL can use casting ::DATE on a timestamp column.
+- My interpretation initially was to use COUNT(*) for trip counts, 
+  didn't take into account the rider_id as the potential row count,
+  correct usage was COUNT(DISTINCT rider_id) instead of COUNT(*)
+- When performing datetime/timestamp calculations, interval is the resulting datatype,
+  have to extract epoch from the calculation in order to be able to manipulate it.
+- Was able to discern LEFT JOIN usage for this problem compared to using a default INNER JOIN.
+- When performing the iteration to final result query, initially thought of trying to make
+  a single query instead of a two-step CTE but the two-step CTE was more clearer and less
+  bunched up so stuck with my two-step approach.
+  
+############################
