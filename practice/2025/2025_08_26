@@ -1,0 +1,346 @@
+Date: 08/26/2025
+
+############################
+
+Website:
+StrataScratch - ID 2025
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Apple - Users Exclusive Per Client
+Considering a dataset that tracks user interactions with different clients, 
+identify which clients have users who are exclusively loyal to them (i.e., they don't interact with any other clients).
+For each of these clients, calculate the number of such exclusive users. 
+The output should include the client_id and the corresponding count of exclusive users.
+
+Data Dictionary:
+Table name = 'fact_events'
+id: numeric (num)
+event_id: numeric (num)
+time_id: POSIXct, POSIXt (dt)
+user_id: character (str)
+customer_id: character (str)
+client_id: character (str)
+event_type: character( str)
+
+Code:
+Solution #1 (correct solution but inefficient)
+## Question:
+# Considering a dataset that tracks user interaction with different clients,
+# identify which clients have users who are exclusively loyal to them (don't interact with other clients).
+# For each of these clients, calculate number of exclusive users.
+# Output should include client_id and the corresponding count of exclusive users.
+
+## Output:
+# client_id, exclusive_user_count
+# (clients with users that do not interact with other clients)
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#fact_events <- read_csv('fact_events.csv')
+df <- data.frame(fact_events)
+head(df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 150
+data.frame(lapply(df, class))
+colSums(is.na(df))
+nrow(df)
+
+## Iteration:
+# Calculate number of exclusive users for each client_id
+result_df <- df %>%
+    group_by(client_id, user_id) %>%
+    summarise(client_count = n_distinct(client_id)) %>%    # Calculate unique client count for client, user
+    ungroup() %>%
+    group_by(user_id) %>%
+    mutate(total_client_count = sum(client_count)) %>%     # Calculate total unique clients for users
+    filter(total_client_count == 1) %>%                    # Filter for 1 client count for exclusive users
+    ungroup() %>%
+    group_by(client_id) %>%
+    summarise(exclusive_user_count = n_distinct(user_id), .groups = "drop")    # Count exclusive users
+
+## Results:
+result_df
+
+Solution #2 (more performant and optimized)
+result_df <- df %>%
+  # Step 1: Count unique clients for each user
+  group_by(user_id) %>%
+  summarise(client_count = n_distinct(client_id), .groups = 'drop') %>%
+  
+  # Step 2: Filter for exclusive users (client_count == 1)
+  filter(client_count == 1) %>%
+  
+  # Step 3: Get the corresponding client_id for each exclusive user
+  inner_join(df, by = "user_id") %>%
+  
+  # Step 4: Count the exclusive users per client
+  group_by(client_id) %>%
+  summarise(exclusive_user_count = n_distinct(user_id), .groups = 'drop')
+
+# Display the result
+result_df
+
+Notes:
+- Similar to SQL's OVER(PARTITION BY) is group_by() then mutate() function with an aggregation function
+  ex. df %>%
+          group_by(user_id) %>%
+          mutate(total_client_count = sum(client_count))
+- When approaching the problem, I had a similar approach to solution #2 up until the point of keeping the
+  client_id in the dataframe. I revised my approach to be solution #1 so I didn't need to perform a join.
+  However, the join in this case is more performant and skips the need for a number of steps in solution #1.
+- Possible to join within a dplyr pipe chain as opposed to creating a separate DataFrame.
+  ex. result_df <- df %>%
+          group_by(user_id) %>%
+          summarise(client_count = n_distinct(client_id), .groups = 'drop') %>%
+          filter(client_count == 1) %>%
+          inner_join(df, by = "user_id")
+        
+############################
+
+Website:
+StrataScratch - ID 2071
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Meta - Same Brand Purchases
+The marketing department is aiming its next promotion at customers who have purchased products from two particular brands: Fort West and Golden.
+You have been asked to prepare a list of customers who purchased products from both brands.
+
+Data Dictionary:
+Table name = 'online_products'
+product_id: int64 (int)
+product_class: object (str)
+brand_name: object (str)
+is_low_fat: object (str)
+is_recyclable: object (str)
+product_category: int64 (int)
+product_family: object (str)
+Table name = 'online_orders'
+product_id: int64 (int)
+promotion_id: int64 (int)
+cost_in_dollars: int64 (int)
+customer_id: int64 (int)
+date_sold: datetime64 (dt)
+units_sold: int64 (int)
+
+Code:
+Solution #1 (step by step approach and easier to understand)
+## Question:
+# Marketing department is aiming its next promotion at customers who have purchased products from
+# two particular brands: Fort West and Golden.
+# Prepare a list of customers who purchased products from both brands.
+
+## Output:
+# customer_id
+# (customers who purchased products from both Fort West and Golden)
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#online_products = pd.read_csv('online_products.csv')
+#online_orders = pd.read_csv('online_orders.csv')
+df = pd.DataFrame(online_products)
+df2 = pd.DataFrame(online_orders)
+df.head(5)
+df2.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - products: 0
+#       - orders: 0
+# Rows - products: 12
+#      - orders: 33
+#df.info()
+#df.isna().sum()
+#df2.info()
+#df2.isna().sum()
+
+## Iteration:
+# Create a list of customers who purchased products from both Fort West and Golden
+
+# Join products and orders DataFrames
+merged_df = pd.merge(df, df2, on='product_id', how='inner')
+
+# Find unique customer ids for each brand name
+customers_df = merged_df.groupby('brand_name')['customer_id'].unique().reset_index()
+
+# Filter for Fort West and Golden brand names
+customers_df = customers_df[
+    customers_df['brand_name'].isin(['Fort West', 'Golden'])
+]
+
+# Convert Fort West and Golden customer ids to sets and find matching ids from both brands
+fort_west = set(customers_df.iloc[0]['customer_id'])
+golden = set(customers_df.iloc[1]['customer_id'])
+matching_ids = fort_west.intersection(golden)
+
+# Convert matching customer ids to a DataFrame and rename column
+result_df = pd.DataFrame(matching_ids, columns=['customer_id'])
+
+# Sort customer_id in ASC order
+result_df = result_df.sort_values(by='customer_id', ascending=True)
+
+## Result:
+result_df
+
+Solution #2 (avoids intermediate DataFrames, more concise and direct)
+df = pd.DataFrame(online_products)
+df2 = pd.DataFrame(online_orders)
+merged_df = pd.merge(df, df2, on='product_id', how='inner')
+fort_west_set = set(merged_df[merged_df['brand_name'] == 'Fort West']['customer_id'])
+golden_set = set(merged_df[merged_df['brand_name'] == 'Golden']['customer_id'])
+matching_ids = fort_west_set.intersection(golden_set)
+result_df = pd.DataFrame(matching_ids, columns=['customer_id'])
+
+Notes:
+- To create sets for rows in a DataFrame use 
+  set(df.iloc['value']['col'])
+  ex. fort_west = set(customers_df.iloc[0]['customer_id'])
+- To find intersection between sets use 
+  'set1'.intersection('set2')
+  ex. fort_west = set(customers_df.iloc[0]['customer_id'])
+      golden = set(customers_df.iloc[1]['customer_id'])
+      matching_ids = fort_west.intersection(golden)
+- Converting a numpy array to DataFrame and renaming column use,
+  pd.DataFrame('array', columns=['name'])
+  ex. df = pd.DataFrame(matching_ids, columns=['customer_id'])
+- To filter and create sets in a DataFrame use
+  set(df[df['col'] == 'value']['col'])
+  ex. fort_west_set = set(merged_df[merged_df['brand_name'] == 'Fort West']['customer_id'])
+
+############################
+
+Website:
+StrataScratch - ID 2136
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Shopify - Customer Tracking
+Given the users' sessions logs on a particular day, calculate how many hours each user was active that day.
+Note: The session starts when state=1 and ends when state=0.
+
+Data Dictionary:
+Table name = 'cust_tracking'
+cust_id: text (str)
+state: bigint (int)
+timestamp: timestamp (dt)
+
+Code:
+Solution #1 (Using LAG to calculate time interval)
+-- Question: 
+-- Given the users' sessions logs on a particular day,
+-- calculate how many hours each user was active that day.
+-- Note: The session starts when state=1 and ends when state=0.
+
+-- Output:
+-- cust_id, number_of_hours_active
+-- (session starts when state=1, ends when state=0)
+
+-- Preview data:
+SELECT * FROM cust_tracking LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - 0
+-- Rows - 20
+SELECT 
+    SUM(CASE WHEN cust_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN state IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN timestamp IS NULL THEN 1 ELSE 0 END) AS col3,
+    COUNT(*) AS total_rows
+FROM cust_tracking;
+
+-- Iteration:
+-- Calculate how many hours each user was active on a particular day
+-- Calculate hours per cust_id and between each state
+WITH CustHoursActive AS (
+SELECT 
+    cust_id,
+    timestamp,
+    state,
+    (timestamp - LAG(timestamp) OVER(PARTITION BY cust_id ORDER BY cust_id, timestamp, state)) / 
+        3600 AS hours_active
+FROM cust_tracking
+)
+SELECT
+    cust_id,
+    SUM(hours_active) AS total_hours_active
+FROM CustHoursActive
+WHERE state = 0
+GROUP BY cust_id
+ORDER BY cust_id;
+
+-- Result:
+-- Calculate how many hours each user was active on a particular day
+WITH CustHoursActive AS (
+    -- Calculate hours active per cust_id and between each state
+    SELECT 
+        cust_id,
+        timestamp,
+        state,
+        (timestamp - LAG(timestamp) OVER(PARTITION BY cust_id ORDER BY cust_id, timestamp, state)) / 
+            3600 AS hours_active
+    FROM 
+        cust_tracking
+)
+-- Filter for when session ends, state = 0
+-- Calculate total hours active for each cust_id
+SELECT
+    cust_id,
+    SUM(hours_active) AS total_hours_active
+FROM 
+    CustHoursActive
+WHERE 
+    state = 0
+GROUP BY 
+    cust_id
+ORDER BY 
+    cust_id;
+
+Solution #2 (StrataScratch solution, uses LAG to create next time event then calculates the interval)
+WITH time_between_events AS
+  (SELECT *,
+          LAG(timestamp, -1) OVER(PARTITION BY cust_id
+                                  ORDER BY timestamp) AS next_event,
+          EXTRACT(EPOCH
+                  FROM CAST(LAG(timestamp, -1) OVER(PARTITION BY cust_id
+                                                    ORDER BY timestamp) AS TIME) - CAST(timestamp AS TIME)) / 3600 AS hours_to_next_event
+   FROM cust_tracking)
+SELECT cust_id,
+       SUM(hours_to_next_event) AS total_hours
+FROM time_between_events
+WHERE state = 1
+GROUP BY cust_id;
+
+Notes:
+- Initially tried using CASE WHEN to solve but a windows function made more sense overall,
+  settled on LAG() and seeing how the rows are manipulated using different columns in the
+  PARTITION BY and ORDER BY clause.
+- Keep PARTITION BY AND ORDER BY clauses in the windows function OVER(), 
+  instead of GROUP BY / ORDER BY in the query when possible.
+- StrataScratch's solution, solution #2 was similar to my approach with some differences in what
+  was filtered in the final step and what columns were calculated in the CTE. 
+  Final solution output was the same for both.
+- Overall, would choose my solution over StrataScratch's to avoid extra lines and steps
+
+############################
