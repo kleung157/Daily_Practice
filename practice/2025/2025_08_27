@@ -1,0 +1,345 @@
+Date: 08/27/2025
+
+############################
+
+Website:
+StrataScratch - 2026
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Apple - Bottom 2 Companies By Mobile Usage
+
+Data Dictionary:
+Table name = 'fact_events'
+id: numeric (num)
+event_id: numeric (num)
+time_id: POSIXct, POSIXt (dt)
+user_id: character (str)
+customer_id: character (str)
+client_id: character (str)
+event_type: character (str)
+
+Code:
+Solution #1
+## Question:
+# Identify all companies (customer_id) whose mobile usage ranks in the bottom two positions.
+# Mobile usage is the count of events where client_id = 'mobile'.
+# Companies with the same usage count should share the same rank,
+# and all companies in the bottom two ranks should be included.
+# Return the customer_id and event count, sorted in ascending order by number of events.
+
+## Output:
+# customer_id, event_count 
+# (client_id = 'mobile', bottom two ranks include ties, sorted ASC order by event count)
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#fact_events <- read_csv('fact_events.csv')
+df <- data.frame(fact_events)
+head(df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 150
+data.frame(lapply(df, class))
+colSums(is.na(df))
+nrow(df)
+
+## Iteration:
+# Identify all customer_ids whose mobile usage event count ranks in bottom two positions
+result_df <- df %>%
+    filter(client_id == 'mobile') %>%                    # Filter for mobile usage client_id
+    group_by(customer_id) %>%
+    summarise(event_count = n()) %>%                     # Count number of events per customer_id
+    mutate(rank = dense_rank(event_count)) %>%           # Rank event counts ASC order and include ties
+    ungroup() %>%
+    filter(rank <= 2) %>%                                # Filter for bottom 2 companies
+    select(customer_id, event_count) %>%                 # Select relevant columns
+    arrange(event_count)                                 # Sort in ASC order
+
+## Result:
+result_df
+
+Notes:
+- Have a habit of using n_distinct() in R instead of also considering n(),
+  similar to SQL's COUNT(DISTINCT) and COUNT(*), consider the business problem first.
+  If the problem doesn't ask for unique values then go with n() to count number of rows.
+
+############################
+
+Website:
+StrataScratch - ID 2074
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Natera - Monthly Churn Rate
+Calculate the churn rate of September 2021 in percentages. 
+The churn rate is the difference between the number of customers on the first day of the month and on the last day of the month, 
+divided by the number of customers on the first day of a month.
+Assume that if customer's contract_end is NULL, their contract is still active. 
+Additionally, if a customer started or finished their contract on a certain day, 
+they should still be counted as a customer on that day.
+
+Data Dictionary:
+Table name = 'natera_subscriptions'
+user_id: int64 (int)
+contract_start: datetime64 (dt)
+contract_end: datetime64 (dt)
+
+Code:
+Solution #1
+## Question:
+# Calculate the churn rate of September 2021 in percentages.
+# Churn rate is the difference between the number of customers on the first day of the month
+# and the last day of the month,
+# divided by the number of customers on the first day of the month.
+# Assume that if the customer's contract_end IS NULL, their contract is still active.
+# Additionally, if a customer started or finished their contract on a certain day,
+# they still should be counted as a customer on that day.
+
+## Output:
+# churn_rate_percentage (Sept 2021)
+# churn rate = (number of customers first day of month - number of customers last day of month) /
+# (number of customers first day of month) * 100.0
+# contract_end = NULL then contract still active, customer counted whether started or finished contract
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#natera_subscriptions = pd.read_csv('natera_subscriptions.csv')
+df = pd.DataFrame(natera_subscriptions)
+df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - contract_end(1)
+# Rows - 6
+#df.info()
+#df.isna().sum()
+
+## Iteration:
+# Calculate the churn rate of September 2021 in percentages.
+
+# Count and filter users where contract falls on first day of month, include contract_end nulls
+first_day = len(df[
+    (df['contract_start'] <= pd.to_datetime('2021-09-01')) &
+    (df['contract_end'] >= pd.to_datetime('2021-09-01')) |
+    (df['contract_end'].isna())
+])
+
+# Count and filter users where contract falls on last day of month, include contract_end nulls
+last_day = len(df[
+    (df['contract_start'] <= pd.to_datetime('2021-09-30')) &
+    (df['contract_end'] >= pd.to_datetime('2021-09-30')) |
+    (df['contract_end'].isna())
+])
+
+# Calculate churn rate in percentage, handling division by zero
+# churn rate = (number of customers first day of month - number of customers last day of month) /
+# (number of customers first day of month) * 100.0
+if first_day > 0:
+    result_series = pd.Series(
+        (first_day - last_day) / 
+        (first_day) * 100.0
+        , name='churn_rate_percentage'
+    )
+else:
+    result_series = pd.Series(0.0, name='churn_rate_percentage')
+    
+## Result:
+result_series
+
+Notes:
+- len() function can be performed on a filtered dataframe
+  ex. first_day = len(df[
+          (df['contract_start'] <= pd.to_datetime('2021-09-01')) &
+          (df['contract_end'] >= pd.to_datetime('2021-09-01')) |
+          (df['contract_end'].isna())
+       ])
+- Remember to convert strings to datetime when filtering for dates using pd.to_datetime
+  ex. last_day = len(df[
+          (df['contract_start'] <= pd.to_datetime('2021-09-30'))
+       ])
+- To account for zero division in the denominator, use an if and else statement
+  ex. if first_day > 0:
+          result_series = pd.Series(
+              (first_day - last_day) / 
+              (first_day) * 100.0
+              , name='churn_rate_percentage'
+          )
+      else:
+          result_series = pd.Series(0.0, name='churn_rate_percentage')
+- Initially thought of using np.where like a SQL CASE WHEN statement for the dates, 
+  then settled on pandas datetime filtering. Have to work on getting the filters correct, 
+  spent more time than usual on this particular problem.
+
+############################
+
+Website:
+StrataScratch - ID 2146
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Oracle - Department Manager and Employee Salary Comparison
+Oracle is comparing the monthly wages of their employees in each department to those of their managers and co-workers.
+You have been tasked with creating a table that compares an employee's salary to that of their manager and to the average salary of their department.
+It is expected that the department manager's salary and the average salary of employee's from that department are in their own separate column.
+Order the employee's salary from highest to lowest based on their department.
+Your output should contain the department, employee id, salary of that employee, salary of that employee's manager and the average salary from employee's within that department rounded to the nearest whole number.
+Note: Oracle have requested that you not include the department manager's salary in the average salary for that department in order to avoid skewing the results. Managers of each department do not report to anyone higher up; they are their own manager.
+
+Data Dictionary:
+Table name = 'employee_o'
+age: bigint (int)
+department: text (str)
+employee_title: text (str)
+first_name: text (str)
+gender: text (str)
+id: bigint (int)
+last_name: text (str)
+manager_id: bigint (int)
+salary: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Oracle is comparing the monthly wages of their employees in each department to managers and coworkers.
+-- Create a table comparing employee's salary to their manager and to the average salary of their department.
+-- It is expected that the department manager's salary and
+-- the average salary of employee's from that department are in their own separate column.
+-- Order the employee's salary from highest to lowest based on their department.
+-- Output should contain department, employee id, salary of that employee, salary of that employee's manager
+-- and the average salary from employee's within that department rounded to the nearest whole number.
+-- Note: 
+-- Oracle requested not to include department manager's salary in the average salary for that department
+-- in order to avoid skewing the results.
+-- Managers of each department do not report to anyone higher up; they are their own manager.
+
+-- Output:
+-- department, employee id, employee salary, manager salary, average department salary
+-- (round average department salary to whole number, order by employee salary DESC based on department)
+-- (do not include manager salary in average department salary)
+
+-- Preview data:
+SELECT * FROM employee_o LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - 0
+-- Rows - 30
+SELECT
+    SUM(CASE WHEN age IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN department IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN employee_title IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN first_name IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN gender IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN last_name IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN manager_id IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN salary IS NULL THEN 1 ELSE 0 END) AS col9,
+    COUNT(*) AS total_rows
+FROM employee_o;
+
+-- Iteration:
+-- Create a table comparing employee's salary to their manager and to the average salary of their department.
+WITH DepartmentSalaries AS (
+-- Join employee_o table to itself using two separate aliases to link managers to their employees
+SELECT
+    eo1.department,
+    eo1.id AS employee_id,
+    eo1.salary AS employee_salary,
+    CASE WHEN eo2.employee_title = 'Manager' THEN eo2.salary END AS manager_salary
+FROM employee_o AS eo1
+JOIN employee_o AS eo2
+    ON eo1.manager_id = eo2.id
+),
+AverageSalary AS ( 
+-- Calculate average department salary without including manager salary, round to nearest whole number
+SELECT 
+    department,
+    ROUND(AVG(salary)) AS average_department_salary
+FROM employee_o
+WHERE employee_title <> 'Manager'
+GROUP BY department
+)
+-- Join department salaries and average salary tables by department to include average salary
+-- Order by employee salary DESC based on department
+SELECT 
+    d.department,
+    d.employee_id,
+    d.employee_salary,
+    d.manager_salary,
+    a.average_department_salary
+FROM DepartmentSalaries AS d
+JOIN AverageSalary AS a
+    ON d.department = a.department
+ORDER BY
+    department ASC,
+    employee_salary DESC;
+    
+-- Result:
+-- Create a table comparing employee's salary to their manager and to the average salary of their department.
+WITH DepartmentSalaries AS (
+    -- Join employee_o table to itself using two separate aliases to link managers to their employees
+    SELECT
+        eo1.department,
+        eo1.id AS employee_id,
+        eo1.salary AS employee_salary,
+        CASE WHEN eo2.employee_title = 'Manager' THEN eo2.salary END AS manager_salary
+    FROM 
+        employee_o AS eo1
+    JOIN 
+        employee_o AS eo2 ON eo1.manager_id = eo2.id
+),
+AverageSalary AS ( 
+    -- Calculate average department salary without including manager salary, round to nearest whole number
+    SELECT 
+        department,
+        ROUND(AVG(salary)) AS average_department_salary
+    FROM 
+        employee_o
+    WHERE 
+        employee_title <> 'Manager'
+    GROUP BY 
+        department
+)
+-- Join department salaries and average salary tables by department to include average salary
+-- Order by employee salary DESC based on department
+SELECT 
+    d.department,
+    d.employee_id,
+    d.employee_salary,
+    d.manager_salary,
+    a.average_department_salary
+FROM 
+    DepartmentSalaries AS d
+JOIN 
+    AverageSalary AS a ON d.department = a.department
+ORDER BY
+    department ASC,
+    employee_salary DESC;
+
+Notes:
+- It is not often that I use two separate aliases for the same table to self join.
+  Considered trying to calculate average in one table as opposed to separate CTEs,
+  seemed too complicated with GROUP BYs needed for aggregation so separated the steps.
+- Overall pretty straightfoward question, went step by step to make sure each criteria was met.
+
+############################
