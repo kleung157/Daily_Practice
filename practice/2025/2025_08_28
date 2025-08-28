@@ -1,0 +1,379 @@
+Date: 08/28/2025
+
+############################
+
+Website:
+StrataScratch - ID 2027
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Linux - Company With Most Desktop Users
+Write a query that returns the company (customer_id column) with the highest number of users who have only used desktop. 
+Users who may have used mobile at any point are ignored, but companies may still have mobile users.
+
+Data Dictionary:
+Table name = 'fact_events'
+id: numeric (num)
+event_id: numeric (num)
+time_id: POSIXct, POSIXt (dt)
+user_id: character (str)
+customer_id: character (str)
+client_id: character (str)
+event_type: character (str)
+
+Code:
+Solution #1
+## Question:
+# Return the company (customer_id) with the highest number of users who have only used desktop.
+# Users who may have used mobile at any point are ignored, but companies may still have mobile users.
+
+## Output:
+# customer_id
+# (highest number of users who only used desktop)
+# (users who used mobile at any point ignored, companies can still have mobile users)
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#fact_events <- read_csv('fact_events.csv')
+df <- data.frame(fact_events)
+head(df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 150
+data.frame(lapply(df, class))
+colSums(is.na(df))
+nrow(df)
+
+## Iteration:
+# Find the company (customer_id) with the highest number of users who only used desktop
+result_df <- df %>%
+    group_by(customer_id, user_id) %>%
+    summarise(unique_client_count = n_distinct(client_id)) %>%    # Count unique clients per customer, user
+    filter(unique_client_count == 1) %>%    # Filter for 1 unique client
+    ungroup() %>%
+    left_join(df, by=c('customer_id','user_id')) %>%   # Match single client customer and users with dataset
+    filter(client_id == 'desktop') %>%    # Filter for only desktop users
+    group_by(customer_id) %>%
+    summarise(user_count = n_distinct(user_id), .groups = "drop") %>%   # Count unique desktop users
+    slice_max(user_count) %>%   # Filter for customer with highest number of desktop users
+    select(customer_id)   # Select relevant columns
+
+## Result:
+result_df
+
+Notes:
+- Compared to SQL, this problem is a lot easier to solve with R's dplyr package
+- Discerning which columns to group by and then counting unique clients,
+  and deciding between inner_join or left_join took most of the problem solving time.
+- slice_max() and slice_min() are useful functions for getting rows and not having to using rank().
+
+############################
+
+Website:
+StrataScratch - ID 2075
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Allstate - Homework Results
+Given the homework results of a group of students, calculate the average grade and the completion rate of each student. 
+A homework is considered not completed if no grade has been assigned.
+Output first name of a student, their average grade, and completion rate in percentages. 
+Note that it's possible for several students to have the same first name but their results should still be shown separately.
+
+Data Dictionary:
+Table name = 'allstate_homework'
+student_id: int64 (int)
+homework_id: int64 (int)
+grade: float64 (flt)
+Table name = 'allstate_students'
+student_id: int64 (int)
+student_firstname: object (str)
+student_lastname: object (str)
+
+Code:
+Solution #1
+## Question:
+# Given the homework results of a group of students, 
+# calculate the average grade and completion rate of each student.
+# A homework is considered not completed if no grade has been assigned.
+# Output first name of student, their average grade, and completion rate in percentages.
+# Note that it's possible for several students to have the same first name but results still shown separate.
+
+## Output:
+# student_firstname, average_grade, completion_rate (in percentage)
+# (homework not completed if no grade has been assigned)
+# (students can have same first name but results need to be shown in separate rows)
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#allstate_homework = pd.read_csv('allstate_homework.csv')
+#allstate_students = pd.read_csv('allstate_students.csv')
+df = pd.DataFrame(allstate_homework)
+df2 = pd.DataFrame(allstate_students)
+df.head(5)
+df2.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - homework: grade(6)
+#       - students: 0
+# Rows - homework: 12
+#      - students: 4
+#df.info()
+#df.isna().sum()
+#df2.info()
+#df2.isna().sum()
+
+## Iteration:
+# Calculate average grade and completion rate of each student
+
+# Join homework and student DataFrames
+merged_df = pd.merge(df, df2, on='student_id', how='inner')
+
+# Fill null grade values with 0
+merged_df['grade'] = merged_df['grade'].fillna(0)
+
+# Calculate average grade, completion count, and total grade count for each student
+result_df = (
+    merged_df.groupby(['student_firstname', 'student_lastname'])
+    .agg(
+        average_grade=('grade', 'mean'),
+        complete_count=('grade', lambda x: (x != 0).sum()),
+        total_grade_count=('grade', 'count')
+    ).reset_index()
+)
+
+# Calculate completion rate in percentages, completion_rate = complete_count / total_grade_count * 100.0
+result_df['completion_rate'] = result_df['complete_count'] / result_df['total_grade_count'] * 100.0
+
+# Filter relevant columns
+result_df = result_df[['student_firstname', 'average_grade', 'completion_rate']]
+
+# Sort values by student_firstname ASC
+result_df = result_df.sort_values(by='student_firstname', ascending=True)
+
+## Result:
+result_df
+
+Notes:
+- To fill null values, use the .fillna() function.
+  ex. merged_df['grade'] = merged_df['grade'].fillna(0)
+- When filtering in groupby and .agg() function, use lambda x: (x == 'value').sum() after the select column.
+  The sum aggregation counts the number of TRUE values in the boolean Series, don't use count().
+  ex. result_df = (
+           merged_df.groupby(['student_firstname', 'student_lastname'])
+           .agg(
+               average_grade=('grade', 'mean'),
+               complete_count=('grade', lambda x: (x != 0).sum()),
+               total_grade_count=('grade', 'count')
+           ).reset_index()
+      )
+- The size() function finds all rows whether null or non-null
+
+############################
+
+Website:
+StrataScratch - ID 2147
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Wine Magazine - Most Expensive And Cheapest Wine With Ties
+Find the cheapest and the most expensive variety in each region. 
+Output the region along with the corresponding most expensive and the cheapest variety. 
+Be aware that there are 2 region columns, the price from that row applies to both of them.
+Note: The results set contains ties, so your solution should account for this.
+For example in the event of a tie for the cheapest wine your output should look similar to this:
+region             | most_expensive_variety | cheapest_variety
+region_name | expensive_variety             | cheap_variety_1
+region_name | expensive_variety             | cheap_variety_2
+
+Data Dictionary:
+Table name = 'winemag_pd'
+country: text (str)
+description: text (str)
+designation: text (str)
+id: bigint (int)
+points: bigint (int)
+price: double precision (flt)
+province: text (str)
+region_1: text (str)
+region_2: text (str)
+variety: text (str)
+winery: text (str)
+
+Code:
+Solution #1
+-- Question:
+-- Find the cheapest and the most expensive variety in each region.
+-- Output the region along with the corresponding most expensive and the cheapest variety.
+-- Be aware that there are 2 region columns, the price from that row applies to both of them.
+-- Note, results set contains ties, so your solution should account for this.
+
+-- Output:
+-- region, most_expensive_variety, cheapest_variety
+-- (there are 2 region columns, price from that row applies to both of them, account for ties)
+
+-- Preview data:
+SELECT * FROM winemag_pd LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - designation(36), price(3), region_1(20), region_2(61)
+-- Rows - 100
+SELECT
+    SUM(CASE WHEN country IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN description IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN designation IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN points IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN price IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN province IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN region_1 IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN region_2 IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN variety IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN winery IS NULL THEN 1 ELSE 0 END) AS col11,
+    COUNT(*) AS total_rows
+FROM winemag_pd;
+
+-- Iteration:
+-- Find the cheapest and the most expensive variety in each region.
+-- Separate the two regions, their variety, and price into tables then combine using UNION
+-- Rank the most expensive varieties incuding ties, don't include nulls
+-- Rank the cheapest varietiest including ties, don't include nulls
+-- Join expensive varieties and cheapest varieties by matching region
+-- Filter for most expensive ranking and cheapest ranking being 1 for both
+WITH AllWines AS (
+SELECT 
+    region_1 AS region,
+    variety,
+    price
+FROM winemag_pd
+
+UNION ALL
+
+SELECT 
+    region_2 AS region,
+    variety,
+    price
+FROM winemag_pd
+),
+ExpensiveVarietyRank AS (
+SELECT 
+    region,
+    variety AS most_expensive_variety,
+    price,
+    DENSE_RANK() OVER(PARTITION BY region ORDER BY price DESC) AS most_expensive_rank
+FROM AllWines
+WHERE region IS NOT NULL
+    AND price IS NOT NULL
+),
+CheapestVarietyRank AS (
+SELECT 
+    region,
+    variety AS cheapest_variety,
+    price,
+    DENSE_RANK() OVER(PARTITION BY region ORDER BY price ASC) AS cheapest_rank
+FROM AllWines
+WHERE region IS NOT NULL
+    AND price IS NOT NULL
+)
+SELECT
+    evr.region,
+    evr.most_expensive_variety,
+    cvr.cheapest_variety
+FROM ExpensiveVarietyRank AS evr
+JOIN CheapestVarietyRank AS cvr
+    ON evr.region = cvr.region
+WHERE evr.most_expensive_rank = 1
+    AND cvr.cheapest_rank = 1
+ORDER BY region ASC;
+
+-- Result:
+-- Find the cheapest and the most expensive variety in each region.
+WITH AllWines AS (
+    -- Separate the two regions, their variety, and price into tables then combine using UNION
+    SELECT 
+        region_1 AS region,
+        variety,
+        price
+    FROM 
+        winemag_pd
+
+    UNION ALL
+
+    SELECT 
+        region_2 AS region,
+        variety,
+        price
+    FROM 
+        winemag_pd
+),
+ExpensiveVarietyRank AS (
+    -- Rank the most expensive varieties incuding ties, don't include nulls
+    SELECT 
+        region,
+        variety,
+        price,
+        DENSE_RANK() OVER(PARTITION BY region ORDER BY price DESC) AS most_expensive_rank
+    FROM 
+        AllWines
+    WHERE 
+        region IS NOT NULL
+        AND price IS NOT NULL
+),
+CheapestVarietyRank AS (
+    -- Rank the cheapest varietiest including ties, don't include nulls
+    SELECT 
+        region,
+        variety,
+        price,
+        DENSE_RANK() OVER(PARTITION BY region ORDER BY price ASC) AS cheapest_rank
+    FROM 
+        AllWines
+    WHERE 
+        region IS NOT NULL
+        AND price IS NOT NULL
+)
+-- Join expensive varieties and cheapest varieties by matching region
+-- Filter for most expensive ranking and cheapest ranking being 1 for both
+SELECT
+    evr.region,
+    evr.variety AS most_expensive_variety,
+    cvr.variety AS cheapest_variety
+FROM 
+    ExpensiveVarietyRank AS evr
+JOIN 
+    CheapestVarietyRank AS cvr
+    ON evr.region = cvr.region
+WHERE 
+    evr.most_expensive_rank = 1
+    AND cvr.cheapest_rank = 1
+ORDER BY 
+    region ASC;
+
+Notes:
+- Using UNION ALL came naturally and made sense when looking at the example and how to structure the output.
+- Could apply NOT NULL filters in the first CTE with the UNION ALL instead of in the following CTEs.
+- Including ties is a dead giveaway for using DENSE_RANK and better to use than MAX/MIN functions.
+- Question was pretty straightforward but good practice for using UNION, DENSE_RANK, and JOINs.
+
+############################
