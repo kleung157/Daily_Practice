@@ -1,0 +1,354 @@
+Date: 08/29/2025
+
+############################
+
+Website:
+StrataScratch - ID 2032
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Asana - Signups By Billing Cycle
+Write a query that returns a table containing the number of signups for each weekday and for each billing cycle frequency. 
+The day of the week standard we expect is from Sunday as 0 to Saturday as 6.
+Output the weekday number (e.g., 1, 2, 3) as rows in your table and the billing cycle frequency (e.g., annual, monthly, quarterly) as columns. 
+If there are NULLs in the output replace them with zeroes.
+
+Data Dictionary:
+Table name = 'signups'
+signup_id: numeric (num)
+plan_id: numeric (num)
+signup_start_date: POSIXct, POSIXt (dt)
+signup_stop_date: POSIXct, POSIXt (dt)
+location: character (str)
+Table name = 'plans'
+id: numeric (num)
+billing_cycle: character (str)
+avg_revenue: numeric (num)
+currency: character (str)
+
+Code:
+Solution #1
+## Question:
+# Return a table containing the number of signups for each weekday and for each billing cycle frequency.
+# The day of the week standard we expect is from Sunday as 0 to Saturday as 6.
+# Output the weekday number (e.g. 1, 2, 3) as rows in your table and the billing cycle frequency 
+# (e.g. annual, monthly, quarterly) as columns.
+# If there are NULLS in the output replace them with zeroes.
+
+## Output:
+# weekday, quarterly, annual, monthly
+# (number of signups for each weekday and billing frequency, if NULLS then replace with 0)
+# (day of week, 0 is Sunday, 6 is Saturday, output weekday as rows, and billing cycle as columns)
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#signups <- read_csv('signups.csv')
+#plans <- read_csv('plans.csv')
+df <- data.frame(signups)
+df2 <- data.frame(plans)
+head(df, 5)
+head(df2, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - signups: 0
+#       - plans: 0
+# Rows - signups: 50
+#      - plans: 6
+data.frame(lapply(df, class))
+data.frame(lapply(df2, class))
+colSums(is.na(df))
+colSums(is.na(df2))
+nrow(df)
+nrow(df2)
+
+## Iteration:
+# Find the number of signups for each weekday and for each billing cycle frequency
+result_df <- inner_join(df, df2, by=c("plan_id" = "id")) %>%    # Join signups and plans DataFrames
+    mutate(    
+        weekday = as.numeric(strftime(signup_start_date, format = "%w"))   # Convert signup date to
+    ) %>%                                                                  # weekday number
+    group_by(weekday, billing_cycle) %>%
+    summarise(
+        signup_count = n_distinct(signup_id), .groups = "drop"    # Count signups per weekday & billing cycle
+    ) %>%    
+    pivot_wider(                                            
+        names_from = billing_cycle,    # Pivot DataFrame,
+        values_from = signup_count,    # weekday as rows and billing_cycle as columns
+        values_fill = 0                # fill null values with 0
+    ) %>%
+    add_row(weekday = 0, annual = 0, monthly = 0, quarterly = 0) %>%   # Create sunday row, fill columns 0
+    arrange(weekday)    # Arrange weekday in ASC order
+
+## Result:
+result_df
+
+Notes:
+- Can use lubridate package to have weekday numbers 1-7 then perform calculations to get to 0-6
+  ex. weekday_number_0_to_6 <- wday(my_date) - 1
+- For weekday numbers 0-6 directly, can use strftime() function which converts date to string,
+  have to use as.numeric() to convert the string and manipulate any numbers to calculate.
+  ex. weekday_number_strftime <- as.numeric(strftime(my_date, format = "%w"))
+- Can add rows to DataFrames, using add_row
+  ex. add_row(weekday = 0, annual = 0, monthly = 0, quarterly = 0)
+- To pivot a table where converting a column's categories into multiple columns, use pivot_wider(),
+  same function can also fill nulls with 0
+  ex. sales_wide <- sales_long %>%
+          pivot_wider(
+              names_from = product,
+              values_from = sales,
+              values_fill = 0
+          )
+
+############################
+
+Website:
+StrataScratch - ID 2077
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+LinkedIn - Employed at Google
+Find IDs of LinkedIn users who were employed at Google on November 1st, 2021. 
+Do not consider users who started or ended their employment at Google on that day but do include users who changed their position within Google on that day.
+
+Data Dictionary:
+Table name = 'linkedin_users'
+user_id: int64 (int)
+employer: object (str)
+position: object (str)
+start_date: datetime64 (dt)
+end_date: datetime64 (dt)
+
+Code:
+Solution #1 (more intermediate DataFrames but easier to debug)
+## Question: 
+# Find IDs of LinkedIn users who were employed at Google on November 1st, 2021.
+# Do not consider users who started or ended their employment at Google on that day
+# but do include users who changed their position within Google on that day.
+
+## Output:
+# user_id
+# (users employed at Google on Nov 1, 2021)
+# (don't include users who started/ended employment, only those who changed position within Google)
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#linkedin_users = pd.read_csv('linkedin_users.csv')
+df = pd.DataFrame(linkedin_users)
+df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - end_date(5)
+# Rows - 11
+#df.info()
+#df.isna().sum()
+
+## Iteration:
+# Find IDs of LinkedIn users who were employed at Google on November 1st, 2021.
+
+# Filter for users who were employed at Google and changed positions on November 1, 2021
+changed_df = df[
+    (df['employer'] == 'Google') &
+    ((df['start_date'] == pd.to_datetime('2021-11-01')) | (df['end_date'] == pd.to_datetime('2021-11-01'))) 
+].copy()
+
+# Count number of user_ids with changed positions
+changed_df = changed_df['user_id'].value_counts().reset_index(name='user_id_count')
+
+# Filter for user_ids that have counts greater than 1 to indicate a change
+changed_df = changed_df[
+    changed_df['user_id_count'] > 1
+]
+
+# Select relevant columns
+changed_df = changed_df[['user_id']]
+
+# Filter for users who were employed at Google on November 1, 2021
+employed_df = df[
+    (df['employer'] == 'Google') &
+    (df['start_date'] < pd.to_datetime('2021-11-01')) &
+    ((df['end_date'] > pd.to_datetime('2021-11-01')) | (df['end_date'].isna()))
+].copy()
+
+# Select relevant columns
+employed_df = employed_df[['user_id']]
+
+# Combine separate DataFrames for final result
+result_df = pd.concat([changed_df, employed_df])
+
+## Result:
+result_df
+
+Solution #2 (more concise and efficient in a single chained pipeline)
+# Define the date for clarity and reusability
+target_date = pd.to_datetime('2021-11-01')
+
+# A single, more concise query to find the user IDs
+final_user_ids = pd.concat([
+    # Find users who changed positions on the target date
+    df[(df['employer'] == 'Google') &
+       ((df['start_date'] == target_date) | (df['end_date'] == target_date))]
+      .groupby('user_id')
+      .filter(lambda x: len(x) > 1)['user_id'],
+
+    # Find users who were already employed at Google on the target date
+    df[(df['employer'] == 'Google') &
+       (df['start_date'] < target_date) &
+       ((df['end_date'] > target_date) | (df['end_date'].isna()))
+      ]['user_id']
+
+]).unique() # Use .unique() to get a final list of unique IDs
+
+print(final_user_ids)
+
+Notes:
+- Filtering was the right way to approach the problem, needed to improve my use of parantheses
+  on the OR clause. The AND clause also is carried out first over the OR
+  ex. changed_df = df[
+          (df['employer'] == 'Google') &
+          ((df['start_date'] == pd.to_datetime('2021-11-01')) | (df['end_date'] == pd.to_datetime('2021-11-01'))) 
+       ].copy()
+- Using value_counts() is a good way to count without using groupby().count() and account for duplicates
+  ex. changed_df = changed_df['user_id'].value_counts().reset_index(name='user_id_count')
+- Better to use solution #1 over solution #2 for readability and debugging purposes. 
+  For larger datasets, solution #2 is better for conciseness and optimization.
+- Rather than using pd.to_datetime('date') multiple times, better to assign it to a variable.
+  ex. target_date = pd.to_datetime('2021-11-01')
+
+############################
+
+Website:
+StrataScratch - ID 2165
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Meta - Sales Percentage Week's Beginning and End
+The sales department has given you the sales figures for the first two months of 2023.
+You've been tasked with determining the percentage of weekly sales on the first and last day of every week. 
+Consider Sunday as last day of week and Monday as first day of week.
+In your output, include the week number, percentage sales for the first day of the week, and percentage sales for the last day of the week. 
+Both proportions should be rounded to the nearest whole number.
+
+Data Dictionary:
+Table name = 'early_sales'
+invoicedate: date (d)
+invoiceno: bigint (int)
+quantity: bigint (int)
+stockcode: character varying (str)
+unitprice: double precision (flt)
+
+Code:
+Solution #1
+-- Question:
+-- The sales department has given you the sales figures for the first two months of 2023.
+-- Determine the percentage of weekly sales on the first and last day of every week.
+-- Consider Sunday as last day of week and Monday as first day of week.
+-- In your output, include week number, percentage sales for the first day of week, and
+-- percentage sales for the last day of the week.
+-- Both proportions should be rounded to the nearest whole number.
+
+-- Output:
+-- week_number, first_day_of_week_sales, last_day_of_week_sales
+-- (first two months of 2023, Sunday is last day of week, Monday is first day of week)
+-- (both percentages should be rounded to nearest whole number)
+
+-- Preview data:
+SELECT * FROM early_sales LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - 0
+-- Rows - 39
+SELECT
+    SUM(CASE WHEN invoicedate IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN invoiceno IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN quantity IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN stockcode IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN unitprice IS NULL THEN 1 ELSE 0 END) AS col5,
+    COUNT(*) AS total_rows
+FROM early_sales;
+
+-- Iteration:
+-- Determine the percentage of weekly sales on the first and last day of every week.
+-- Extract week_number and weekday from invoicedate column
+-- Calculate first_day_of_week sales percentage, 
+-- percentage = first_day_of_week_sales / total_sales * 100.0
+-- Calculate last_day_of_week sales percentage,
+-- percentage = last_day_of_week_sales / total_sales * 100.0
+WITH WeekDayQuantities AS (
+SELECT 
+    EXTRACT(WEEK FROM invoicedate) AS week_number,
+    EXTRACT(DOW FROM invoicedate) AS weekday,
+    quantity,
+    unitprice
+FROM early_sales
+)
+SELECT
+    week_number,
+    ROUND(
+        100.0 * SUM(CASE WHEN weekday = 1 THEN quantity * unitprice ELSE 0 END) /
+        SUM(quantity * unitprice) 
+    ) AS first_day_of_week_sales, 
+    ROUND(
+        100.0 * SUM(CASE WHEN weekday = 0 THEN quantity * unitprice ELSE 0 END) /
+        SUM(quantity * unitprice) 
+    ) AS last_day_of_week_sales
+FROM WeekDayQuantities
+GROUP BY week_number
+ORDER BY week_number;
+
+-- Result:
+-- Determine the percentage of weekly sales on the first and last day of every week.
+SELECT
+    -- Extract week_number and weekday from invoicedate column
+    EXTRACT(WEEK FROM invoicedate) AS week_number,
+    ROUND(
+        -- Calculate first_day_of_week sales percentage, 
+        -- percentage = first_day_of_week_sales / total_sales * 100.0
+        100.0 * SUM(CASE WHEN EXTRACT(DOW FROM invoicedate) = 1 THEN quantity * unitprice  ELSE 0 END) /
+        SUM(quantity * unitprice) 
+    ) AS first_day_of_week_sales,
+    ROUND(
+        -- Calculate last_day_of_week sales percentage,
+        -- percentage = last_day_of_week_sales / total_sales * 100.0
+        100.0 * SUM(CASE WHEN EXTRACT(DOW FROM invoicedate) = 0 THEN quantity * unitprice  ELSE 0 END) /
+        SUM(quantity * unitprice) 
+    ) AS last_day_of_week_sales
+FROM 
+    early_sales
+GROUP BY 
+    EXTRACT(WEEK FROM invoicedate)
+ORDER BY 
+    EXTRACT(WEEK FROM invoicedate);
+
+Notes:
+- Was trying to figure out why TO_CHAR() column that had the weekday wasn't filtering when using CASE WHEN
+  or even for WHERE clause. Decided instead to use EXTRACT(DOW) since it was easier to use numbers instead
+  of strings to denote the weekdays.
+- For my iteration approach, made a CTE to see how messy the code would get and whether it would be
+  possible to condense into a single final query. Decided on a single query for the final approach.
+- The interpretation of weekly sales wasn't clear to me, initially was using invoiceno, then quantity,
+  but the correct interpretation from the early_sales table is probably quantity * unit price.
+- Originally I used COALESCE to fill null values within the SUM aggregation and FILTER functions but
+  made more sense to just use CASE WHEN THEN ELSE 0. The first option is more optimal for PostgresSQL
+  but the second option covers all SQL databases.
+
+############################
