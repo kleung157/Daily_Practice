@@ -1,0 +1,329 @@
+Date: 09/01/2025
+
+############################
+
+Website:
+StrataScratch - ID 2034
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+DoorDash - Avg Earnings per Weekday and Hour
+You have been asked to calculate the average earnings per order segmented by a combination of weekday (all 7 days) and hour using the column customer_placed_order_datetime.
+You have also been told that the column order_total represents the gross order total for each order. Therefore, you'll need to calculate the net order total.
+The gross order total is the total of the order before adding the tip and deducting the discount and refund.
+Note: In your output, the day of the week should be represented in text format (i.e., Monday). Also, round earnings to 2 decimals
+
+Data Dictionary:
+Table name = 'doordash_delivery'
+driver_id: numeric (num)
+restaurant_id: numeric (num)
+consumer_id: numeric (num)
+discount_amount: numeric (num)
+customer_placed_order_datetime: POSIXct, POSIXt (dt)
+placed_order_with_restaurant_datetime: POSIXct, POSIXt (dt)
+driver_at_restaurant_datetime: POSIXct, POSIXt (dt)
+delivered_to_consumer_datetime: POSIXct, POSIXt (dt)
+is_new: logical (bool)
+delivery_region: character (str)
+is_asap: logical (bool)
+order_total: numeric (num)
+tip_amount: numeric (num)
+refunded_amount: numeric (num)
+
+Code:
+Solution #1
+## Question:
+# Calculate the average earnings per order segmented by a combination of all weekdays (all 7 days)
+# and hour using the column customer_placed_order_datetime.
+# The order_total column represents the gross order total for each order. 
+# Calculate the net order total.
+# Gross order total is the total of the order before adding the tip, and deducting the discount and refund.
+# Note, in output, the day of the week should be in text format (ex. Monday). 
+# Round earnings to 2 decimals.
+
+## Output:
+# weekday, hour, average_earnings_per_order (round to 2 decimals)
+# (calculate net order total (order_total + tip - discount - refund), day of week in text format)
+
+## Import libraries:
+#install.packages(tidyverse)
+#install.packages(lubridate)
+library(tidyverse)
+library(lubridate)
+
+## Load and preview data
+#doordash_delivery <- read_csv('doordash_celivery.csv')
+df <- data.frame(doordash_delivery)
+head(df, 5)
+
+## Check datatypes, nulls and rows:
+# Nulls - placed_order_with_restaurant_datetime(1), driver_at_restaurant_datetime(23), delivery_region(2)
+# Rows - 96
+data.frame(lapply(df, class))
+colSums(is.na(df))
+nrow(df)
+
+## Iteration:
+# Calculate average earnings per order segmented by all weekdays and hour 
+result_df <- df %>%
+    mutate(
+        # Convert datetime to weekdays in text and numerical format, and to hour
+        # Calculate net_order_total, (order_total + tip_amount - discount_amount - refunded_amount)
+        weekday_num = wday(customer_placed_order_datetime),
+        weekday = wday(customer_placed_order_datetime, label = TRUE, abbr = FALSE),
+        hour = hour(customer_placed_order_datetime),
+        net_order_total = (order_total + tip_amount - discount_amount - refunded_amount)
+    ) %>%
+    group_by(weekday_num, weekday, hour) %>%
+    summarise(
+        # Average the net_order_total for orders within weekdays, hours, round to 2 decimals
+        average_earnings_per_order = round(mean(net_order_total), digits = 2), .groups = "drop"
+    ) %>%
+    arrange(
+        # Arrange in ASC order using numerical weekday and hours
+        weekday_num, hour
+    ) %>%
+    select(
+        # Select relevant columns (weekday, hour, average_earnings_per_order)
+        weekday, hour, average_earnings_per_order
+    )
+    
+## Result:
+result_df 
+
+Notes:
+- To convert a datetime column to weekday, use lubridate package.
+  For only numerical value, use wday().
+  For full formatted text value, use wday('col', label = TRUE, abbr = FALSE)
+  ex. df %>%
+          mutate(weekday = wday(customer_placed_order_datetime, label = TRUE, abbr = FALSE)
+- Couldn't remember whether extracting date function from lubridate was DOW, WOD, weekday, or dayofweek.
+  Tried to think of more SQL datetime functions for R to narrow down the choices.
+
+############################
+
+Website:
+StrataScratch - ID 2079
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Lyft - City with Most Customers
+For each city, find the number of rides in August 2021 that were paid without using a promotional code (i.e., where no discount was applied). 
+Output the city or cities where this number was the highest.
+
+Data Dictionary:
+Table name = 'lyft_orders'
+order_id: int64 (int)
+customer_id: object (str)
+driver_id: object (str)
+country: object (str)
+city: object (str)
+Table name = 'lyft_payments'
+order_id: int64 (int)
+order_date: datetime64 (dt)
+promo_code: bool (bool)
+order_fare: float64 (flt)
+
+Code:
+Solution #1
+## Question:
+# For each city, find the number of rides in August 2021 that were paid without using a promotional code
+# (ex. where no discount was applied).
+# Output the city or cities where this number was the highest.
+
+## Output:
+# city
+# (city with highest number of rides in Aug 2021 that paid without promo_code)
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#lyft_orders = pd.read_csv('lyft_orders.csv')
+#lyft_paymnets = pd.read_csv('lyft_payments.csv')
+df = pd.DataFrame(lyft_orders)
+df2 = pd.DataFrame(lyft_payments)
+df.head(5)
+df2.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - orders: 0
+#       - payments: 0
+# Rows - orders: 21
+#      - payments: 21
+#df.info()
+#df.isna().sum()
+#df2.info()
+#df2.isna().sum()
+
+## Iteration:
+# Find the cities with highest number of rides in Aug 2021 that paid without using a promo_code
+
+# Join orders and payments DataFrames by order_id
+merged_df = pd.merge(df, df2, on='order_id', how='inner')
+
+# Filter for rows for dates in Aug 2021 and did not use a promo_code
+filtered_df = merged_df[
+    (merged_df['order_date'].dt.year == 2021) &
+    (merged_df['order_date'].dt.month == 8) &
+    (merged_df['promo_code'] == False)
+].copy()
+
+# Count number of rides per city using order_id
+result_df = filtered_df.groupby('city')['order_id'].count().reset_index(name='ride_count')
+
+# Rank ride_count in DESC order, account for ties
+result_df['ride_rank'] = result_df['ride_count'].rank(method='dense', ascending=False)
+
+# Filter for values with highest rank
+result_df = result_df[
+    result_df['ride_rank'] == 1
+]
+
+# Select relevant columns
+result_df = result_df[['city']]
+
+# Sort values in ASC order
+result_df = result_df.sort_values(by='city', ascending=True)
+
+## Result:
+result_df
+
+Notes:
+- Was trying to decide whether to use dense_rank or idxmax() function to find the highest or max number.
+  Saw tied values for highest number of rides, so settled on dense_rank since idxmax() only finds a single value.
+- The SQL approach was more clear than using Python indexing which would add more steps and complicate the code.
+
+############################
+
+Website:
+StrataScratch - ID 9603
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+LinkedIn - Find fare differences on the Titanic using a self join
+Find the average absolute fare difference between a specific passenger and all passengers that belong to the same pclass, 
+both are non-survivors and age difference between two of them is 5 or less years. 
+Do that for each passenger (that satisfy above mentioned coniditions). 
+Output the result along with the passenger name.
+
+Data Dictionary:
+Table name = 'titanic'
+age: double precision (flt)
+cabin: text (str)
+embarked: text (str)
+fare: double precision (flt)
+name: text (str)
+parch: bigint (int)
+passengerid: bigint (int)
+pclass: bigint (int)
+sex: text (str)
+sibsp: bigint (int)
+survived: bigint (int)
+ticket: text (str)
+
+Code:
+Attempt #1 (incomplete, not sure how to join every row and combination together)
+-- Question:
+-- Find the average absolute fare difference between a specific passenger and all passengers that belong
+-- to the same pclass, both are non-survivors and age difference between two of them is 5 or less years.
+-- Do that for each passenger (that satisfy mentioned conditions).
+-- Output the results along with the passenger name.
+
+-- Output:
+-- passenger_name, average_absolute_fare_difference
+-- (absolute fare difference between specific passenger and all passengers in same pclass, both are
+-- non-survivors and age-difference between two of them is 5 or less years)
+
+-- Preview data:
+SELECT * FROM titanic LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - age(22), cabin(80), embarked(1)
+-- Rows - 100
+SELECT
+    SUM(CASE WHEN age IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN cabin IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN embarked IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN fare IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN name IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN parch IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN passengerid IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN pclass IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN sex IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN sibsp IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN survived IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN ticket IS NULL THEN 1 ELSE 0 END) AS col12,
+    COUNT(*) AS total_rows
+FROM titanic;
+
+-- Iteration:
+-- Find the average absolute fare difference between a specific passenger and all passengers that belong
+-- to the same pclass, both are non-survivors and age difference between two of them is 5 or less years.
+-- Filter for non-survivors and age is not a null value
+SELECT 
+    passengerid,
+    name,
+    pclass,
+    age,
+    fare
+FROM titanic
+WHERE survived = 0
+    AND age IS NOT NULL
+ORDER BY 
+    pclass,
+    passengerid;
+
+Solution #1
+WITH NonSurvivors AS (
+    -- Filter for non-survivors and age is not a null value
+    SELECT 
+        name,
+        pclass,
+        age,
+        fare
+    FROM 
+        titanic
+    WHERE 
+        survived = 0
+        AND age IS NOT NULL
+)
+-- Self join where passenger class is the same, names are different, and age difference is 5 or less years
+-- Calculate average absolute fare difference for each passenger name
+SELECT 
+    t1.name,
+    AVG(ABS(t1.fare - t2.fare)) AS average_absolute_fare_difference
+FROM 
+    NonSurvivors AS t1
+JOIN 
+    NonSurvivors AS t2
+    ON t1.pclass = t2.pclass
+    AND t1.name != t2.name
+    AND ABS(t1.age-t2.age) <= 5
+GROUP BY 
+    t1.name
+ORDER BY 
+    t1.name;
+    
+Notes:
+- Was on the right track in terms of filtering the original dataset and preparing a CTE for joining,
+  just wasn't sure how to do the filter conditions within the JOIN instead of a WHERE clause.
+- Had an idea for how to use the ABS() function and the AVG() function in the final query.
+- Question was good practice for self joins and join filter conditions
+
+############################
