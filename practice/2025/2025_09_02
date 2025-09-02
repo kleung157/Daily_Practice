@@ -1,0 +1,489 @@
+Date: 09/02/2025
+
+############################
+
+Website:
+StrataScratch - ID 2035
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+DoorDash - Avg Order Cost During Rush Hours
+
+Data Dictionary:
+Table name = 'delivery_details'
+driver_id: numeric (num)
+restaurant_id: numeric (num)
+consumer_id: numeric (num)
+customer_placed_order_datetime: POSIXct, POSIXt (dt)
+placed_order_with_restaurant_datetime: POSIXct, POSIXt (dt)
+driver_at_restaurant_datetime: POSIXct, POSIXt (dt)
+delivered_to_consumer_datetime: POSIXct, POSIXt (dt)
+is_new: logical (bool)
+delivery_region: character (str)
+is_asap: logical (bool)
+order_total: numeric (num)
+discount_amount: numeric (num)
+tip_amount: numeric (num)
+refunded_amount: numeric (num)
+
+Code:
+Solution #1
+## Question:
+# What is the average order value per hour during rush hours in the San Jose area?
+# Rush hour is from 15-17H inclusive.
+# The order_total column represents the gross order total for each order. Calculate the net order total.
+# The gross order total is the total of the order before adding the tip and deducting the discount and refund.
+# Use the customer_placed_order_datetime for your calculations.
+
+## Output:
+# hour, average_order_value
+# (average order value during rush hours 15-17H in San Jose, 
+# net_order_total = order_total + tip_amount - discount_amount - refunded_amount)
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#delivery_details <- read_csv('delivery_details.csv')
+df <- data.frame(delivery_details)
+head(df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - placed_order_with_restaurant_datetime(2), driver_at_restaurant_datetime(244), delivery_region(2)
+# Rows - 998
+data.frame(lapply(df, class))
+colSums(is.na(df))
+nrow(df)
+
+## Iteration:
+# What is the average order value per hour during rush hours in the San Jose area?
+result_df <- df %>%
+    filter(
+        # Filter for San Jose and rush hours 15-17H inclusive
+        delivery_region == 'San Jose',
+        hour(customer_placed_order_datetime) %in% c(15, 16, 17)
+    ) %>%
+    mutate(
+        # Extract hour from datetime and calculate net_order_total
+        # net_order_total = order_total + tip_amount - discount_amount - refunded_amount
+        hour = hour(customer_placed_order_datetime),
+        net_order_total = (order_total + tip_amount - discount_amount - refunded_amount)
+    ) %>%
+    group_by(hour) %>%
+    summarise(
+        # Average the net_order_total for each hour
+        average_order_value = mean(net_order_total), .groups = "drop"
+    ) %>%
+    add_row(
+        # Add hour 15 row, hour 15 had 0 orders
+        hour = 15, average_order_value = 0
+    ) %>%
+    arrange(hour)
+
+## Result:
+result_df
+
+Notes:
+- Filtered the dataset before performing mutate() and aggregation function for efficiency
+- Successfully used %in% function in the filter clause similarly to SQL
+- Accounted for the hour that had a null value by adding a row and filling with 0
+
+############################
+
+Website:
+StrataScratch - ID 2081
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Meta - Recommendation System
+You are given the list of Facebook friends and the list of Facebook pages that users follow. 
+Your task is to create a new recommendation system for Facebook. 
+For each Facebook user, find pages that this user doesn't follow but at least one of their friends does. 
+Output the user ID and the ID of the page that should be recommended to this user.
+
+Data Dictionary:
+Table name = 'users_friends'
+user_id: int64 (int)
+friend_id: int64 (int)
+Table name = 'users_pages'
+user_id: int64 (int)
+page_id: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# You are given a list of Facebook friends and a list of Facebook pages that users follow.
+# Create a new recommendation sys for Facebook.
+# For each Facebook user, find pages that this user doesn't follow but at least one of their friends does.
+# Output the user ID and the ID of the page that should be recommended to this user.
+
+## Output:
+# user_id, page_id (page that should be recommended to user)
+# (for each user, find pages that this user doesn't follow but at least one of their friends does)
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#users_friends = pd.read_csv('user_friends.csv')
+#users_pages = pd.read_csv('user_pages.csv')
+df = pd.DataFrame(users_friends)
+df2 = pd.DataFrame(users_pages)
+df.head(5)
+df2.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - friends: 0
+#       - pages: 0
+# Rows - friends: 12
+#      - pages: 12
+#df.info()
+#df.isna().sum()
+#df2.info()
+#df2.isna().sum()
+
+## Iteration:
+# For each user, find pages that this user doesn't follow but at least one of their friends does.
+
+# Join friends and pages DataFrames to find list of pages that user's friends follow for each user
+user_friends_pages_df = pd.merge(df, df2, left_on='friend_id', right_on='user_id', how='inner')
+user_friends_pages_df = user_friends_pages_df.groupby('user_id_x')['page_id'].unique().reset_index()
+user_friends_pages_df = user_friends_pages_df.explode('page_id')
+
+# Left join to match pages that users don't follow but their friends do
+users_pages_df = pd.merge(
+    user_friends_pages_df, df2, left_on=["user_id_x", "page_id"], right_on=["user_id", "page_id"], how='left'
+)
+
+# Filter for null cases where users don't follow a page
+result_df = users_pages_df[
+    users_pages_df['user_id'].isna()
+].copy()
+
+# Select relevant columns, rename column, sort values in ASC order
+result_df = (
+    result_df[['user_id_x', 'page_id']]
+    .rename(columns={'user_id_x': 'user_id'})
+    .sort_values(by=['user_id', 'page_id'], ascending=True)
+)
+
+## Result:
+result_df
+
+Notes:
+- When converting a list to separate rows in Python Pandas, use explode() function
+  ex. df = pd.DataFrame({
+          'order_id': [101, 102, 103],
+          'customer_name': ['Alice', 'Bob', 'Charlie'],
+          'items': [['apple', 'banana'], ['orange'], ['grape', 'kiwi', 'apple']]
+      })
+      
+      df_exploded = df.explode('items')
+      
+      Original DataFrame:
+      order_id customer_name                   items
+      0       101         Alice          [apple, banana]
+      1       102           Bob                [orange]
+      2       103       Charlie  [grape, kiwi, apple]
+
+      DataFrame after using explode():
+      order_id customer_name    items
+      0       101         Alice    apple
+      0       101         Alice   banana
+      1       102           Bob   orange
+      2       103       Charlie    grape
+      2       103       Charlie     kiwi
+      2       103       Charlie    apple
+- Tried to think of a way to use is.in() in the filter clause or writing a for loop but ultimately
+  went with my original approach of using JOINs because that is what I am most familiar with and 
+  can clearly explain and find a solution with.
+- In the past, thought that using a loop with is.in() going row by row was more optimal than using
+  pd.merge and JOINS but since I am taking a SQL approach to problem solving in Python, it isn't
+  always the case. Plus learning the .explode() function helps me realize that pandas was made for
+  vectorized operations and large datasets. Can skip converting to numpy arrays and keep in pandas
+  format.
+- Stick with original approach until reaching a solution, then can consider whether to optimize the code.
+
+############################
+
+Website:
+StrataScratch - ID 9608
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Amazon - Exclusive Amazon Products
+Find products which are exclusive to only Amazon and therefore not sold at Top Shop and Macy's. 
+Your output should include the product name, brand name, price, and rating.
+Two products are considered equal if they have the same product name and same maximum retail price (mrp column).
+
+Data Dictionary:
+Table name = 'innerwear_macys_com'
+available_size: text (str)
+brand_name: text (str)
+color: text (str)
+description: text (str)
+mrp: text (str)
+pdp_url: text (str)
+price: text (str)
+product_category: text (str)
+product_name: text (str)
+rating: double precision (flt)
+retailer: text (str)
+review_count: double precision (flt)
+style_attributes: text (str)
+total_sizes: text (str)
+Table name = 'innerwear_topshop_com'
+available_size: text (str)
+brand_name: text (str)
+color: text (str)
+description: text (str)
+mrp: text (str)
+pdp_url: text (str)
+price: text (str)
+product_category: text (str)
+product_name: text (str)
+rating: double precision (flt)
+retailer: text (str)
+review_count: double precision (flt)
+style_attributes: text (str)
+total_sizes: text (str)
+Table name = 'innerwear_amazon_com'
+available_size: text (str)
+brand_name: text (str)
+color: text (str)
+description: text (str)
+mrp: text (str)
+pdp_url: text (str)
+price: text (str)
+product_category: text (str)
+product_name: text (str)
+rating: double precision (flt)
+retailer: text (str)
+review_count: double precision (flt)
+style_attributes: text (str)
+total_sizes: text (str)
+
+Code:
+Attempt #1 (fix UNION, and JOIN and WHERE logic)
+-- Question:
+-- Find products which are exclusive to only Amazon and therefore not sold at Top Shop and Macy's.
+-- Your output should include the product name, brand name, price, and rating.
+-- Two products are considered equal if they have the same product name and same maximum retail price (mrp)
+
+-- Output:
+-- product_name, brand_name, price, rating
+-- (products exclusive to only Amazon, not sold at Top Shop or Macy's, 
+-- two products equal if same product name and same mrp-maximum retail price)
+
+-- Preview data:
+SELECT * FROM innerwear_macys_com LIMIT 5;
+SELECT * FROM innerwear_topshop_com LIMIT 5;
+SELECT * FROM innerwear_amazon_com LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - macys: rating(36), review_count(36)
+--       - topshop: color(15), rating(42), review_count(42), style_attributes(48)
+--       - amazon: 0
+-- Rows - macys: 101
+--      - topshop: 49
+--      - amazon: 100
+SELECT
+    SUM(CASE WHEN available_size IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN brand_name IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN color IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN description IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN mrp IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN pdp_url IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN price IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN product_category IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN product_name IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN rating IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN retailer IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN review_count IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN style_attributes IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN total_sizes IS NULL THEN 1 ELSE 0 END) AS col14,
+    COUNT(*) AS total_rows
+FROM innerwear_macys_com;
+
+SELECT
+    SUM(CASE WHEN available_size IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN brand_name IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN color IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN description IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN mrp IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN pdp_url IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN price IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN product_category IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN product_name IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN rating IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN retailer IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN review_count IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN style_attributes IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN total_sizes IS NULL THEN 1 ELSE 0 END) AS col14,
+    COUNT(*) AS total_rows
+FROM innerwear_topshop_com;
+
+SELECT
+    SUM(CASE WHEN available_size IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN brand_name IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN color IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN description IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN mrp IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN pdp_url IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN price IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN product_category IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN product_name IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN rating IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN retailer IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN review_count IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN style_attributes IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN total_sizes IS NULL THEN 1 ELSE 0 END) AS col14,
+    COUNT(*) AS total_rows
+FROM innerwear_amazon_com;
+
+-- Iteration:
+-- Find products which are exclusive to only Amazon and therefore not sold at Top Shop and Macy's.
+-- Combine Macys and TopShop tables as a single table to compare to
+-- Use left join to find products exclusive to only Amazon, not sold at Top Shop or Macy's 
+-- Filter for products, where not equal mrp and where not equal product name (null values)
+WITH MacyAndTopShop AS (
+SELECT
+    product_name,
+    brand_name,
+    price,
+    rating,
+    mrp
+FROM innerwear_macys_com
+
+UNION ALL
+
+SELECT
+    product_name,
+    brand_name,
+    price,
+    rating,
+    mrp
+FROM innerwear_topshop_com
+)
+SELECT
+    iam.product_name,
+    iam.brand_name,
+    iam.price,
+    iam.rating
+FROM innerwear_amazon_com AS iam
+LEFT JOIN MacyAndTopShop AS mats
+    ON iam.product_name = mats.product_name
+    AND iam.mrp <> mats.mrp
+    AND mats.product_name IS NULL
+ORDER BY iam.product_name;
+
+-- Result:
+-- Find products which are exclusive to only Amazon and therefore not sold at Top Shop and Macy's.
+WITH MacyAndTopShop AS (
+    -- Combine Macys and TopShop tables as a single table to compare to
+    SELECT
+        product_name,
+        brand_name,
+        price,
+        rating,
+        mrp
+    FROM 
+        innerwear_macys_com
+
+    UNION ALL
+
+    SELECT
+        product_name,
+        brand_name,
+        price,
+        rating,
+        mrp
+    FROM 
+        innerwear_topshop_com
+)
+-- Use left join to find products exclusive to only Amazon, not sold at Top Shop or Macy's 
+-- Filter for products, where not equal mrp and where not equal product name (null values)
+SELECT
+    iam.product_name,
+    iam.brand_name,
+    iam.price,
+    iam.rating
+FROM 
+    innerwear_amazon_com AS iam
+LEFT JOIN 
+    MacyAndTopShop AS mats
+    ON iam.product_name = mats.product_name
+    AND iam.mrp <> mats.mrp
+    AND mats.product_name IS NULL
+ORDER BY 
+    iam.product_name;
+
+Solution #1 (revised approach)
+-- Find products which are exclusive to only Amazon and therefore not sold at Top Shop and Macy's.
+WITH MacyAndTopShop AS (
+    -- Combine Macys and TopShop tables as a single table to compare to
+    SELECT
+        product_name,
+        brand_name,
+        price,
+        rating,
+        mrp
+    FROM 
+        innerwear_macys_com
+
+    UNION
+
+    SELECT
+        product_name,
+        brand_name,
+        price,
+        rating,
+        mrp
+    FROM 
+        innerwear_topshop_com
+)
+-- Use left join to find products exclusive to only Amazon, not sold at Top Shop or Macy's 
+-- Filter for products, where not equal mrp and where not equal product name (null values)
+SELECT
+    iam.product_name,
+    iam.brand_name,
+    iam.price,
+    iam.rating
+FROM 
+    innerwear_amazon_com AS iam
+LEFT JOIN 
+    MacyAndTopShop AS mats
+    ON iam.product_name = mats.product_name
+    AND iam.mrp = mats.mrp
+WHERE mats.product_name IS NULL
+ORDER BY 
+    iam.product_name;
+
+Notes:
+- The UNION clause includes only unique rows from different SELECT statements,
+  compared to UNION all which includes all rows including duplicates
+- When using a LEFT JOIN, returns matches and also non matches.
+  The JOIN filters should be the matches rather than non matches.
+  Subsequent filters can be done in the WHERE clause rather than JOIN.
+- My approach was almost at the correct solution but have to work on thinking about how the datasets JOIN. 
+  This question was an anti-join type problem.
+  Originally had the NULL filter in the WHERE clause, tried to put it in the JOIN filter instead. 
+  Stick to initial approach to find the solution then optimize later.
+
+############################
