@@ -1,0 +1,326 @@
+Date: 09/03/2025
+
+############################
+
+Website:
+StrataScratch - ID 2040
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Whole Foods Market - Customers Report Summary
+Summarize the number of customers and transactions for each month in 2017,
+keeping transactions that were greater or equal to $5.
+
+Data Dictionary:
+Table name = 'wfm_transactions'
+customer_id: numeric (num)
+store_id: numeric (num)
+transaction_id: numeric (num)
+product_id: numeric (num)
+sales: numeric (num)
+transaction_date: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1
+## Question:
+# Summarise the number of customers and transactions for each month in 2017,
+# keeping transactions that were greater or equal to $5.
+
+## Output:
+# unique_customer_count, transaction_count, month (2017)
+# (keep transactions >= $5)
+
+## Import libraries:
+#install.packages('tidyverse')
+library(tidyverse)
+
+## Load and preview data:
+#wfm_transactions <- read_csv('wfm_transactions.csv')
+df <- data.frame(wfm_transactions)
+head(df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 216
+data.frame(lapply(df, class))
+colSums(is.na(df))
+nrow(df)
+
+## Iteration:
+# Find the number of customers and transactions for each month in 2017, keep transactions >= $5
+result_df <- df %>%
+    filter(
+        # Filter for 2017 and for transactions with sales >= 5
+        year(transaction_date) == 2017,
+        sales >= 5
+    ) %>%
+    mutate(
+        # Extract month from transaction_date
+        month = month(transaction_date)
+    ) %>%
+    group_by(month) %>%
+    summarise(
+        # Count number of unique customers per month
+        # Count number of transactions per month
+        unique_customer_count = n_distinct(customer_id),
+        transaction_count = n(),
+        .groups = "drop"
+    ) %>%
+    arrange(month)
+
+## Result:
+result_df
+
+Notes:
+- Question was straightforward and was able to break it down into individual steps thinking with SQL approach
+- Question didn't state whether it wanted a full text label for month, so kept as a number
+
+############################
+
+Website:
+StrataScratch - ID 2084
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Meta - Blocked Users
+You are given a table of users who have been blocked from Facebook, together with the date, duration, and the reason for the blocking. 
+The duration is expressed as the number of days after blocking date and if this field is empty, this means that a user is blocked permanently.
+For each blocking reason, count how many users were blocked in December 2021. 
+Include both the users who were blocked in December 2021 and those who were blocked before but remained blocked for at least a part of December 2021.
+
+Data Dictionary:
+Table name = 'fb_blocked_users'
+user_id: int64 (int)
+block_reason: object (str)
+block_date: datetime64 (dt)
+block_duration: float64 (flt)
+
+Code:
+Solution #1
+## Question:
+# You are given a table of users who have been blocked from Facebook, together with the date, duration, 
+# and the reason for the blocking.
+# The duration is expressed as the number of days after blocking date and if this field is empty,
+# this means that a user is blocked permanently.
+# For each blocking reason, count how many users were blocked in December 2021.
+# Include both the users who were blocked in December 2021 and
+# those who were blocked before but remained blocked for at least a part of Deccember 2021.
+
+## Output:
+# block_reason, unique_user_count (users blocked in December 2021)
+# (block_duration is number of days after blocking date, if empty then user is blocked permanently)
+# (include users blocked in Deecmber 2021 and blocked before but remained blocked for part of December 2021)
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#fb_blocked_users = pd.read_csv('fb_blocked_users.csv')
+df = pd.DataFrame(fb_blocked_users)
+df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - block_duration (4)
+# Rows - 14
+#df.info()
+#df.isna().sum()
+
+## Iteration:
+# For each blocking reason, count how many users were blocked in December 2021.
+
+# Calculate the ending block length date using block_date + block_duration 
+df['block_length'] = df['block_date'] + pd.to_timedelta(df['block_duration'], unit='D')
+
+# Filter for users blocked in December 2021 and users blocked before December 2021 but remained blocked
+# for at least part of December 2021.
+filtered_df = df[
+    (df['block_date'] <= pd.to_datetime('2021-12-31')) &
+    ((df['block_length'] >= pd.to_datetime('2021-12-01')) | (df['block_length'].isna()))
+]
+
+# Count number of unique users blocked for each block_reason
+result_df = (
+    filtered_df.groupby('block_reason')['user_id'].nunique()
+    .reset_index(name='unique_user_count')
+    .sort_values(by='block_reason', ascending=True)
+)
+
+## Result:
+result_df
+
+Notes:
+- Can convert floats to days using pd.to_timedelta function
+  ex. df['time_delta'] = pd.to_timedelta(df['days_to_add'], unit='D') # 'D' stands for days
+- This question helped me practice filtering again, still need to work on it for Python pandas.
+  When filtering, initially used this:
+  filtered_df = df[
+      ((df['block_date'].dt.year == 2021) & (df['block_date'].dt.month <= 12)) &
+      ((df['block_length'] >= pd.to_datetime('2021-12-01')) | (df['block_length'].isna()))
+   ]
+  At some point I did consider consolidating the first filter group into a solid date just like the second
+  filter has a solid date to reference. Didn't think that it would make such a big difference.
+  Correct approach:
+  filtered_df = df[
+      (df['block_date'] <= pd.to_datetime('2021-12-31')) &
+      ((df['block_length'] >= pd.to_datetime('2021-12-01')) | (df['block_length'].isna()))
+  ]
+
+############################
+
+Website:
+StrataScratch - ID 9612
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Yelp - Keywords From Yelp Reviews
+Find Yelp food reviews containing any of the keywords: 'food', 'pizza', 'sandwich', or 'burger'. 
+List the business name, address, and the state which satisfies the requirement.
+
+Data Dictionary:
+Table name = 'yelp_business'
+address: text (str)
+business_id: text (str)
+categories: text (str)
+city: text (str)
+is_open: bigint (int)
+latitude: double precision (flt)
+longitude: double precision (flt)
+name: text (str)
+neighborhood: text (str)
+postal_code: text (str)
+review_count: bigint (int)
+stars: double precision (flt)
+state: text (str)
+Table name = 'yelp_reviews'
+business_name: text (str)
+cool: bigint (int)
+funny: bigint (int)
+review_date: date (d)
+review_id: text (str)
+review_text: text (str)
+stars: text (str)
+useful: bigint (int)
+user_id: text (str)
+
+Code:
+Solution #1
+-- Question:
+-- Find Yelp food reviews containing any of the keywords: 'food', 'pizza', 'sandwich', or 'burger'.
+-- List the business name, address, and the state which satisfies the requirement.
+
+-- Output:
+-- business_name, address, state
+-- (yelp food reviews containing keywords 'food', 'pizza', 'sandwich', 'burger')
+
+-- Preview data:
+SELECT * FROM yelp_business LIMIT 5;
+SELECT * FROM yelp_reviews LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - business: address(7), neighborhood(63), postal_code(2)
+--       - reviews: 0
+-- Rows - business: 100
+--      - reviews: 106
+SELECT
+    SUM(CASE WHEN address IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN business_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN categories IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN city IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN is_open IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN latitude IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN longitude IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN name IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN neighborhood IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN postal_code IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN review_count IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN stars IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN state IS NULL THEN 1 ELSE 0 END) AS col13,
+    COUNT(*) AS total_rows
+FROM yelp_business;
+
+SELECT
+    SUM(CASE WHEN business_name IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN cool IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN funny IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN review_date IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN review_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN review_text IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN stars IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN useful IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col9,
+    COUNT(*) AS total_rows
+FROM yelp_reviews;
+
+-- Iteration:
+-- Find Yelp food reviews containing any of the keywords: 'food', 'pizza', 'sandwich', or 'burger'.
+-- List the business name, address, and the state which satisfies the requirement.
+SELECT 
+    yr.business_name,
+    yb.address,
+    yb.state
+FROM yelp_reviews AS yr
+JOIN yelp_business AS yb
+    ON yr.business_name = yb.name
+WHERE yr.review_text ILIKE '%food%'
+    OR yr.review_text ILIKE '%pizza%'
+    OR yr.review_text ILIKE '%sandwich%'
+    OR yr.review_text ILIKE '%burger%'
+ORDER BY yr.business_name;
+    
+-- Result:
+SELECT 
+    -- List the business name, address, and the state
+    yr.business_name,
+    yb.address,
+    yb.state
+FROM 
+    yelp_reviews AS yr
+JOIN 
+    yelp_business AS yb
+    ON yr.business_name = yb.name
+WHERE
+    -- Filter for reviews with keywords: 'food', 'pizza', 'sandwich', 'burger'
+    yr.review_text ILIKE '%food%'
+    OR yr.review_text ILIKE '%pizza%'
+    OR yr.review_text ILIKE '%sandwich%'
+    OR yr.review_text ILIKE '%burger%'
+ORDER BY 
+    yr.business_name;
+
+Notes:
+- The tables in this dataset did not have a great id to use for JOINs, there was
+  a lot of missing data overall. Tried to use regular expressions and ILIKE in 
+  the JOIN operator to find any matching patterns rather than exact identifications
+  but that did not help at all. Stuck with just the original inner join for matching.
+  Would have been better if the yelp_reviews table had a business_id column.
+- When trying to find matching patterns in a JOIN, use regular expressions or ILIKE
+  ex. SELECT *
+      FROM yelp_business AS b
+      JOIN yelp_reviews AS r
+          ON b.name ~* ('.*' || r.business_name || '.*');
+  ex. SELECT *
+      FROM yelp_business AS b
+      JOIN yelp_reviews AS r
+          ON b.name ILIKE '%' || r.business_name || '%';
+- ILIKE is only native to PostgresSQL, if using any other server than use LOWER() then ILIKE '%value%',
+  this is for case-insensitive matches
+  ex. SELECT *
+      FROM products
+      WHERE LOWER(product_name) LIKE '%apple%';
+  
+############################
