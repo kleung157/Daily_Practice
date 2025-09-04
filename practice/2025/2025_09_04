@@ -1,0 +1,386 @@
+Date: 09/04/2025
+
+############################
+
+Website:
+StrataScratch - ID 2041
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Goldman Sachs - Total Sales In Different Currencies
+You work for a multinational company that wants to calculate total sales across all their countries they do business in.
+You have 2 tables, one is a record of sales for all countries and currencies the company deals with, and the other holds currency exchange rate information.
+Calculate the total sales, per quarter, for the first 2 quarters in 2020, and report the sales in USD currency.
+
+Data Dictionary:
+Table name = 'sf_exchange_rate'
+source_currency: character (str)
+target_currency: character (str)
+exchange_rate: numeric (num)
+date: POSIXct, POSIXt (dt)
+Table name = 'sf_sales_amount'
+sales_amount: numeric (num)
+sales_date: POSIXct, POSIXt (dt)
+currency: character (str)
+
+Code:
+Solution #1
+## Question:
+# Calculate total sales across all countries
+# You have two tables, one is record of sales for all countries and currencies the company deals with,
+# and the other holds currency exchange rate information.
+# Calculate the total sales, per quarter, for the first 2 quarters in 2020, and report sales in USD currency.
+
+## Output:
+# total_sales, quarter
+# (total sales across all countries per quarter for first 2 quarters in 2020 in USD currency)
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#sf_exchange_rate <- read_csv('sf_exchange_rate.csv')
+#sf_sales_amount <- read_csv('sf_sales_amount.csv')
+df <- data.frame(sf_exchange_rate)
+df2 <- data.frame(sf_sales_amount)
+head(df, 5)
+head(df2, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - exchange_rate: 0
+#       - sales_amount: 0
+# Rows - exchange_rate: 91
+#      - sales_amount: 120
+data.frame(lapply(df, class))
+data.frame(lapply(df2, class))
+colSums(is.na(df))
+colSums(is.na(df2))
+nrow(df)
+nrow(df2)
+
+## Iteration:
+# Calculate total sales across all countries per quarter for first 2 quarters in 2020 in USD currency
+result_df <- 
+    inner_join(
+        # Join exchange_rate and sales_amount DataFrames by matching date and currency
+        df, df2, by= c("date" = "sales_date", "source_currency" = "currency")
+    ) %>%
+    filter(
+        # Filter for 2020 year and first two quarters
+        year(date) == 2020,
+        quarter(date) %in% c(1,2)
+    ) %>%
+    mutate(
+        # Extract quarter from date and calculate sales in usd (sales_amount * exchange_rate)
+        quarter = quarter(date),
+        sales_in_usd = (sales_amount * exchange_rate)
+    ) %>%
+    group_by(quarter) %>%
+    summarise(
+        # Calculate the total sales for each quarter
+        total_sales = sum(sales_in_usd), .groups="drop"
+    ) %>%
+    arrange(quarter)
+    
+## Result:
+result_df
+
+Notes:
+- The question asks for total sales across all countries, kept interpretting that initially as
+  sales per each country per quarter but at the end settled on total country sales per quarter.
+- Noticed that I tend to write code documentation notes only after I write out the whole code,
+  will try to write it in between the process when I can.
+
+############################
+
+Website:
+StrataScratch - ID 2086
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Meta - Number of Conversations
+Count the total number of distinct conversations on WhatsApp. 
+Two users share a conversation if there is at least 1 message between them. 
+Multiple messages between the same pair of users are considered a single conversation.
+
+Data Dictionary:
+Table name = 'whatsapp_messages'
+message_id: int64 (int)
+message_date: datetime64 (dt)
+message_time: datetime64 (dt)
+message_sender_id: object (str)
+message_receiver_id: object (str)
+
+Code:
+Solution #1 (multiple step conversions)
+## Question: 
+# Count the total number of distinct conversations on WhatsApp.
+# Two users share a conversation if there is at least 1 message between them.
+# Multiple messages between the same pair of users are considered a single conversation.
+
+## Output:
+# unique_conversations_count
+# (two users share a conversation if there is >= 1 mesasage between them) 
+# (multiple messages between same pair of users are a single conversation)
+# (expected output is pandas.Series)
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#whatsapp_messages = pd.read_csv('whatsapp_messages.csv')
+df = pd.DataFrame(whatsapp_messages)
+df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 32
+#df.info()
+#df.isna().sum()
+
+## Iteration:
+# Count the total number of distinct conversations on WhatsApp.
+
+# Combine message_sender_id and message_reciever_id into a list
+df['users_in_message'] = list(zip(df['message_sender_id'], df['message_receiver_id']))
+
+# Sort values in ascending order (ex. [U2, U1] = [U1, U2]), then convert list to tuple
+df['users_in_message'] = df['users_in_message'].apply(sorted).apply(tuple)
+
+# Count number of messages between users
+result_df = df.groupby('users_in_message')['message_id'].count().reset_index(name='message_count')
+
+# filter for at least 1 message
+result_df = result_df[
+    result_df['message_count'] >= 1
+]
+
+# Count number of unique conversations then convert to Series
+result_series = pd.Series(result_df['users_in_message'].nunique(), name="unique_conversation_count")
+
+## Result:
+result_series
+
+
+Solution #2 (Using df.apply(lambda x:) )
+# Count the total number of distinct conversations on WhatsApp.
+
+# Combine message_sender_id and message_reciever_id 
+# Sort values in ascending order (ex. [U2, U1] = [U1, U2]), then convert to a tuple
+df['users_in_message'] = (
+    df.apply(lambda x: tuple(sorted([x['message_sender_id'], x['message_receiver_id']])), axis=1)
+)
+
+# Count number of unique conversations then convert to Series
+result_series = pd.Series(df['users_in_message'].nunique(), name="unique_conversation_count")
+
+
+Solution #3 (List comprehension)
+# Create a new column with sorted, hashable pairs to represent each unique conversation
+df['conversation_pair'] = [tuple(sorted([sender, receiver])) for sender, receiver in zip(df['message_sender_id'], df['message_receiver_id'])]
+
+# Count the number of unique values in the new column
+unique_conversation_count = df['conversation_pair'].nunique()
+
+# Convert the final count to a pandas Series as requested in the prompt
+result_series = pd.Series(unique_conversation_count, name="unique_conversation_count")
+
+Notes:
+- Took a longer approach in Solution #1 (multi-step) to get to the solution, 
+  was able to understand the logic by breaking down into additional steps. 
+  Solution #2 (df.apply()) and Solution #3 (list comprehension) condense the approach to a more concise, 
+  simplified and efficient method to reach the solution.
+- Use zip() to combine values in different columns, can convert to list()
+  ex. df['users_in_message'] = list(zip(df['message_sender_id'], df['message_receiver_id']))
+  Use df['col'].apply(sorted) to sort column values in a list
+  Use df['col'].apply(tuple) to convert a column datatype to a tuple
+- For single step approach, df.apply() or list comprehension
+  df.apply(lambda x: tuple(sorted( x['col'], x['col'])), axis=1)
+  [tuple(sorted(['col1', 'col2'])) for col1, col2 in zip(df['col1'], df['col2'])]
+  ex. df.apply(lambda x: tuple(sorted([x['message_sender_id'], x['message_receiver_id']])), axis=1)
+  ex. [tuple(sorted([sender, receiver])) for sender, receiver in zip(df['message_sender_id'], df['message_receiver_id'])]
+
+############################
+
+Website:
+StrataScratch - ID 9633
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Airbnb - City With Most Amenities
+You're given a dataset of searches for properties on Airbnb. 
+For simplicity, let's say that each search result (i.e., each row) represents a unique host. 
+Find the city with the most amenities across all their host's properties. 
+Output the name of the city.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+accommodates: bigint (int)
+amenities: text (str)
+bathrooms: bigint (int)
+bed_type: text (str)
+bedrooms: bigint (int)
+beds: bigint (int)
+cancellation_policy: text (str)
+city: text (str)
+cleaning_fee: boolean (bool)
+host_identity_verified: text (str)
+host_response_rate: text (str)
+host_since: date (d)
+id: bigint (int)
+neighbourhood: text (str)
+number_of_reviews: bigint (int)
+price: double precision (flt)
+property_type: text (str)
+review_scores_rating: double precision (flt)
+room_type: text (str)
+zipcode: bigint (int)
+
+Code:
+Solution #1 (multiple-step CTE approach)
+-- Question:
+-- You are given a dataset of searches for properties on Airbnb.
+-- For simplicity, let's say that each search result (ex. each row) represents a unique host.
+-- Find the city with the most amenities across all their host's properties.
+-- Output the name of the city.
+
+-- Output:
+-- city
+-- (each row represents a unique host, find city with the most amenities across all their host properties)
+
+-- Preview data:
+SELECT * FROM airbnb_search_details LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - host_response_rate(32), neighbourhood(15), review_scores_rating(37)
+-- Rows - 160
+SELECT
+    SUM(CASE WHEN accommodates IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN amenities IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN bathrooms IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN bed_type IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN bedrooms IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN beds IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN cancellation_policy IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN city IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN cleaning_fee IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN host_identity_verified IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN host_response_rate IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN host_since IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN neighbourhood IS NULL THEN 1 ELSE 0 END) AS col14,
+    SUM(CASE WHEN number_of_reviews IS NULL THEN 1 ELSE 0 END) AS col15,
+    SUM(CASE WHEN price IS NULL THEN 1 ELSE 0 END) AS col16,
+    SUM(CASE WHEN property_type IS NULL THEN 1 ELSE 0 END) AS col17,
+    SUM(CASE WHEN review_scores_rating IS NULL THEN 1 ELSE 0 END) AS col18,
+    SUM(CASE WHEN room_type IS NULL THEN 1 ELSE 0 END) AS col19,
+    SUM(CASE WHEN zipcode IS NULL THEN 1 ELSE 0 END) AS col20,
+    COUNT(*) AS total_rows
+FROM airbnb_search_details;
+
+-- Iteration:
+-- Find the city with the most amenities across all their host's properties.
+-- Count number of amenities per each unique host id
+-- Calculate total number of amenities for all hosts in each city, account for ties using rank
+WITH CityHostAmenities AS (
+SELECT
+    city,
+    id,
+    array_length(regexp_split_to_array(amenities, ',\s*'), 1) AS amenities_count
+FROM airbnb_search_details
+),
+CityAmenitiesRank AS (
+SELECT
+    city,
+    SUM(amenities_count) AS total_amenities,
+    DENSE_RANK() OVER(ORDER BY SUM(amenities_count) DESC) AS dense_rank
+FROM CityHostAmenities
+GROUP BY city
+)
+SELECT 
+    city
+FROM CityAmenitiesRank
+WHERE dense_rank = 1;
+
+-- Result:
+-- Find the city with the most amenities across all their host's properties.
+WITH CityHostAmenities AS (
+    -- Count number of amenities per each unique host id
+    SELECT
+        city,
+        id,
+        array_length(regexp_split_to_array(amenities, ',\s*'), 1) AS amenities_count
+    FROM 
+        airbnb_search_details
+),
+CityAmenitiesRank AS (
+    -- Calculate total number of amenities for all hosts in each city, account for ties using rank
+    SELECT
+        city,
+        SUM(amenities_count) AS total_amenities,
+        DENSE_RANK() OVER(ORDER BY SUM(amenities_count) DESC) AS amenities_rank
+    FROM CityHostAmenities
+    GROUP BY city
+)
+-- Filter for city with the highest ranking amenities
+SELECT 
+    city
+FROM 
+    CityAmenitiesRank
+WHERE 
+    amenities_rank = 1;
+
+
+Solution #2 (single-step concise and optimal approach)
+SELECT
+    city
+FROM
+    airbnb_search_details
+GROUP BY
+    city
+ORDER BY
+    SUM(array_length(regexp_split_to_array(amenities, ',\s*'), 1)) DESC
+LIMIT 1;
+
+Notes:
+- For text columns that are a set of values, use regexp_split_to_array('col', 'delimiter')
+  to convert the set to an array
+  ex. regexp_split_to_array(amenities, ',')
+- For handling extra whitespace around the comma, use regexp_split_to_array(your_text_column, ',\s*')
+  This handles cases where a comma with no space, single space, or multiple spaces occurs.
+  , matches any comma in the text
+  \s matches single white space cahracters
+  * quantifier that matches preceding character zero or more times
+- To find the length of an array use array_length(),
+  the 1 indicates the first (primrary) dimension of the array
+  ex.  array_length(regexp_split_to_array(your_text_column, ','), 1)
+- For the R question that I had earlier today, I initially interpretted "across all" as incorrect but then
+  chose the right interpretation. In this SQL problem I interpretated "across all" incorrectly as I
+  presumed that the question was asking for "most amenities across all host's properties" as the maximum
+  number of amenities per each host per each city. When the correct interpretation is the most amenities
+  is the sum total amenities of all host properties for each city.
+- My original approach to the problem was to use JSONB conversion and finding the number of keys in
+  the text column. I realized later that the text column wasn't in JSONB and it was just an array.
+  Had to refresh myself on using regexp and splitting to array and using array_length to count.
+- Between Solution #1 (multi-step) and Solution #2 (single-step), I would probably still end up
+  with an approach similar to solution 1 to break down the problem into multiple steps to make sure
+  that I didn't miss any details like ties. Solution #2 is still the best for answering the question
+  succinctly and efficiently.
+  
+############################
