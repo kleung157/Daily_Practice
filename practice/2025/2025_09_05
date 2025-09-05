@@ -1,0 +1,343 @@
+Date: 09/05/2025
+
+############################
+
+Website:
+StrataScratch - ID 2042
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Uber - Employees' Years In Service
+Find employees who have worked for Uber for more than 2 years (730 days) and check to see if they're still part of the company.
+Output 'Yes' if they are and 'No' if they are not.
+Use May 1, 2021 as your date of reference when calculating whether they have worked for more than 2 years since their hire date.
+Output the first name, last name, whether or not the employee is still working for Uber, and the number of years at the company.
+
+Data Dictionary:
+Table name = 'uber_employees'
+id: numeric (num)
+salary: numeric (num)
+first_name: character (str)
+last_name: character (str)
+hire_date: POSIXct, POSIXt (dt)
+termination_date: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1
+## Question:
+# Find employees who have worked for Uber for more than 2 years (730 days)
+# and check to see if they're still part of the company.
+# Output 'Yes' if they are and 'No' if they are not.
+# Use May 1, 2021 as your date of reference when calculating whether they have worked for
+# more than 2 years since their hire date.
+# Output the first name, last name, whether the employee still works for Uber, and number of years at company.
+
+## Output:
+# first_name, last_name, employed, tenure
+# (find employees who worked for more than 2 years (730 days) and see if they still work for Uber)
+# (output 'yes' or 'no' for employed status, use May 1, 2021 as ending date of reference)
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#uber_employees <- read_csv('uber_employees.csv')
+df <- data.frame(uber_employees)
+head(df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - termination_date(34)
+# Rows - 100
+data.frame(lapply(df, class))
+colSums(is.na(df))
+nrow(df)
+
+## Iteration:
+# Find employees who worked for more than 2 years (730 days) and see if they still work for Uber
+result_df <- df %>%
+    mutate(
+        # Fill null values in termination_date with date of reference May 1, 2021
+        # Calculate number of years and days employed at company
+        # Employee still works for Uber if termination_date matches date of reference, then yes, else no
+        termination_date = replace_na(termination_date, as.Date('2021-05-01')),
+        tenure_years = (termination_date - hire_date) / 365.25,
+        tenure_days = (termination_date - hire_date),
+        employed = case_when(termination_date == as.Date('2021-05-01') ~ 'Yes', TRUE ~ 'No')  
+    ) %>%
+    filter(
+        # Filter for employees who worked for more than 2 years or 730 days
+        (tenure_years > 2) | (tenure_days > 730)
+    ) %>%
+    select(
+        # Select relevant columns 
+        first_name, last_name, employed, tenure_years
+    ) %>%
+    arrange(employed, last_name, first_name)
+    
+## Result:
+result_df
+
+Notes:
+- Filling NA values in an existing column and replacing that column using mutate() and replace_na()
+  ex. mutate(termination_date = replace_na(termination_date, as.Date('2021-05-01')))
+- Using the CASE WHEN statement from SQL with mutate() and case_when(),
+  first part is the filter WHERE clause with ~ to indicate THEN,
+  second part is the else with TRUE.
+  ex. mutate(employed = case_when(termination_date == '2021-05-01' ~ 'Yes', TRUE ~ 'No')    
+- Couldn't remember the exact code for the fill NA and case_when functions that I needed for today 
+  but the pseudocode that I wrote had my intended approach which was correct for the solution
+
+############################
+
+Website:
+StrataScratch - ID 2092
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+DoorDash - Daily Top Merchants
+You have been asked to find the top 3 merchants for each day with the highest number of orders on that day.
+In the event of a tie, multiple merchants may share the same spot, but each day at least one merchant must be in first, second, and third place.
+Your output should include the date in the format YYYY-MM-DD, the name of the merchant, and their place in the daily ranking.
+
+Data Dictionary:
+Table name = 'order_details'
+id: int64 (int)
+customer_id: int64 (int)
+merchant_id: int64 (int)
+order_timestamp: datetime64 (dt)
+n_items: int64 (int)
+total_amount_earned: float64 (flt)
+Table name = 'merchant_details'
+id: int64 (int)
+name: object (str)
+category: object (str)
+zipcode: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# Find the top 3 merchants for each day with the highest number of orders on that day.
+# In the event of a tie, multiple merchant may share the same spot,
+# but each day at least one merchant must be in first, second, and third place.
+# Output should include the date in the format YYYY-MM-DD, name of merchant, and place in daily ranking
+
+## Output:
+# date (YYYY-MM-DD), merchant_name, rank
+# (find top 3 merchants for each day with highest number of orders on that day)
+# (include ties and have at least one merchannt in first, second, and third place.)
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#order_details = pd.read_csv('order_details.csv')
+#merchant_details = pd.read_csv('merchant_details.csv')
+df = pd.DataFrame(order_details)
+df2 = pd.DataFrame(merchant_details)
+df.head(5)
+df2.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - order: 0
+#       - merchant: 0
+# Rows  - order: 52
+#       - merchant: 7
+#df.info()
+#df.isna().sum()
+#df2.info()
+#df2.isna().sum
+
+## Iteration:
+# Find the top 3 merchants for each day with the highest number of orders on that day
+
+# Join orders and merchant DataFrames by merchant_id = id
+merged_df = pd.merge(df, df2, left_on="merchant_id", right_on="id", how="inner")
+
+# Extract date from order_timestamp column
+merged_df['date'] = merged_df['order_timestamp'].dt.date
+
+# Count number of orders for each merchant on each date
+result_df = merged_df.groupby(['date', 'name'])['id_x'].count().reset_index(name='order_count')
+
+# Rank the number of orders for each merchant in DESC order
+result_df['rank'] = result_df.groupby('date')['order_count'].rank(method='dense', ascending=False)
+
+# Filter for top 3 merchants for each day
+result_df = result_df[
+    result_df['rank'] <= 3
+]
+
+# Select relevant columns and sort values by date and rank
+result_df = result_df[['date', 'name', 'rank']].sort_values(by=['date', 'rank'], ascending=True)
+
+## Result:
+result_df
+
+Notes:
+- Approach to question was similar to how I would solve in SQL using nearly identical functions
+- When performing the aggregation for number of orders, was deciding between nunique(), count(), and size().
+  In this case, count() and size() made more sense since the table was called order_details with an id.
+  nunique() would have been redundant since the ids are already distinct
+
+############################
+
+Website:
+StrataScratch - ID 9637
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Airbnb - Growth of Airbnb
+Calculate Airbnb's annual growth rate using the number of registered hosts as the key metric. 
+The growth rate is determined by:
+Growth Rate = ((Number of hosts registered in the current year - number of hosts registered in the previous year) / number of hosts registered in the previous year) * 100
+Output the year, number of hosts in the current year, number of hosts in the previous year, and the growth rate. 
+Round the growth rate to the nearest percent. Sort the results in ascending order by year.
+Assume that the dataset consists only of unique hosts, meaning there are no duplicate hosts listed.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+accommodates: bigint (int)
+amenities: text (str)
+bathrooms: bigint (int)
+bed_type: text (str)
+bedrooms: bigint (int)
+beds: bigint (int)
+cancellation_policy: text (str)
+city: text (str)
+cleaning_fee: boolean (bool)
+host_identity_verified: text (str)
+host_response_rate: text (str)
+host_since: date (d)
+id: bigint (int)
+neighbourhood: text (str)
+number_of_reviews: bigint (int)
+price: double precision (flt)
+property_type: text (str)
+review_scores_rating: double precision (flt)
+room_type: text (str)
+zipcode: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Calculate Airbnb's annual growth rate using the number of registered hosts as the key metric.
+-- The growth rate is determined by:
+-- Growth Rate = (number of hosts registered in current year - number of hosts registered in previous year) /
+--               (number of hosts registered in previous year) * 100
+-- Output year, number of hosts in the current year, number of hosts in the previous year, and growth rate.
+-- Round the growth rate to the nearest percent.
+-- Sort the results in ascending order by year.
+-- Assume that the dataset consists of only unique hosts. meaning there are no duplicate hosts listed.
+
+-- Output:
+-- year, current_year_host_count, previous_year_host_count, growth_rate
+-- (calculate annual growth rate using number of registered unique hosts)
+-- (round growth rate to nearest percent, sort results in ascending order by year)
+-- Growth Rate = (number of hosts registered in current year - number of hosts registered in previous year) /
+--               (number of hosts registered in previous year) * 100
+
+-- Preview data:
+SELECT * FROM airbnb_search_details LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - host_response_rate(32), neighbourhood(15), review_scores_rating(37)
+-- Rows - 160
+SELECT
+    SUM(CASE WHEN accommodates IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN amenities IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN bathrooms IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN bed_type IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN bedrooms IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN beds IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN cancellation_policy IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN city IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN cleaning_fee IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN host_identity_verified IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN host_response_rate IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN host_since IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN neighbourhood IS NULL THEN 1 ELSE 0 END) AS col14,
+    SUM(CASE WHEN number_of_reviews IS NULL THEN 1 ELSE 0 END) AS col15,
+    SUM(CASE WHEN price IS NULL THEN 1 ELSE 0 END) AS col16,
+    SUM(CASE WHEN property_type IS NULL THEN 1 ELSE 0 END) AS col17,
+    SUM(CASE WHEN review_scores_rating IS NULL THEN 1 ELSE 0 END) AS col18,
+    SUM(CASE WHEN room_type IS NULL THEN 1 ELSE 0 END) AS col19,
+    SUM(CASE WHEN zipcode IS NULL THEN 1 ELSE 0 END) AS col20,
+    COUNT(*) AS total_rows
+FROM airbnb_search_details;
+
+-- Iteration:
+-- Calculate annual growth rate using number of registered unique hosts
+-- Extract year from host_since date column
+-- Count number of hosts for current year and previous year
+-- Convert numerator to same numeric datatype using 1.0 * or 100.0 *
+-- Growth Rate = (number of hosts registered in current year - number of hosts registered in previous year) /
+--               (number of hosts registered in previous year) * 100
+-- Round growth rate to nearest percent
+-- Fill null growth rate with 0 
+-- Sort results in ascending order by year
+SELECT
+    EXTRACT(YEAR FROM host_since) AS year,
+    COUNT(id) AS current_year_host_count,
+    LAG(COUNT(id), 1, 0) OVER(ORDER BY EXTRACT(YEAR FROM host_since)) AS previous_year_host_count,
+    COALESCE(ROUND(
+        1.0 * (COUNT(id) - LAG(COUNT(id)) OVER(ORDER BY EXTRACT(YEAR FROM host_since))) /
+        LAG(COUNT(id)) OVER(ORDER BY EXTRACT(YEAR FROM host_since)) * 100
+    ), 0) AS growth_rate
+FROM airbnb_search_details
+GROUP BY EXTRACT(YEAR FROM host_since)
+ORDER BY EXTRACT(YEAR FROM host_since);
+
+-- Result:
+-- Calculate annual growth rate using number of registered unique hosts
+SELECT
+    -- Extract year from host_since date column
+    -- Count number of hosts for current year and previous year
+    EXTRACT(YEAR FROM host_since) AS year,
+    COUNT(id) AS current_year_host_count,
+    LAG(COUNT(id), 1, 0) OVER(ORDER BY EXTRACT(YEAR FROM host_since)) AS previous_year_host_count,
+    COALESCE(ROUND(
+        -- Growth Rate = 
+        -- (number of hosts registered in current year - number of hosts registered in previous year) /
+        -- (number of hosts registered in previous year) * 100
+        -- Convert numerator to same numeric datatype using 1.0 * or 100.0 *
+        -- Fill null growth rate with 0 and round growth rate to nearest percent
+        100.0 * (COUNT(id) - LAG(COUNT(id)) OVER(ORDER BY EXTRACT(YEAR FROM host_since))) /
+        LAG(COUNT(id)) OVER(ORDER BY EXTRACT(YEAR FROM host_since)) 
+    ), 0) AS growth_rate
+FROM 
+    airbnb_search_details
+GROUP BY 
+    EXTRACT(YEAR FROM host_since)
+ORDER BY
+    -- Sort results in ascending order by year
+    EXTRACT(YEAR FROM host_since);
+
+Notes:
+- In my iteration approach considered using separate CTEs to make the code easier to read,
+  when I did a single pass approach it didn't look too cluttered so stuck with that.
+- Made sure to include as much documentation as possible to make the query clear and understandable
+- On my initial approach of using this column
+  LAG(COUNT(id), 1, 0) OVER(ORDER BY EXTRACT(YEAR FROM host_since)) AS previous_year_host_count,
+  since I included the 0 in the LAG() function to fill for nulls,
+  it cause division by zero in the growth_rate calculation,
+  had to remove the fill argument in the growth_rate calculation,
+  kept the argument in the separate lag column
+
+############################
