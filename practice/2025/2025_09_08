@@ -1,0 +1,578 @@
+Date: 09/08/2025
+
+############################
+
+Website:
+StrataScratch - ID 2045
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Uber - Days Without Hiring/Termination
+Write a query to calculate the longest period (in days) that the company has gone without hiring anyone. 
+Also, calculate the longest period without firing anyone. 
+Limit yourself to dates inside the table (last hiring/termination date should be the latest hiring /termination date from table), don't go into future.
+
+Data Dictionary:
+Table name = 'uber_employees'
+id: numeric (num)
+salary: numeric (num)
+first_name: character (str)
+last_name: character (str)
+hire_date: POSIXct, POSIXt (dt)
+termination_date: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1 (using lag(), slice_max(), clear and easier to debug)
+## Question:
+# Calculate the longest period (in days) that the company has gone without hiring anyone.
+# Calculate the longest period without firing anyone.
+# Limit yourself to dates inside the table,
+# last hiring/termination date should be the latest hiring/termination date from table, don't go into future.
+
+## Output:
+# longest_period_without_hiring, longest_period_without_firing
+# (longest period without hiring or firing, limit to dates of last hiring/termination date)
+
+## Import libraries:
+#install.packages(tidyverse)
+#install.packages(lubridate)
+library(tidyverse)
+library(lubridate)
+
+## Load and preview data:
+#uber_employees <- read_csv('uber_employees.csv')
+df <- data.frame(uber_employees)
+head(df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - termination_date(34)
+# Rows - 100
+data.frame(lapply(df, class))
+colSums(is.na(df))
+nrow(df)
+
+## Iteration:
+# Calculate longest period of days without hiring or firing at the company
+
+# Calculate longest period of days without hiring
+periods_without_hiring <- df %>%
+    arrange(hire_date) %>%
+    mutate(
+        # Arrange hire_date in ASC order for earliest hire_date
+        # Find previous_hire_date for each row using lag.
+        # For the first row use the earliest hire_date
+        # Calculate days without hiring with previous_hire_date and hire_date
+        previous_hire_date = lag(hire_date, 1, min(hire_date)),
+        longest_period_without_hiring = time_length(interval(previous_hire_date, hire_date), unit = "day")
+    ) %>%
+    select(
+        # Select relevant column
+        longest_period_without_hiring
+    ) %>%
+    slice_max(
+        # Extract the highest value row
+        longest_period_without_hiring
+    )
+    
+# Calculate longest period of days without firing
+periods_without_firing <- df %>%
+    arrange(termination_date) %>%
+    mutate(
+        # Arrange termination_date in ASC order for earliest termination_date
+        # Fill null values with latest termination_date as date of reference
+        # Find previous_termination_date for each row using lag, 
+        # For first row use the earliest termination_date
+        # Calculate days without firing with previous_termination_date and termination_date
+        termination_date = replace_na(termination_date, max(termination_date, na.rm=TRUE)),
+        previous_termination_date = lag(termination_date, 1, min(termination_date)),
+        longest_period_without_firing = time_length(interval(previous_termination_date, termination_date), unit = "day")
+    ) %>%
+    select(
+        # Select relevant column
+        longest_period_without_firing
+    ) %>%
+    slice_max(
+        # Extract the highest value row
+        longest_period_without_firing
+    )
+
+# Combine periods without hiring and periods without firing into a single DataFrame
+result_df = data.frame(periods_without_hiring, periods_without_firing)
+
+## Result:
+result_df
+
+
+Solution #2 (using diff(), max(), more concise and efficient)
+"""
+# --- 1. Calculate the longest period without hiring ---
+# Since hire_date has no NAs, we can directly sort and find the max gap.
+# We'll use diff() which is a more direct way to calculate consecutive differences.
+# To account for the first gap, we will prepend the first date to the vector.
+hiring_dates <- uber_employees %>%
+  pull(hire_date) %>%
+  sort()
+
+# The first "gap" is from the start of the data (the first hire date) to the first hire date,
+# which is 0. Then we have the gaps between hires.
+# The `diff()` function handles this perfectly on its own.
+hiring_gaps <- diff(hiring_dates)
+longest_period_without_hiring <- max(hiring_gaps)
+
+# --- 2. Calculate the longest period without firing ---
+# We need to handle the NA values according to the problem's constraint.
+# 1. Get all termination dates.
+# 2. Get the latest non-NA termination date.
+# 3. Create a vector of dates that includes all actual terminations and the max date
+#    for every NA.
+termination_dates <- uber_employees %>%
+  pull(termination_date)
+
+max_termination_date <- max(termination_dates, na.rm = TRUE)
+
+# Filter out the NAs and add the final date as a reference point.
+# This assumes NA means "still employed".
+valid_termination_dates <- termination_dates %>%
+  na.omit() %>%
+  sort()
+
+# To handle the final gap, we consider the period from the last termination
+# to the latest termination date in the table.
+# We need to add `max_termination_date` to the set of dates for the `diff` calculation.
+# However, this can be handled more simply by considering the `NA` values.
+
+# Let's stick with a corrected version of your original logic, which is a good way to
+# handle this specific edge case.
+periods_without_firing_data <- uber_employees %>%
+  # Replace NAs with the latest termination date as the problem specifies
+  mutate(termination_date = coalesce(termination_date, max(termination_date, na.rm = TRUE))) %>%
+  # Sort to correctly calculate the gaps
+  arrange(termination_date) %>%
+  # Filter out duplicate rows that might have been created by the `coalesce`
+  distinct(termination_date, .keep_all = TRUE) %>%
+  # Use lag() to find the previous termination date
+  mutate(
+    previous_termination_date = lag(termination_date, 1, default = first(termination_date)),
+    gap = time_length(interval(previous_termination_date, termination_date), unit = "day")
+  )
+
+longest_period_without_firing <- max(periods_without_firing_data$gap, na.rm = TRUE)
+
+
+# --- 3. Final Output ---
+result <- tibble(
+  longest_period_without_hiring = as.numeric(longest_period_without_hiring, units = "days"),
+  longest_period_without_firing = longest_period_without_firing
+)
+
+print(result)
+"""
+
+Notes:
+- If there are null values in a column when trying to find max or min, use na.rm = TRUE in the function
+  na.rm = NA remove, which ignores the NA values.
+  ex. max(df$termination_date, na.rm=TRUE)
+- To fill null values in a column, use replace_na('col', 'value') with the mutate() function
+  ex. mutate(score = replace_na(score, 0)) 
+- For simple, precise time differences in fixed units (seconds, days) use base R's difftime() function
+  ex. df$days_diff_func <- difftime(df$end_date, df$start_date, units = "days")
+- For time differences in units that vary in length that could be affected by Daylight Saivngs Time,
+  it is safer and more robust to use time_length(interval()) from lubridate package
+  ex. mutate(
+          days_diff = time_length(interval(start_date, end_date), unit = "day")
+      )
+- The diff() function can be used to calculate consecutive time differences
+  ex. hiring_gaps <- diff(hiring_dates)
+- For Solution #1 used a SQL approach to show sequential steps that lead to the solution,
+  less performant and optimal but is easier for me to understand and interpet to debug.
+  Compared to solution #2 which uses more efficient and concise R functions.
+  
+############################
+
+Website:
+StrataScratch - ID 2093
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+DoorDash - First Time Orders
+The company you work with wants to find out what merchants are most popular for new customers.
+You have been asked to find how many orders and first-time orders each merchant has had.
+First-time orders are meant from the perspective of a customer, and are the first order that a customer ever made. In order words, for how many customers was this the first-ever merchant they ordered with?
+Note: Recently, new restaurants have been registered on the system; however, because they may not have received any orders yet, your answer should exclude restaurants that have not received any orders.
+Your output should contain the name of the merchant, the total number of their orders, and the number of these orders that were first-time orders.
+
+Data Dictionary:
+Table name = 'order_details'
+id: int64 (int)
+customer_id: int64 (int)
+merchant_id: int64 (int)
+order_timestamp: datetime64 (dt)
+n_items: int64 (int)
+total_amount_earned: float64 (flt)
+Table name = 'merchant_details'
+id: int64 (int)
+name: object (str)
+category: object (str)
+zipcode: int64 (int)
+
+Code:
+Solution #1 (longer, clear and easier to understand)
+## Question:
+# Company wants to find out which merchants are most popular for new customers.
+# Find how many orders and first-time orders each merchant has had.
+# First-time orders are meant from the perspective of a customer,
+# and are the first order that a customer ever made.
+# In other words, for how many customers was this the first-ever merchant they ordered with?
+# Note: recently new restaurant have been registered on the database, 
+# however, because they may not have received any orders yet,
+# your answer should exclude restaurants that have not received any orders.
+# Output should contain name of merchant, total number of orders, number of orders that are first-time orders.
+
+## Output:
+# merchant_name, order_total, first_time_order_total
+# (find how many orders and first-time orders each merchant has had, first order that customer ever made,
+# don't include merchants that have not receieve any orders)
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#order_details = pd.read_csv('order_details.csv')
+#merchant_details = pd.read_csv('merchant_details.csv')
+df = pd.DataFrame(order_details)
+df2 = pd.DataFrame(merchant_details)
+df.head(5)
+df2.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - order: 0
+#       - merchant: 0
+# Rows - order: 52
+#      - merchant: 7
+#df.info()
+#df.isna().sum()
+#df2.info()
+#df2.isna().sum()
+
+## Iteration:
+# Find how many orders and first time orders each merchant has had
+
+# Join order and merchant DataFrames by merchant_id = id
+# Using inner join excludes restaurants that have not received any orders
+merged_df = pd.merge(df, df2, left_on="merchant_id", right_on="id", how="inner")
+
+# Count number of orders for each merchant
+total_orders = merged_df.groupby('name')['id_x'].count().reset_index(name='order_count')
+
+# Find first-ever merchant orders for each customer
+customer_first_order = (
+    # Find earliest order date for each customer, merchant name combination
+    merged_df.groupby(['customer_id','name'])['order_timestamp'].min()
+    .reset_index()
+)
+
+customer_first_order['rank'] = (
+    # Rank order dates for each customer
+    customer_first_order.groupby('customer_id')['order_timestamp']
+    .rank(method='dense', ascending=True)
+)
+
+customer_first_order = customer_first_order[
+    # Filter for earliest date using first rank
+    customer_first_order['rank'] == 1
+]
+
+customer_first_order = (
+    # Count number of first time customers for each merchant name
+    customer_first_order.groupby('name')['customer_id'].count()
+    .reset_index(name='customer_count')
+)
+
+# Combine total orders and customer first order DataFrames into a single DataFrame
+result_df = pd.merge(total_orders, customer_first_order, on="name", how="left")
+
+# Fill merchant names with zero if null customer_counts
+result_df['customer_count'] = result_df['customer_count'].fillna(0)
+
+# Rename columns and sort in ascending order
+result_df = (
+    result_df.rename(columns=({'name': 'merchant_name',
+                               'order_count': 'order_total',
+                               'customer_count': 'first_time_order_total'})
+    ).sort_values(by='merchant_name', ascending=True)
+)
+
+## Result:
+result_df
+
+
+Solution #2 (concise, optimal)
+# --- 1. Calculate the first-time orders for each customer ---
+# A first-time order is a customer's first-ever order.
+# We will use `groupby()` and `transform()` to find the minimum timestamp for each customer.
+order_details['first_order_timestamp'] = order_details.groupby('customer_id')['order_timestamp'].transform('min')
+
+# Create a boolean column to flag if an order is a first-time order.
+# This works even if a customer has multiple first orders at the same timestamp.
+order_details['is_first_time_order'] = (order_details['order_timestamp'] == order_details['first_order_timestamp']).astype(int)
+
+# --- 2. Aggregate data by merchant ---
+# We will group by merchant_id to count total orders and sum the first-time orders flag.
+merchant_metrics = order_details.groupby('merchant_id').agg(
+    total_orders=('id', 'count'),
+    first_time_orders=('is_first_time_order', 'sum')
+).reset_index()
+
+# --- 3. Join with merchant details and finalize the output ---
+# Merge the aggregated metrics with the merchant_details to get the merchant names.
+# An inner join is used to automatically exclude merchants that have no orders, as
+# their IDs would not exist in the 'merchant_metrics' table.
+final_df = pd.merge(
+    merchant_metrics,
+    merchant_details,
+    left_on='merchant_id',
+    right_on='id',
+    how='inner'
+)
+
+# Clean up the final dataframe and rename columns as requested.
+final_df = final_df.rename(columns={'name': 'merchant_name'})
+final_df = final_df[['merchant_name', 'total_orders', 'first_time_orders']]
+
+# --- 4. Display the result ---
+final_df
+
+Notes:
+- To fill null values, use fillna() function
+  ex. result_df['customer_count'] = result_df['customer_count'].fillna(0)
+- For unique combinations of columns with an aggregation, use transform('aggregation') function,
+  ex. order_details['first_order_timestamp'] = order_details.groupby('customer_id')['order_timestamp'].transform('min')
+- For quick boolean filtering and assigning 1-0 encoding, use df['col'] = (df['col'] == 'df['col1']).astype(int)
+  ex. order_details['is_first_time_order'] = (
+          (order_details['order_timestamp'] == order_details['first_order_timestamp']).astype(int)
+- Took a SQL step by step approach to solving the problem in Solution #1 for ease of understanding,
+  in solution #2 there are concise and efficient ways in Python to get to the solution.
+
+############################
+
+Website:
+StrataScratch - ID 9701
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+City of Los Angeles - 3rd Most Reported Health Issues
+Each record in the table represents a reported health issue, with each issue classified based on facility type and risk score, which are combined in the pe_description column.
+Filter the dataset to include only businesses whose names contain "Cafe", "Tea", or "Juice", then identify the "facility type - risk score" classification that ranks 3rd in frequency.
+If multiple classifications are tied for 3rd place, include all of them.
+Finally, return the names of the businesses that belong to the identified classification(s).
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+activity_date: date (d)
+employee_id: text (str)
+facility_address: text (str)
+facility_city: text (str)
+facility_id: text (str)
+facility_name: text (str)
+facility_state: text (str)
+facility_zip: text (str)
+grade: text (str)
+owner_id: text (str)
+owner_name: text (str)
+pe_description: text (str)
+program_element_pe: bigint (int)
+program_name: text (str)
+program_status: text (str)
+record_id: text (str)
+score: bigint (int)
+serial_number: text (str)
+service_code: bigint (int)
+service_description: text (str)
+
+Code:
+Solution #1
+-- Question:
+-- Each record in the table represents a reported health issue,
+-- with each issue classified based on facility type and risk score,
+-- which are combined in the pe_description column.
+-- Filter the dataset to include only businesses whose name contains "Cafe", "Tea", or "Juice",
+-- then identify the "facility type - risk score" classification that ranks 3rd in frequency.
+-- If multiple classifications are tied for 3rd place, include all of them.
+-- Finally, return the names of the businesses that belong to the identified classifications.
+
+-- Output:
+-- facility_name, pe_description
+-- (Identify pe_description that rank 3rd in record frequency and return facility name for classification)
+-- (pe_descripton = facility type and risk score, filter for businesses with ["Cafe", "Tea", "Juice"],
+-- identify "facility type - risk score" classifications that ranks 3rd in frequency, include ties)
+
+-- Preview data:
+SELECT * FROM los_angeles_restaurant_health_inspections LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - program_name(2)
+-- Rows - 299
+SELECT
+    SUM(CASE WHEN activity_date IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN employee_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN facility_address IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN facility_city IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN facility_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN facility_name IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN facility_state IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN facility_zip IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN grade IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN owner_id IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN owner_name IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN pe_description IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN program_element_pe IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN program_name IS NULL THEN 1 ELSE 0 END) AS col14,
+    SUM(CASE WHEN program_status IS NULL THEN 1 ELSE 0 END) AS col15,
+    SUM(CASE WHEN record_id IS NULL THEN 1 ELSE 0 END) AS col16,
+    SUM(CASE WHEN score IS NULL THEN 1 ELSE 0 END) AS col17,
+    SUM(CASE WHEN serial_number IS NULL THEN 1 ELSE 0 END) AS col18,
+    SUM(CASE WHEN service_code IS NULL THEN 1 ELSE 0 END) AS col19,
+    SUM(CASE WHEN service_description IS NULL THEN 1 ELSE 0 END) AS col20,
+    COUNT(*) AS total_rows
+FROM los_angeles_restaurant_health_inspections;
+
+-- Iteration:
+-- Identify pe_description that rank 3rd in record frequency and return facility name for classification
+WITH FacilityClassificationFrequency AS (
+-- Filter for business names that contain ["Cafe", "Tea", "Juice"]
+-- Count number of records for each pe_description and facility_name combination
+SELECT 
+    pe_description,
+    facility_name,
+    COUNT(record_id) AS record_count
+FROM los_angeles_restaurant_health_inspections
+WHERE facility_name ILIKE '%cafe%'
+    OR facility_name ILIKE '%tea%'
+    OR facility_name ILIKE '%juice%'
+GROUP BY 
+    pe_description,
+    facility_name
+),
+ClassificationRecordRank AS (
+-- Calculate total records for each pe_description and rank in DESC order
+SELECT
+    pe_description,
+    SUM(record_count) AS record_total,
+    DENSE_RANK() OVER(ORDER BY SUM(record_count) DESC) AS record_rank
+FROM FacilityClassificationFrequency
+GROUP BY pe_description
+)
+-- Include facility names for each pe_description using inner join
+-- Filter for pe_description where record frequency ranks 3rd
+SELECT
+    fcf.facility_name,
+    crc.pe_description
+FROM ClassificationRecordRank AS crc
+JOIN FacilityClassificationFrequency AS fcf
+    ON crc.pe_description = fcf.pe_description
+WHERE crc.record_rank = 3
+ORDER BY
+    crc.pe_description,
+    fcf.facility_name;
+
+-- Result:
+-- Identify pe_description that rank 3rd in record frequency and return facility name for classification
+WITH FacilityClassificationFrequency AS (
+    SELECT 
+        -- Count number of records for each pe_description and facility_name combination
+        pe_description,
+        facility_name,
+        COUNT(record_id) AS record_count
+    FROM 
+        los_angeles_restaurant_health_inspections
+    WHERE 
+        -- Filter for business names that contain ["Cafe", "Tea", "Juice"]
+        facility_name ILIKE '%Cafe%'
+        OR facility_name ILIKE '%Tea%'
+        OR facility_name ILIKE '%Juice%'
+    GROUP BY 
+        pe_description,
+        facility_name
+),
+ClassificationRecordRank AS (
+    SELECT
+        -- Calculate total records for each pe_description and rank in DESC order
+        pe_description,
+        SUM(record_count) AS record_total,
+        DENSE_RANK() OVER(ORDER BY SUM(record_count) DESC) AS record_rank
+    FROM 
+        FacilityClassificationFrequency
+    GROUP BY 
+        pe_description
+)
+SELECT
+    fcf.facility_name,
+    crc.pe_description
+FROM 
+    ClassificationRecordRank AS crc
+JOIN 
+    -- Include facility names for each pe_description using inner join
+    FacilityClassificationFrequency AS fcf
+    ON crc.pe_description = fcf.pe_description
+WHERE 
+    -- Filter for pe_description where record frequency ranks 3rd
+    crc.record_rank = 3
+ORDER BY
+    crc.pe_description,
+    fcf.facility_name;
+
+
+# Solution #2 (optimized, concise)
+-- This query identifies the 3rd most frequent "facility type - risk score"
+-- classification among businesses with "Cafe", "Tea", or "Juice" in their name.
+
+WITH RankedClassifications AS (
+    SELECT
+        pe_description,
+        COUNT(pe_description) AS frequency,
+        -- Use DENSE_RANK() to correctly handle ties. If multiple classifications
+        -- are tied for 3rd place, they will all receive a rank of 3.
+        DENSE_RANK() OVER (ORDER BY COUNT(pe_description) DESC) AS rank_no
+    FROM
+        los_angeles_restaurant_health_inspections
+    WHERE
+        -- Filter for businesses whose names contain 'Cafe', 'Tea', or 'Juice'
+        LOWER(facility_name) LIKE '%cafe%' OR
+        LOWER(facility_name) LIKE '%tea%' OR
+        LOWER(facility_name) LIKE '%juice%'
+    GROUP BY
+        pe_description
+)
+-- Select the facility names that belong to the 3rd-ranked classification
+SELECT DISTINCT
+    facility_name
+FROM
+    los_angeles_restaurant_health_inspections AS T1
+JOIN
+    RankedClassifications AS T2 ON T1.pe_description = T2.pe_description
+WHERE
+    T2.rank_no = 3;
+
+Notes:
+- Finding a better footing for where to include documentation notes within code
+- For my Solution #1 approach, could definitely simplify my two CTE query to a single CTE query
+  but want to go step by step to explain how I would solve the problem
+  and not miss any potential data points. Can always optimize the query afterwards
+  if needed.
+
+############################
