@@ -1,0 +1,368 @@
+Date: 09/09/2025
+
+############################
+
+Website:
+StrataScratch - ID 2047
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Uber - Total Monatery Value Per Month/Service
+Find the total monetary value for completed orders by service type for every month.
+Output your result as a pivot table where there is a column for month and columns for each service type.
+
+Data Dictionary:
+Table name = 'uber_orders'
+number_of_orders: numeric (num)
+order_date: POSIXct, POSIXt (dt)
+status_of_order: character (str)
+monetary_value: numeric (num)
+service_name: character (str)
+
+Code:
+Solution #1
+## Question:
+# Find the total monetary value for completed orders by service type for every month.
+# Output results as a pivot table where there is a column for month and columns for each service type.
+
+## Output:
+# month, service_type
+# (find total monetary value for completed orders by service type for every month,
+# pivot table, month column, service type columns)
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#uber_orders <- read_csv('uber_orders.csv')
+df <- data.frame(uber_orders)
+head(df, 5)
+
+## Check datatypes, null, and rows:
+# Nulls - monetary_value(133)
+# Rows - 3210
+data.frame(lapply(df, class))
+colSums(is.na(df))
+nrow(df)
+
+## Iteration:
+# Find total monetary value for completed orders by service type for every month
+result_df <- df %>%
+    filter(
+        # Filter for 'Completed' orders
+        status_of_order == 'Completed'
+    ) %>%
+    mutate(
+        # Extract month from order_date column
+        month = month(order_date)
+    ) %>%
+    group_by(month, service_name) %>%
+    summarise(
+        # Calculate the total monetary value for each service type per month
+        total_monetary_value = sum(monetary_value, na.rm=TRUE), .groups="drop"
+    ) %>%
+    arrange(month, service_name) %>%
+    pivot_wider(
+        # Create pivot table, set service type as columns with associated monetary values
+        names_from = service_name,
+        values_from = total_monetary_value
+    )
+
+## Result:
+result_df
+
+Notes:
+- When using pivot_wider() function for making pivot tables specify the dataframe and columns
+  data = the data frame to reshape,
+  names_from = column that will be new column names,
+  values_from = column with values to fill new columns
+  values_fill = to fill missing values
+  ex. wide_data <- pivot_wider(
+          long_data,
+          names_from = metric,
+          values_from = value
+      )
+- Couldn't remember the exact wording for the parameters in the pivot_wider function,
+  the pseudocode and other functions I was able to recall for a viable solution.
+
+############################
+
+Website:
+StrataScratch - ID 2095
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Amazon - Three Purchases
+List the IDs of customers who made at least 3 orders in both 2020 and 2021.
+
+Data Dictionary:
+Table name = 'amazon_orders'
+id: int64 (int)
+user_id: object (str)
+order_date: datetime64 (dt)
+order_total: float64 (flt)
+
+Code:
+Solution #1 (using duplicated() )
+## Question:
+# List the IDs of customers who made at least 3 orders in both 2020 and 2021.
+
+## Output:
+# user_id
+# (list customer ids who made at least 3 orders in 2020 and 2021)
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#amazon_orders = pd.read_csv('amazon_orders.csv')
+df = pd.DataFrame(amazon_orders)
+df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 35
+#df.info()
+#df.isna().sum()
+
+## Iteration:
+# List customer ids who made at least 3 orders in 2020 and 2021
+df['year'] = (
+    # Extract year from order_date column
+    df['order_date'].dt.year
+)
+
+filtered_df = (
+    # Filter for dates in 2020 and 2021
+    df[
+        (df['year'].isin([2020, 2021]))
+    ].copy()
+)
+
+result_df = (
+    # Count number of orders for each user_id in each year
+    filtered_df
+    .groupby(['year', 'user_id'])['id']
+    .count()
+    .reset_index(name='order_count')
+)
+
+result_df = (
+    # Filter for user_ids with at least 3 orders or more
+    # filter user_ids that are duplicated meaning in both 2020 and 2021
+    result_df[
+        (result_df['order_count'] >= 3) &
+        (result_df['user_id'].duplicated() == True)
+    ]
+)
+
+result_df = (
+    # Select relevant columns, sort values
+    result_df[['user_id']]
+    .sort_values(by='user_id', ascending=True)
+    
+)
+
+## Result:
+result_df
+
+
+Solution #2 (using sets and intersection)
+# Separate and count orders for each year
+orders_2020 = df[df['year'] == 2020].groupby('user_id')['id'].count()
+orders_2021 = df[df['year'] == 2021].groupby('user_id')['id'].count()
+
+# Filter for customers with at least 3 orders in each year
+customers_2020_3plus = orders_2020[orders_2020 >= 3].index
+customers_2021_3plus = orders_2021[orders_2021 >= 3].index
+
+# Find the intersection of the two lists
+result_ids = customers_2020_3plus.intersection(customers_2021_3plus)
+
+# Convert to a DataFrame for the final result format
+result_df = pd.DataFrame({'user_id': result_ids}).sort_values('user_id')
+
+Notes:
+- Experimented with the coding format and documentation to be similar to R pipe documentation
+- The duplicated() function returns boolean values "TRUE" or "FALSE" if a duplicate is present in a row,
+  when removing these duplicates, use the drop_duplicates() function
+- Solution #2 was going to be my initial intended approach since it was similar to a SQL approach,
+  but switched to Solution #1 so there wouldn't be as many intermediate Dataframes. 
+  However, that did not prove to be the case and Solution #2 handles edge cases a lot better 
+  using sets and intersections as opposed to using a duplicated() approach for Solution #1.
+
+############################
+
+Website:
+StrataScratch - ID 9708
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+City of Los Angeles - Find the variance and the standard deviation of scores that have grade A
+ind the variance of scores that have grade A using the formula AVG((X_i - mean_x) ^ 2).
+Output the result along with the corresponding standard deviation.
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+activity_date: date (d)
+employee_id: text (str)
+facility_address: text (str)
+facility_city: text (str)
+facility_id: text (str)
+facility_name: text (str)
+facility_state: text (str)
+facility_zip: text (str)
+grade: text (str)
+owner_id: text (str)
+owner_name: text (str)
+pe_description: text (str)
+program_element_pe: bigint (int)
+program_name: text (str)
+program_status: text (str)
+record_id: text (str)
+score: bigint (int)
+serial_number: text (str)
+service_code: bigint (int)
+service_description: text (str)
+
+Code:
+Solution #1 (multiple pass, CTE, calculating by hand)
+-- Question:
+-- Find the variance of scores that have grade A using formula AVG((X_i - mean_x) ^ 2)
+-- Output the result along with the corresponding standard deviation.
+
+-- Output:
+-- variance_of_score, standard_deviation
+-- (variance of scores that have grade A using AVG((X_i - mean_x) ^ 2) )
+
+-- Preview data:
+SELECT * FROM los_angeles_restaurant_health_inspections LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls: program_name(2)
+-- Rows: 299
+SELECT 
+    SUM(CASE WHEN activity_date IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN employee_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN facility_address IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN facility_city IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN facility_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN facility_name IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN facility_state IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN facility_zip IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN grade IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN owner_id IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN owner_name IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN pe_description IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN program_element_pe IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN program_name IS NULL THEN 1 ELSE 0 END) AS col14,
+    SUM(CASE WHEN program_status IS NULL THEN 1 ELSE 0 END) AS col15,
+    SUM(CASE WHEN record_id IS NULL THEN 1 ELSE 0 END) AS col16,
+    SUM(CASE WHEN score IS NULL THEN 1 ELSE 0 END) AS col17,
+    SUM(CASE WHEN serial_number IS NULL THEN 1 ELSE 0 END) AS col18,
+    SUM(CASE WHEN service_code IS NULL THEN 1 ELSE 0 END) AS col19,
+    SUM(CASE WHEN service_description IS NULL THEN 1 ELSE 0 END) AS col20,
+    COUNT(*) AS total_rows
+FROM los_angeles_restaurant_health_inspections;
+
+-- Iteration:
+-- Find the variance of scores that have grade A using formula AVG((X_i - mean_x) ^ 2)
+WITH MeanScore AS (
+-- Calculate the mean for scores that have grade A
+SELECT
+    grade,
+    AVG(score) AS mean
+FROM los_angeles_restaurant_health_inspections
+WHERE grade = 'A'
+GROUP BY grade
+)
+-- Inner join to append mean of overall scores to each individual row score
+-- Calculate variance of scores using formula AVG((X_i - mean_x) ^ 2)
+-- Calculate standard deviation of scores
+SELECT
+    ROUND(
+        AVG((larhi.score - ms.mean) ^ 2) 
+    , 2) AS variance,
+    ROUND(
+        STDDEV(larhi.score) 
+    , 2) AS standard_deviation
+FROM los_angeles_restaurant_health_inspections AS larhi
+JOIN MeanScore AS ms
+    ON larhi.grade = ms.grade
+WHERE larhi.grade = 'A';
+
+-- Result:
+-- Find the variance of scores that have grade A using formula AVG((X_i - mean_x) ^ 2)
+WITH MeanScore AS (
+    SELECT
+        -- Calculate the mean for scores that have grade A
+        grade,
+        AVG(score) AS mean
+    FROM 
+        los_angeles_restaurant_health_inspections
+    WHERE
+        grade = 'A'
+    GROUP BY 
+        grade
+)
+SELECT
+    ROUND(
+        -- Calculate variance of scores using formula AVG((X_i - mean_x) ^ 2)
+        AVG((larhi.score - ms.mean) ^ 2) 
+    , 2) AS variance,
+    ROUND(
+        -- Calculate standard deviation of scores
+        STDDEV(larhi.score) 
+    , 2) AS standard_deviation
+FROM 
+    los_angeles_restaurant_health_inspections AS larhi
+JOIN 
+    -- Inner join to append mean of overall scores to each individual row score
+    MeanScore AS ms
+    ON larhi.grade = ms.grade
+WHERE 
+    larhi.grade = 'A';
+
+
+Solution #2 (single-pass using built-in functions)
+SELECT
+    ROUND(
+        VAR_POP(score)
+    , 2) AS population_variance,
+    ROUND(
+        STDDEV_POP(score)
+    , 2) AS population_standard_deviation
+FROM los_angeles_restaurant_health_inspections
+WHERE grade = 'A';
+
+Notes:
+- The function for standard deviation is STDDEV(), had thought it was STD() for some reason.
+  STDDEV_SAMP() for sample standard deviation, (n-1 in denominator), same as STDEV()
+  STDDEV_POP() for population standard deviation (n in denominator), data represents entire population
+- Variance for population can be calulated using the formula AVG((X_i - mean_x) ^ 2).
+  VAR_SAMP() for sample variance (n-1 in denominator), most common
+  VAR_POP() for population variance (n in denominator)), data represents entire population
+- Was not aware that there is a variance function in SQL but was familiar with the standard deviation.
+- Solution #1 follows the question prompt and uses a formula to solve for variance,
+  the standard deviation could have been calculated by square rooting the variance,
+  SQRT(AVG((larhi.score - ms.mean) ^ 2)) but I ended up using the STDDEV() function. 
+  Solution #2 is the most efficient and concise way of solving the problem with built-in functions,
+  specifically the STDDEV_POP() and VAR_POP() functions.
+
+############################
