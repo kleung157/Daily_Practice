@@ -1,0 +1,517 @@
+Date: 09/10/2025
+
+############################
+
+Website:
+StrataScratch - ID 2048
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Uber - Percentage Of Revenue Loss
+For each service, calculate the percentage of incomplete orders along with the percentage of revenue loss from incomplete orders relative to total revenue.
+Your output should include:
+•  The name of the service
+•  The percentage of incomplete orders
+•  The percentage of revenue loss from incomplete order
+
+Data Dictionary:
+Table name = 'uber_orders'
+number_of_orders: numeric (num)
+order_date: POSIXct, POSIXt (dt)
+status_of_order: character (str)
+monetary_value: numeric (num)
+service_name: character (str)
+
+Code:
+Solution #1 (multiple pipeline approach)
+## Question:
+# For each service, calculate the percentage of incomplete orders along with the percentage of revenue
+# loss from incomplete orders relative to total revenue.
+# Output should include, name of service, percentage of incomplete orders, percentage of revenue loss from
+# incomplete orders.
+
+## Output:
+# service_name, incomplete_orders_percentage, revenue_loss_percentage
+# (for each service, calculate percentage of incomplete orders and 
+# percentage revenue loss from incomplete orders relative to total revenue for each service))
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#uber_orders <- read_csv('uber_orders.csv')
+df <- data.frame(uber_orders)
+head(df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - monetary_value(133)
+# Rows - 3210
+data.frame(lapply(df, class))
+colSums(is.na(df))
+nrow(df)
+
+## Iteration:
+# For each service, calculate percentage of incomplete orders and 
+# percentage revenue loss from incomplete orders relative to total revenue for each service
+incomplete_orders <- df %>%
+    filter(
+        # Filter for status_of_orders where not 'Completed'
+        status_of_order != 'Completed'
+    ) %>%
+    group_by(service_name) %>%
+    summarise(
+        # Calculate total number of orders and total revenue per service name
+        incomplete_orders_total = sum(number_of_orders),
+        incomplete_revenue_total = sum(monetary_value, na.rm = TRUE),
+        .groups = "drop"
+    )
+
+total_orders <- df %>%
+    group_by(service_name) %>%
+    summarise(
+        # Calculate total number of orders and total revenue per service name
+        orders_total = sum(number_of_orders),
+        revenue_total = sum(monetary_value, na.rm = TRUE),
+        .groups = "drop"
+    )
+
+result_df <- 
+    inner_join(
+        # Combine incomplete_orders and total_orders into a single DataFrame
+        incomplete_orders, total_orders, by="service_name"
+    ) %>%
+    mutate(
+        # Calculate percentage of incomplete orders and percentage of revenue loss
+        # percentage = (incomplete total / incomplete and complete total) * 100
+        incomplete_orders_percentage = round((incomplete_orders_total / orders_total) * 100, digits = 2),
+        revenue_loss_percentage = round((incomplete_revenue_total / revenue_total) * 100, digits = 2)
+    ) %>%
+    select(
+        # Select relevant columns
+        service_name, incomplete_orders_percentage, revenue_loss_percentage
+    ) %>%
+    arrange(service_name)
+    
+## Result:
+result_df
+
+
+Solution #2 (single pipeline approach)
+result_df_single_pipeline <- df %>%
+  group_by(service_name) %>%
+  summarise(
+    # Calculate total counts and sums in one step
+    total_orders = sum(number_of_orders),
+    incomplete_orders = sum(number_of_orders[status_of_order != "Completed"]),
+    total_revenue = sum(monetary_value, na.rm = TRUE),
+    incomplete_revenue_loss = sum(monetary_value[status_of_order != "Completed"], na.rm = TRUE)
+  ) %>%
+  mutate(
+    # Calculate percentages
+    incomplete_orders_percentage = round((incomplete_orders / total_orders) * 100, digits = 2),
+    revenue_loss_percentage = round((incomplete_revenue_loss / total_revenue) * 100, digits = 2)
+  ) %>%
+  select(
+    service_name,
+    incomplete_orders_percentage,
+    revenue_loss_percentage
+  ) %>%
+  arrange(service_name)
+
+Notes:
+- Similar to Python's df['col'].value_counts() to find category counts in a column,
+  R has count('col', sort = TRUE) as a way to count categories.
+  ex. df %>%
+          count(status_of_order, sort = TRUE)
+- In the summarise() function, aggregation functions can filter for values 
+  ex. sum('col'['col2' != 'value'])
+  ex. result_df_single_pipeline <- df %>%
+      group_by(service_name) %>%
+      summarise(
+          total_orders = sum(number_of_orders),
+          incomplete_orders = sum(number_of_orders[status_of_order != "Completed"]),
+          total_revenue = sum(monetary_value, na.rm = TRUE),
+          incomplete_revenue_loss = sum(monetary_value[status_of_order != "Completed"], na.rm = TRUE)
+      )
+- Stuck with separate DataFrames and pipelines for Solution #1 approach, wasn't familiar with
+  how to use filters in aggregation functions for R like in Solution #2 where it was a single pipeline.
+      
+############################
+
+Website:
+StrataScratch - ID 2096
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Asana - Completed Tasks
+Find the number of actions that ClassPass workers did for tasks completed in January 2022. 
+The completed tasks are these rows in the asana_actions table with 'action_name' equal to CompleteTask. 
+Note that each row in the dataset indicates how many actions of a certain type one user has performed in one day and the number of actions is stored in the 'num_actions' column.
+Output the ID of the user and a total number of actions they performed for tasks they completed. 
+If a user from this company did not complete any tasks in the given period of time, you should still output their ID and the number 0 in the second column.
+
+Data Dictionary:
+Table name = 'asana_users'
+user_id: int64 (int)
+name: object (str)
+surname: object (str)
+company: object (str)
+Table name = 'asana_actions'
+user_id: int64 (int)
+date: datetime64 (dt)
+num_actions: in64 (int)
+action_name: object (str)
+
+Code:
+Solution #1 (conditional statement, inner joins)
+## Question:
+# Find the number of actions that ClassPass workers did for tasks completed in January 2022.
+# The completed tasks are these rows in the asana_actions table with 'action_name' equal to CompleteTask.
+# Note that each row in the dataset indicates how many actions of a certain type,
+# one user has performed in one day and the number of actions is stored in the 'num_actions' column.
+# Output the ID of the user and a total number of actions they performed for tasks they completed.
+# If a user from this company did not complete any tasks in the given period of time,
+# you should still output their ID and the number 0 in the second column.
+
+## Output:
+# user_id, comppleted_actions_total
+# (Find the number of actions that ClassPass workers did for tasks completed in January 2022,
+# complete tasks are action_name = 'CompleteTask', num_actions are number of actions for users in one day,
+# total number of actions for tasks completed, user did not complete task in Jan 2022 then output 0 with ID)
+
+## Import libraries:
+import pandas as pd
+import numpy as np
+
+## Laod and preview data:
+#asana_users = pd.read_csv('asana_users.csv')
+#asana_actions = pd.read_csv('asana_actions.csv')
+df = pd.DataFrame(asana_users)
+df2 = pd.DataFrame(asana_actions)
+df.head(5)
+df2.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - users: 0
+#       - actions: 0
+# Rows - users: 6
+#      - actions: 62
+#df.info()
+#df.isna().sum()
+#df2.info()
+#df2.isna().sum()
+
+## Iteration:
+# Find the number of actions that ClassPass workers did for tasks completed in January 2022
+# 1. Join users and actions DataFrames
+merged_df = pd.merge(df, df2, on="user_id", how="inner")
+
+# 2. Filter for company 'ClassPass' and dates in 'January 2022'
+filtered_df = merged_df[
+    (merged_df['company'] == 'ClassPass') &
+    (merged_df['date'].dt.year == 2022) &
+    (merged_df['date'].dt.month == 1)
+].copy()
+
+# 3. Create conditional statement column where action_name = 'CompleteTask', then num_actions, else 0
+filtered_df['completed_num_actions'] = np.where(filtered_df['action_name'] == 'CompleteTask', filtered_df['num_actions'], 0)
+
+# 4. Calculate total completed number of actions for each user 
+result_df = (
+    filtered_df.groupby('user_id')['completed_num_actions'].sum()
+    .reset_index(name='completed_actions_total')
+    .sort_values(by='user_id', ascending=True)
+)
+
+## Result:
+result_df
+
+
+Solution #2 (left join DataFrames)
+## Step 1: Filter ClassPass users
+# Get the IDs of all users working for ClassPass
+classpass_users = asana_users[asana_users['company'] == 'ClassPass'][['user_id']]
+
+## Step 2: Filter and aggregate completed tasks for January 2022
+# Filter actions for 'CompleteTask' in January 2022
+completed_actions_jan22 = asana_actions[
+    (asana_actions['action_name'] == 'CompleteTask') & 
+    (asana_actions['date'].dt.month == 1) & 
+    (asana_actions['date'].dt.year == 2022)
+]
+
+# Group by user_id and sum the number of actions
+total_actions_per_user = completed_actions_jan22.groupby('user_id')['num_actions'].sum().reset_index()
+
+## Step 3: Combine all ClassPass users with their completed action counts
+# Use a left merge to ensure all ClassPass users are included, even those with zero completed tasks
+final_df = pd.merge(
+    classpass_users,
+    total_actions_per_user,
+    on='user_id',
+    how='left'
+)
+
+## Step 4: Handle users with no completed tasks
+# Fill the NaN values with 0, as these users had no completed tasks
+final_df['num_actions'] = final_df['num_actions'].fillna(0).astype(int)
+
+## Final Output
+print(final_df)
+
+Notes:
+- np.where() from numpy package can be used in a boolean mask column similar to a CASE WHEN statement
+  ex. filtered_df['completed_num_actions'] = np.where(filtered_df['action_name'] == 'CompleteTask', filtered_df['num_actions'], 0)
+- Decided to go with a CASE WHEN approach instead of doing separate DataFrames and combining with a left join.
+  Solution #1 produces the same solution as Solution #2 with the inner join and conditional approach, 
+  but Solution #2 handles edges cases using left join and filters in a different order
+
+############################
+
+Website:
+StrataScratch - ID 9711
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+City of Los Angeles - Facilities With Lots Of Inspections
+Find the facility that got the highest number of inspections in 2017 compared to other years. 
+Compare the number of inspections per year and output only facilities that had the number of inspections greater in 2017 than in any other year.
+Each row in the dataset represents an inspection. 
+Base your solution on the facility name and activity date field
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+activity_date: date (d)
+employee_id: text (str)
+facility_address: text (str)
+facility_city: text (str)
+facility_id: text (str)
+facility_name: text (str)
+facility_state: text (str)
+facility_zip: text (str)
+grade: text (str)
+owner_id: text (str)
+owner_name: text (str)
+pe_description: text (str)
+program_element_pe: bigint (int)
+program_name: text (str)
+program_status: text (str)
+record_id: text (str)
+score: bigint (int)
+serial_number: text (str)
+service_code: bigint (int)
+service_description: text (str)
+
+Code:
+Solution #1 (hardcoded years with PivotTable)
+-- Question:
+-- Find the facility that got the highest number of inspections in 2017 compared to other years.
+-- Compare the number of inspections per year and 
+-- output only facilities that had the number of inspections greater in 2017 than in any other year.
+-- Each row in the dataset represents an inspection.
+-- Base your solution on the facility name and activity date fields.
+
+-- Output:
+-- facility_name
+-- (Find the facility that got the highest number of inspections in 2017 compared to other years,
+-- each row represents an inspection, base solution on facility_name and activity_date)
+
+-- Preview data:
+SELECT * FROM los_angeles_restaurant_health_inspections LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - program_name(2)
+-- Rows - 299
+SELECT 
+    SUM(CASE WHEN activity_date IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN employee_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN facility_address IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN facility_city IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN facility_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN facility_name IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN facility_state IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN facility_zip IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN grade IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN owner_id IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN owner_name IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN pe_description IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN program_element_pe IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN program_name IS NULL THEN 1 ELSE 0 END) AS col14,
+    SUM(CASE WHEN program_status IS NULL THEN 1 ELSE 0 END) AS col15,
+    SUM(CASE WHEN record_id IS NULL THEN 1 ELSE 0 END) AS col16,
+    SUM(CASE WHEN score IS NULL THEN 1 ELSE 0 END) AS col17,
+    SUM(CASE WHEN serial_number IS NULL THEN 1 ELSE 0 END) AS col18,
+    SUM(CASE WHEN service_code IS NULL THEN 1 ELSE 0 END) AS col19,
+    SUM(CASE WHEN service_description IS NULL THEN 1 ELSE 0 END) AS col20,
+    COUNT(*) AS total_rows
+FROM los_angeles_restaurant_health_inspections;
+
+-- Iteration #1:
+-- Find the facility that got the highest number of inspections in 2017 compared to other years
+WITH YearlyInspections AS (
+-- Extract year from activity_date
+-- Count number of inspections per facility for each year
+SELECT 
+    EXTRACT(YEAR FROM activity_date) AS year,
+    facility_name,
+    COUNT(record_id) AS record_count
+FROM los_angeles_restaurant_health_inspections
+GROUP BY
+    EXTRACT(YEAR FROM activity_date),
+    facility_name
+),
+Inspections2017 AS (
+SELECT
+    year,
+    facility_name,
+    record_count
+FROM YearlyInspections
+)
+SELECT DISTINCT
+    i.facility_name
+FROM Inspections2017 AS i
+JOIN YearlyInspections AS yi
+    ON i.facility_name = yi.facility_name
+    AND i.record_count >= yi.record_count
+ORDER BY i.facility_name;
+
+-- Iteration #2:
+WITH YearlyInspections AS (
+-- Extract year from activity_date
+-- Count number of inspections per facility for each year
+SELECT 
+    EXTRACT(YEAR FROM activity_date) AS year,
+    facility_name,
+    COUNT(record_id) AS record_count
+FROM los_angeles_restaurant_health_inspections
+GROUP BY
+    EXTRACT(YEAR FROM activity_date),
+    facility_name
+),
+PivotInspections AS (
+-- Create a Pivot Table to display record counts for each year by facility_name
+SELECT
+    facility_name,
+    CASE WHEN year = 2015 THEN record_count ELSE 0 END AS record_count_2015,
+    CASE WHEN year = 2016 THEN record_count ELSE 0 END AS record_count_2016,
+    CASE WHEN year = 2017 THEN record_count ELSE 0 END AS record_count_2017,
+    CASE WHEN year = 2018 THEN record_count ELSE 0 END AS record_count_2018
+FROM YearlyInspections
+)
+-- Filter for facility_names where 2017 inspections were greater than any other year
+SELECT
+    facility_name
+FROM PivotInspections
+WHERE record_count_2017 > record_count_2015
+    AND record_count_2017 > record_count_2016
+    AND record_count_2017 > record_count_2018
+ORDER BY facility_name;
+
+-- Result:
+-- Find the facility that got the highest number of inspections in 2017 compared to other years
+WITH YearlyInspections AS (
+    SELECT 
+    -- Extract year from activity_date
+    -- Count number of inspections per facility for each year
+        EXTRACT(YEAR FROM activity_date) AS year,
+        facility_name,
+        COUNT(record_id) AS record_count
+    FROM 
+        los_angeles_restaurant_health_inspections  
+    GROUP BY
+        EXTRACT(YEAR FROM activity_date),
+        facility_name
+),
+PivotInspections AS (
+    SELECT
+    -- Create a Pivot Table to display record counts for each year by facility_name
+        facility_name,
+        CASE WHEN year = 2015 THEN record_count ELSE 0 END AS record_count_2015,
+        CASE WHEN year = 2016 THEN record_count ELSE 0 END AS record_count_2016,
+        CASE WHEN year = 2017 THEN record_count ELSE 0 END AS record_count_2017,
+        CASE WHEN year = 2018 THEN record_count ELSE 0 END AS record_count_2018
+    FROM 
+        YearlyInspections
+)
+-- Filter for facility_names where 2017 inspections were greater than any other year
+SELECT
+    facility_name
+FROM 
+    PivotInspections
+WHERE 
+    record_count_2017 > record_count_2015
+    AND record_count_2017 > record_count_2016
+    AND record_count_2017 > record_count_2018
+ORDER BY 
+   facility_name;
+
+
+Solution #2 (scalable approach with windows functions)
+WITH yearly_counts AS (
+  -- Step 1: Count the number of inspections for each facility in each year
+  SELECT
+    facility_name,
+    EXTRACT(YEAR FROM activity_date) AS inspection_year,
+    COUNT(*) AS num_inspections
+  FROM
+    los_angeles_health_inspections
+  GROUP BY
+    facility_name,
+    inspection_year
+),
+
+max_counts AS (
+  -- Step 2: For each facility, find the maximum number of inspections across ALL years
+  SELECT
+    facility_name,
+    num_inspections,
+    inspection_year,
+    MAX(num_inspections) OVER (PARTITION BY facility_name) AS max_yearly_inspections
+  FROM
+    yearly_counts
+)
+
+-- Step 3: Select facilities where the number of inspections in 2017 equals their all-time annual high
+SELECT
+  DISTINCT facility_name
+FROM
+  max_counts
+WHERE
+  inspection_year = 2017
+  AND num_inspections = max_yearly_inspections;
+
+Notes:
+- Was not aware that a MAX() function could be called without using GROUP BY.
+  In this case it uses a windows function with MAX() and PARTITION BY in OVER()
+  ex. SELECT
+          facility_name,
+          num_inspections,
+          inspection_year,
+          MAX(num_inspections) OVER (PARTITION BY facility_name) AS max_yearly_inspections
+      FROM
+          yearly_counts;
+- Originally wanted to go with an approach similar to Solution #2 as my first approach,
+  couldn't figure out how to find the max without using GROUP BY.
+  In Solution #1 for Iteration #1, the logic didn't make much sense no matter how many times
+  I tried to move the filters around so tried to do a second Iteration #2 with Pivot Tables.
+  Iteration #2 I was able to see all the counts for each year but had to hardcode each year.
+  Although it wasn't the most efficient or optimal approach,
+  I went with this as the final approach since it also produced the correct solution logically.
+
+############################
