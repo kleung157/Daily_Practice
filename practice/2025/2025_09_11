@@ -1,0 +1,477 @@
+Date: 09/11/2025
+
+############################
+
+Website:
+StrataScratch - ID 2050
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Workday - Daily Active Users
+Find the average daily active users for January 2021 for each account. 
+Your output should have account_id and the average daily count for that account.
+
+Data Dictionary:
+Table name = 'sf_events'
+record_date: POSIXct, POSIXt (dt)
+account_id: character (str)
+user_id: character (str)
+
+Code:
+Solution #1
+## Question:
+# Find the average daily active users for January 2021 for each account.
+# Output should have account_id and the average daily count for that account.
+
+## Output:
+# account_id, average_daily_count
+# (Find the average daily active users for January 2021 for each account.)
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#sf_events <- read_csv('sf_events.csv')
+df <- data.frame(sf_events)
+head(df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 23
+data.frame(lapply(df, class))
+colSums(is.na(df))
+nrow(df)
+
+## Iteration:
+# Find the average daily active users for January 2021 for each account.
+result_df <- df %>%
+    filter(
+        # Filter for dates in January 2021
+        year(record_date) == 2021,
+        month(record_date) == 1
+    ) %>%
+    group_by(record_date, account_id) %>%
+    summarise(
+        # Count the number of unique user ids for each account id per date
+        unique_daily_count = n_distinct(user_id), .groups="drop"
+    ) %>%
+    group_by(account_id) %>%
+    summarise(
+        # Calculate the average daily count for each account id
+        average_daily_count = round(mean(unique_daily_count), digits=2), .groups="drop"
+    ) %>%
+    arrange(account_id)
+    
+## Output:
+result_df
+
+Notes:
+- Initially thought I had to convert the date to month_year format,
+  but after reading the question which stated daily counts instead of yearly/monthly counts
+  and performing the calculations it ended up being not necessary.
+
+############################
+
+Website:
+StrataScratch - ID 2097
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Meta - Premium Accounts
+You have a dataset that records daily active users for each premium account. 
+A premium account appears in the data every day as long as it remains premium. 
+However, some premium accounts may be temporarily discounted, meaning they are not actively paying — this is indicated by a final_price of 0.
+For each of the first 7 available dates in the dataset, count the number of premium accounts that were actively paying on that day. 
+Then, track how many of those same accounts are still premium and actively paying exactly 7 days later, based solely on their status on that 7th day (i.e., both dates must exist in the dataset). 
+Accounts are only counted if they appear in the data on both dates.
+Output three columns:
+•   The date of initial calculation.
+•   The number of premium accounts that were actively paying on that day.
+•   The number of those accounts that remain premium and are still paying after 7 days.
+
+Data Dictionary:
+Table name = 'premium_accounts_by_day'
+account_id: object (str)
+entry_date: datetime64 (dt)
+users_visited_7d: int64 (int)
+final_price: int64 (int)
+plan_size: int64 (int)
+
+Code:
+Solution #1 (rank, unique, explode, join, similar to SQL)
+## Question:
+# You have a dataset that records daily active users for each premium account.
+# A premium account appears in the data every day as long as it remains premium.
+# However, some premium accounts may be temporarily discounted,
+# meaning they are not actively paying - this is indicated by a final_price of 0.
+# For each of the first 7 available dates in the dataset, count the number of premium accounts that
+# were actively paying on that day.
+# Then, track how many of those same accounts are still premium and actively paying exactly 7 days later,
+# based solely on their status on that 7th day (ex. both dates must exist in the dataset).
+# Accounts are only counted if they appear in the data on both dates.
+# Output three columns - 
+# the date of initial calculation
+# the number of premium accounts that were actively paying on that day
+# the number of those accounts that remain premium and are still paying after 7 days
+
+## Output:
+# entry_date, number_of_premium_accounts_actively_paying, number_of_premium_accounts_still_paying
+# (records daily active users for each premiuum account, 
+# premium account appears every day if it remains premium,
+# premium accounts not actively paying indicated by final_price = 0 
+# for first 7 dates count the number of premium accounts actively paying on that day,
+# track how many accounts are still premium and 
+# actively paying exactly 7 days later based on 7th day status,
+# accounts only counted if appear in data on both dates)
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#premium_accounts_by_day = pd.read_csv('premium_accounts_by_day.csv')
+df = pd.DataFrame(premium_accounts_by_day)
+df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 70
+#df.info()
+#df.isna().sum()
+
+## Iteration:
+# For first 7 dates count the number of premium accounts actively paying on that day,
+# track how many accounts are still premium and actively paying exactly 7 days later based on 7th day status,
+# accounts only counted if appear in data on both dates
+
+# 1. Rank dates in ascending order and include ties
+df['date_rank'] = df['entry_date'].rank(method='dense', ascending=True)
+
+# 2. Filter for first 7 dates and for premium accounts actively paying (not actively paying, final_price = 0)
+first_seven_days = df[
+    (df['date_rank'] <= 7) &
+    (df['final_price'] != 0)
+].copy()
+
+# 3. Find unique premium accounts actively paying on each day
+first_seven_days = (
+    first_seven_days.groupby('entry_date')['account_id'].unique()
+    .reset_index(name='accounts_paying')
+)
+
+# 4. Unravel list of premium accounts to rows for each entry_date
+first_seven_days = first_seven_days.explode('accounts_paying')
+
+# 5. Create column where date is seven days later
+first_seven_days['seven_days_later'] = first_seven_days['entry_date'] + pd.Timedelta(days=7)
+
+# 6. Filter for dates after the first 7 dates and actively paying (not actively paying, final_price = 0)
+next_seven_days = df[
+    (df['date_rank'] > 7) &
+    (df['final_price'] != 0)
+].copy()
+
+# 7. Find unique premium accounts actively paying on each ady
+next_seven_days = (
+    next_seven_days.groupby('entry_date')['account_id'].unique()
+    .reset_index(name='accounts_paying')
+)
+
+# 8. Unravel list of premium accounts to rows for each entry_date
+next_seven_days = next_seven_days.explode('accounts_paying')
+
+# 9. Left join first_seven_days and next_seven_days DataFrames,
+# match accounts that appear on seven_days_later and entry_date respectively and those that don't match
+result_df = pd.merge(first_seven_days, next_seven_days, left_on=["seven_days_later", "accounts_paying"], right_on=["entry_date", "accounts_paying"], how="left")
+
+# 10. Count number of non-null rows that indicate premium accounts for each entry_date
+result_df = (
+    result_df.groupby('entry_date_x')
+    .agg({
+        'seven_days_later': 'count', 
+        'entry_date_y': 'count'})
+    .reset_index()
+    .rename(columns={'seven_days_later': 'number_premium_accounts_actively_paying',
+                     'entry_date_y': 'number_premium_accounts_still_paying_after_7_days',
+                     'entry_date_x': 'entry_date'})
+    .sort_values(by="entry_date", ascending=True)
+)
+
+## Result:
+result_df
+
+
+Solution #2 (Efficient pandas approach)
+# 1. Filter for actively paying accounts and keep only relevant columns
+paying_accounts = df[df['final_price'] > 0][['entry_date', 'account_id']].copy()
+
+# 2. Get the first 7 unique dates to establish the tracking period
+unique_dates = sorted(paying_accounts['entry_date'].unique())
+first_7_dates = unique_dates[:7]
+    
+# 3. Create a DataFrame for the initial dates and their paying accounts
+start_df = paying_accounts[paying_accounts['entry_date'].isin(first_7_dates)].copy()
+start_df = start_df.rename(columns={'entry_date': 'initial_date'})
+    
+# 4. Merge the two DataFrames to find accounts that exist on both dates.
+#    The key insight is to merge on `account_id` and the adjusted date.
+merged_df = pd.merge(
+        start_df.assign(target_date=start_df['initial_date'] + pd.Timedelta(days=7)),
+        paying_accounts,
+        left_on=['account_id', 'target_date'],
+        right_on=['account_id', 'entry_date'],
+        how='left'
+    )
+    
+# 5. Group by initial date and count the results
+final_df = merged_df.groupby('initial_date').agg(
+        initial_paying_accounts=('account_id', 'size'),
+        retained_paying_accounts_after_7d=('entry_date', 'count')
+    ).reset_index()
+  
+# Format the date column
+final_df['initial_date'] = final_df['initial_date'].dt.date
+final_df
+
+
+Solution #3 (for loop and set-intersection approach)
+# 1. Get the first 7 unique dates in the dataset.
+available_dates = premium_accounts_by_day['entry_date'].sort_values().unique()
+first_7_dates = available_dates[:7]
+    
+# 2. Filter for actively paying accounts.
+paying_accounts = premium_accounts_by_day[premium_accounts_by_day['final_price'] > 0]
+    
+results = []
+    
+# 3. Iterate through the first 7 dates.
+for date in first_7_dates:
+        # a. Get paying accounts on the initial date.
+        start_date_accounts = set(paying_accounts[paying_accounts['entry_date'] == date]['account_id'])
+        
+        # b. Calculate the target date 7 days later.
+        target_date = date + pd.Timedelta(days=7)
+        
+        # c. Get paying accounts on the target date.
+        end_date_accounts = set(paying_accounts[paying_accounts['entry_date'] == target_date]['account_id'])
+        
+        # d. Find accounts that are in both sets.
+        retained_accounts = start_date_accounts.intersection(end_date_accounts)
+        
+        results.append({
+            'initial_date': date.date(),
+            'initial_paying_accounts': len(start_date_accounts),
+            'retained_paying_accounts_after_7d': len(retained_accounts)
+        })
+        
+# 4. Create the final DataFrame.
+output_df = pd.DataFrame(results)
+
+Notes:
+- Converting a grouped by list to rows using explode() function, df.explode('col')
+  ex. 
+      first_seven_days = filtered_df.groupby('entry_date')['account_id'].unique().reset_index(name='number_of_accounts_actively_paying')
+      first_seven_days = first_seven_days.explode('number_of_accounts_actively_paying')
+- Using pd.Timedelta() to perform date arithmetic
+  ex. 
+      first_seven_days['seven_days_later'] = first_seven_days['entry_date'] + pd.Timedelta(days=7)
+- When getting the first 7 dates, can use sorted(), unique() and [:7] to perform a vectorized operation
+  ex. 
+      unique_dates = sorted(paying_accounts['entry_date'].unique())
+      first_7_dates = unique_dates[:7]
+- How to use sets and intersections instead of groupby, unique and explode functions
+  ex. 
+      # a. Get paying accounts on the initial date.
+      start_date_accounts = set(paying_accounts[paying_accounts['entry_date'] == date]['account_id'])
+      # b. Calculate the target date 7 days later.
+      target_date = date + pd.Timedelta(days=7)
+      # c. Get paying accounts on the target date.
+      end_date_accounts = set(paying_accounts[paying_accounts['entry_date'] == target_date]['account_id'])
+      # d. Find accounts that are in both sets.
+      retained_accounts = start_date_accounts.intersection(end_date_accounts)
+- Even though my approach Solution #1 arrives at the correct solution, it is overly redundant and inefficient.
+  Took a SQL approach using the rank, groupby, unique, explode, and join functions but tried to make it
+  eaiser to debug and understand by separating into individual DataFrames then combining.
+- Solution #2 and Solution #3 compared to Solution #1 are both more efficient approaches.
+  Solution #2 takes a pandas approach but less steps and similar functions to my Solution #1,
+  Solution #3 utilizes a for loop and set-intersection functions to optimize the query.
+
+############################
+
+Website:
+StrataScratch - ID 9713
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+City of Los Angeles - Find the scores of 4 quartiles of each company
+Find the scores of 4 quartiles of each company
+Output the company's owner name along with the corresponding score of each quartile.
+Order records based on the average score of all quartiles in ascending order.
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+activity_date: date (d)
+employee_id: text (str)
+facility_address: text (str)
+facility_city: text (str)
+facility_id: text (str)
+facility_name: text (str)
+facility_state: text (str)
+facility_zip: text (str)
+grade: text (str)
+owner_id: text (str)
+owner_name: text (str)
+pe_description: text (str)
+program_element_pe: bigint (int)
+program_name: text (str)
+program_status: text (str)
+record_id: text (str)
+score: bigint (int)
+serial_number: text (str)
+service_code: bigint (int)
+service_description: text (str)
+
+Code:
+Attempt #1 (misinterpretted quarter for quartile)
+-- Question: 
+-- Find the scores of 4 quartiles of each company.
+-- Output the company's owner name along with the corresponding score of each quartile.
+-- Order records based on the average score of all quartiles in ascending order.
+
+-- Output:
+-- owner_name, quartile_1_score, quartile_2_score, quartile_3_score, quartile_4_score
+-- (Find scores of 4 quartiles of each company, order by average score of all quartiles ASC)
+
+-- Preview data:
+SELECT * FROM los_angeles_restaurant_health_inspections LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - program_name(2)
+-- Rows - 299
+SELECT 
+    SUM(CASE WHEN activity_date IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN employee_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN facility_address IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN facility_city IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN facility_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN facility_name IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN facility_state IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN facility_zip IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN grade IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN owner_id IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN owner_name IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN pe_description IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN program_element_pe IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN program_name IS NULL THEN 1 ELSE 0 END) AS col14,
+    SUM(CASE WHEN program_status IS NULL THEN 1 ELSE 0 END) AS col15,
+    SUM(CASE WHEN record_id IS NULL THEN 1 ELSE 0 END) AS col16,
+    SUM(CASE WHEN score IS NULL THEN 1 ELSE 0 END) AS col17,
+    SUM(CASE WHEN serial_number IS NULL THEN 1 ELSE 0 END) AS col18,
+    SUM(CASE WHEN service_code IS NULL THEN 1 ELSE 0 END) AS col19,
+    SUM(CASE WHEN service_description IS NULL THEN 1 ELSE 0 END) AS col20,
+    COUNT(*) AS total_rows
+FROM los_angeles_restaurant_health_inspections;
+
+-- Iteration:
+-- Find the scores of 4 quartiles of each company.
+WITH CompanyQuarterScores AS (
+-- Extract the quartile from activity_date
+-- Calculate the average score for each owner_name per quarter
+SELECT 
+    owner_name,
+    EXTRACT(QUARTER FROM activity_date) AS quarter,
+    AVG(score) AS quarter_score_average
+FROM los_angeles_restaurant_health_inspections 
+GROUP BY
+    owner_name,
+    EXTRACT(QUARTER FROM activity_date)
+)
+-- Output owner_name and corresponding score of each quartile
+-- Order by average score of all quartiles ASC order
+SELECT
+    owner_name,
+    quarter_score_average,
+    quarter,
+FROM CompanyQuarterScores
+GROUP BY
+    owner_name,
+    quarter_score_average,
+    quarter
+ORDER BY 
+     AVG(quarter_score_average) OVER(PARTITION BY owner_name);
+
+
+Solution #1
+WITH CompanyScores AS (
+    SELECT
+        owner_name,
+        score
+    FROM
+        los_angeles_restaurant_health_inspections
+    WHERE
+        score IS NOT NULL
+)
+, Quartiles AS (
+    SELECT
+        owner_name,
+        PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY score) AS q1,
+        PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY score) AS q2,
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY score) AS q3,
+        MAX(score) AS q4,
+        AVG(score) AS avg_score
+    FROM
+        CompanyScores
+    GROUP BY
+        owner_name
+)
+SELECT
+    owner_name,
+    q1,
+    q2,
+    q3,
+    q4
+FROM
+    Quartiles
+ORDER BY
+    avg_score ASC;
+    
+Notes:
+- The PERCENTILE_CONT() function creates quartiles of numerical/integer columns
+  Specify the percentile then use WITHIN GROUP (ORDER BY 'col') sorts values in col within a group
+  ex. 
+      SELECT
+          owner_name,
+          PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY score) AS q1,
+          PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY score) AS q2,
+          PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY score) AS q3,
+          PERCENTILE_CONT(1.00) WITHIN GROUP (ORDER BY score) AS q4
+      FROM
+          CompanyScores
+      GROUP BY
+          owner_name
+- When trying to solve the question, the order records based on average scores of all quartiles
+  made me realize that the output was not coming out correctly.
+  Initially tried to use a pivot table approach with CASE_WHEN statements but that didn't work.
+  The main problem was the misinterpretation of quartile as quarters 
+  and was not aware of a function called PERCENTILE_CONT() for quartiles.
+  Other than that, the question wouldn't be particularly difficult to solve.
+- Another approach to the question may have been with NTILE().
+  NTILE(n) divides an ordered set of rows into n buckets and assigns a rank number to each row, starting from 1. 
+  For example, NTILE(4) is commonly used for quartiles, NTILE(10) for deciles, and NTILE(100) for percentiles. 
+
+############################
