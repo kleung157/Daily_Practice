@@ -1,0 +1,447 @@
+Date: 09/12/2025
+
+############################
+
+Website:
+StrataScratch - ID 2055
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+LinkedIn - Average Customers Per City
+Write a query that will return all cities with more customers than the average number of  customers of all cities that have at least one customer. 
+For each such city, return the country name,  the city name, and the number of customers
+
+Data Dictionary:
+Table name = 'linkedin_customers'
+id: numeric (num)
+city_id: numeric (num)
+business_name: character (str)
+Table name = 'linkedin_city'
+id: numeric (num)
+country_id: numeric (num)
+city_name: character (str)
+Table name = 'linkedin_country'
+id: numeric (num)
+country_name: character (str)
+
+Code:
+Solution #1
+## Question:
+# Return all cities with more customers than the average number of customers of all cities that 
+# have at least one customer.
+# For each such city, return the country name, the city name, and the number of customers.
+
+## Output:
+# country_name, city_name, customer_count
+# (cities with more customers than the average number of customers of all cities with at least one customer)
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#linkedin_customers <- read_csv('linkedin_customers.csv')
+#linkedin_city <- read_csv('linkedin_city.csv')
+#linkedin_country <- read_csv('linkedin_country.csv')
+customer_df <- data.frame(linkedin_customers)
+city_df <- data.frame(linkedin_city)
+country_df <- data.frame(linkedin_country)
+head(customer_df, 5)
+head(city_df, 5)
+head(country_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - customers: 0
+#       - city: 0
+#       - country: 0
+# Rows - customers: 9
+#      - city: 4
+#      - country: 3
+data.frame(lapply(customer_df, class))
+data.frame(lapply(city_df, class))
+data.frame(lapply(country_df, class))
+colSums(is.na(customer_df))
+colSums(is.na(city_df))
+colSums(is.na(country_df))
+nrow(customer_df)
+nrow(city_df)
+nrow(country_df)
+
+## Iteration:
+# Cities with more customers than the average number of customers of all cities with at least one customer
+result_df <- customer_df %>%
+    left_join(
+        # Join customer and city DataFrames
+        city_df, by=c("city_id" = "id")
+    ) %>%
+    left_join(
+        # Join customer_city and country DataFrames
+        country_df, by=c("country_id" = "id")
+    ) %>%
+    group_by(country_name, city_name) %>%
+    summarise(
+        # Count number of distinct customers for each city and country
+        customer_count = n_distinct(id), .groups="drop"
+    ) %>%
+    mutate(
+        # Calculate average number of customers of all cities with at least one customer
+        average_number_of_customers = mean(customer_count[customer_count >= 1])
+    ) %>%
+    filter(
+        # Filter for cities with customer count > average number of customers
+        customer_count > average_number_of_customers
+    ) %>%
+    select(
+        # Select relevant columns
+        country_name, city_name, customer_count
+    )
+    
+## Result:
+result_df
+
+Notes:
+- Used filtering in an aggregation function which was suprisingly easier and intuitive.
+  ex. 
+      mutate( average_number_of_customers = mean(customer_count[customer_count >= 1]) )
+- Originally went with inner_join for the problem but left_join seemed to be better since
+  the question had "at least one" stated in it which made me think of potential null values
+     
+############################
+
+Website:
+StrataScratch - ID 2098
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Expedia - World Tours
+A group of travelers embark on world tours starting with their home cities. 
+Each traveler has an undecided itinerary that evolves over the course of the tour. 
+Some travelers decide to abruptly end their journey mid-travel and live in their last destination.
+Given the dataset of dates on which they travelled between different pairs of cities, can you find out how many travellers ended back in their home city? 
+For simplicity, you can assume that each traveler made at most one trip between two cities in a day.
+
+Data Dictionary:
+Table name = 'travel_history'
+traveler: object (str)
+start_city: object (str)
+end_city: object (str)
+date: datetime64 (dt)
+
+Code:
+Solution #1(min and max, join, longer clear approach)
+## Question:
+# A group of travelers embark on would tours starting with their home cities.
+# Each traveler has an undecided itinerary that evolves over the course of the tour.
+# Some travelers decide to abruptly end their journey mid-travel and live in their last destination.
+# Given the dataset of dates on which they travelled between different pairs of cities,
+# can you find out how many travellers ended back in their home city?
+# For simpliciy, you can assume that each traveler made at most one trip between two cities in a day.
+
+## Output:
+# number_of_travellers_returned_to_home_city
+# (how many travellers ended back in home city, 
+# assume each traveler made at most one trip between two cities in a day,
+# expected output type is panda.Series)
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#travel_history = pd.read_csv('travel_history.csv')
+df = pd.DataFrame(travel_history)
+df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 31
+#df.info()
+#df.isna().sum()
+
+## Iteration:
+# How many travellers ended back in their home city?
+# 1. Sort travelers and dates in ASC order
+df = df.sort_values(by=["traveler", "date"], ascending=True)
+
+# 2. Filter for overall start date and end date of each traveler's tour
+start_date_df = df[
+    (df['date'] == df.groupby('traveler')['date'].transform('min')) 
+].copy()
+
+end_date_df = df[
+    (df['date'] == df.groupby('traveler')['date'].transform('max'))
+].copy()
+
+# 3. Merge start_date and end_date DataFrames 
+merged_df = pd.merge(start_date_df, end_date_df, on="traveler", how="inner")
+
+# 4. Filter for start_date's start_city == end_date's end_city
+merged_df = merged_df[
+    merged_df['start_city_x'] == merged_df['end_city_y']
+]
+
+# 5. Count number of travelers returned to home city and convert to Series
+result_series = pd.Series(len(merged_df), name='number_of_travellers_returned_to_home_city')
+
+## Result:
+result_series
+
+Solution #2 (first and last aggregation, concise approach)
+# 1. Ensure the DataFrame is sorted by traveler and date.
+# This is crucial for correctly identifying the first and last trips.
+df = df.sort_values(by=['traveler', 'date'])
+
+# 2. Group the data by traveler to find their first and last cities.
+traveler_summary = df.groupby('traveler').agg(
+    home_city=('start_city', 'first'),
+    last_destination=('end_city', 'last')
+)
+
+# 3. Compare the home city with the last destination for each traveler.
+# We use a boolean mask to check for equality.
+travelers_who_returned = traveler_summary[traveler_summary['home_city'] == traveler_summary['last_destination']]
+
+# 4. Count the number of travelers who returned home.
+len(travelers_who_returned)
+
+Notes:
+- Use transform('agg') to perform aggregation functions on columns 
+  ex.
+      df['max_date'] = df.groupby('traveler')['date'].transform('max')
+- To find the first and last values after sorting, use first() and last() aggregations
+  ex.
+      # 1. Ensure the DataFrame is sorted by traveler and date.
+      df = df.sort_values(by=['traveler', 'date'])
+      # 2. Group the data by traveler to find their first and last cities.
+      traveler_summary = df.groupby('traveler').agg(
+          home_city=('start_city', 'first'),
+          last_destination=('end_city', 'last')
+      )
+- Originally wanted to go with the way Solution #2 was setup using the .agg() function after groupby
+  but wasn't aware of 'first' and 'last' instance aggregations on text columns,
+  mainly tried to use 'min' and 'max' on date columns.
+- For Solution #1, my work around using 'min' and 'max' was to simply filter out data into separate DataFrames,
+  combine them again into a single DataFrame and count the number of rows,
+  which made it a longer but clearer approach rather than the conciseness of Solution #2.
+      
+############################
+
+Website:
+StrataScratch - ID 9714
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+City of Los Angeles - Dates Of Inspection
+Find the latest inspection date for the most sanitary restaurant(s). 
+Assume the most sanitary restaurant is the one with the highest number of points received in any inspection (not just the last one). 
+Only businesses with 'restaurant' in the name should be considered in your analysis.
+Output the corresponding facility name, inspection score, latest inspection date, previous inspection date, and the difference between the latest and previous inspection dates.
+Order the records based on the latest inspection date in ascending order.
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+activity_date: date (d)
+employee_id: text (str)
+facility_address: text (str)
+facility_city: text (str)
+facility_id: text (str)
+facility_name: text (str)
+facility_state: text (str)
+facility_zip: text (str)
+grade: text (str)
+owner_id: text (str)
+owner_name: text (str)
+pe_description: text (str)
+program_element_pe: bigint (int)
+program_name: text (str)
+program_status: text (str)
+record_id: text (str)
+score: bigint (int)
+serial_number: text (str)
+service_code: bigint (int)
+service_description: text (str)
+
+Code:
+Solution #1
+-- Question:
+-- Find the latest inspection date for the most sanitary restaurant(s).
+-- Assume the most sanitary restaurant is the one with the highest number of points received in any
+-- inspection (not just the last one).
+-- Only businesses with 'restaurant' in the name should be considered in analysis.
+-- Output the corresponding facility name, inspection score, latest inspection date, previous inspection date,
+-- and the difference between the latest and previous inspection dates.
+-- Order the records based on the latest inspection date in ASC order.
+
+-- Output:
+-- facility_name, inspection_score, latest_inspection_date, previous_inspection_date, inspection_date_diff
+-- (find the latest inspection date for the most sanitary restaurants,
+-- most sanitary restaurant is highest number of points received in inspection,
+-- only businesess with 'restaurant' in facility_name,
+-- order by latest_inspection_date ASC order)
+
+-- Preview data:
+SELECT * FROM los_angeles_restaurant_health_inspections LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - program_name(2)
+-- Rows - 299
+SELECT 
+    SUM(CASE WHEN activity_date IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN employee_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN facility_address IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN facility_city IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN facility_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN facility_name IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN facility_state IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN facility_zip IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN grade IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN owner_id IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN owner_name IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN pe_description IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN program_element_pe IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN program_name IS NULL THEN 1 ELSE 0 END) AS col14,
+    SUM(CASE WHEN program_status IS NULL THEN 1 ELSE 0 END) AS col15,
+    SUM(CASE WHEN record_id IS NULL THEN 1 ELSE 0 END) AS col16,
+    SUM(CASE WHEN score IS NULL THEN 1 ELSE 0 END) AS col17,
+    SUM(CASE WHEN serial_number IS NULL THEN 1 ELSE 0 END) AS col18,
+    SUM(CASE WHEN service_code IS NULL THEN 1 ELSE 0 END) AS col19,
+    SUM(CASE WHEN service_description IS NULL THEN 1 ELSE 0 END) AS col20,
+    COUNT(*) AS total_rows
+FROM los_angeles_restaurant_health_inspections;
+
+-- Iteration:
+-- Find the latest inspection date for the most sanitary restaurants
+WITH MostSanitaryRestaurants AS (
+-- Filter for only businesess with 'restaurant' in facility_name
+-- Filter for highest number of points received in any inspection
+SELECT 
+    facility_name
+FROM los_angeles_restaurant_health_inspections
+WHERE 
+    facility_name ILIKE '%restaurant%'
+    AND score = 100
+GROUP BY facility_name
+),
+RestaurantRows AS (
+-- Match most sanitary restaurant CTE with original dataset table 
+-- Find latest inspection date for each facility_name
+-- Find previous inspection date for each facility_name by latest activity_date
+-- Assign a row number for each facility_name inspection by latest activity_date 
+SELECT 
+    larhi.facility_name,
+    larhi.score AS inspection_score,
+    larhi.activity_date,
+    MAX(larhi.activity_date) OVER(PARTITION BY larhi.facility_name) 
+        AS latest_inspection_date,
+    LEAD(larhi.activity_date) OVER(PARTITION BY larhi.facility_name ORDER BY larhi.activity_date DESC) 
+        AS previous_inspection_date,
+    ROW_NUMBER() OVER(PARTITION BY larhi.facility_name ORDER BY larhi.activity_date DESC) AS row_number
+FROM los_angeles_restaurant_health_inspections AS larhi
+JOIN MostSanitaryRestaurants AS mri
+    ON larhi.facility_name = mri.facility_name
+)
+-- Calculate difference between latest and previous inspection dates, fill 0 if null
+-- Order by latest_inspection_date ASC order
+SELECT 
+    facility_name,
+    inspection_score,
+    latest_inspection_date,
+    previous_inspection_date,
+    COALESCE(
+        (latest_inspection_date - previous_inspection_date)
+    , 0) AS inspection_date_diff
+FROM RestaurantRows
+WHERE row_number = 1
+ORDER BY latest_inspection_date ASC;
+
+-- Result:
+-- Find the latest inspection date for the most sanitary restaurants
+WITH MostSanitaryRestaurants AS (
+    SELECT 
+        facility_name
+    FROM 
+        los_angeles_restaurant_health_inspections
+    WHERE 
+        -- Filter for only businesess with 'restaurant' in facility_name
+        -- Filter for highest number of points received in any inspection
+        facility_name ILIKE '%restaurant%'
+        AND score = 100
+    GROUP BY 
+        facility_name
+),
+RestaurantRows AS (
+    SELECT 
+        larhi.facility_name,
+        larhi.score AS inspection_score,
+        larhi.activity_date,
+        MAX(larhi.activity_date) OVER(
+             -- Find latest inspection date for each facility_name
+            PARTITION BY 
+                larhi.facility_name
+        ) AS latest_inspection_date,
+        LEAD(larhi.activity_date) OVER(
+            -- Find previous inspection date for each facility_name by latest activity_date
+            PARTITION BY 
+                larhi.facility_name 
+            ORDER BY 
+                larhi.activity_date DESC
+        ) AS previous_inspection_date,
+        ROW_NUMBER() OVER(
+            -- Assign a row number for each facility_name inspection by latest activity_date 
+            PARTITION BY 
+                larhi.facility_name 
+            ORDER BY 
+                larhi.activity_date DESC
+        ) AS row_number
+    FROM 
+        los_angeles_restaurant_health_inspections AS larhi
+    JOIN
+        -- Match most sanitary restaurant CTE with original dataset table 
+        MostSanitaryRestaurants AS mri
+        ON larhi.facility_name = mri.facility_name
+)
+SELECT 
+    facility_name,
+    inspection_score,
+    latest_inspection_date,
+    previous_inspection_date,
+    COALESCE(
+        -- Calculate difference between latest and previous inspection dates, fill 0 if null
+        (latest_inspection_date - previous_inspection_date)
+    , 0) AS inspection_date_diff
+FROM 
+    RestaurantRows
+WHERE
+    row_number = 1
+ORDER BY 
+    -- Order by latest_inspection_date ASC order
+    latest_inspection_date ASC;
+    
+Notes:
+- Was having a difficult time deciding whether to use LAG(), LEAD(), or ROW_NUMBER(),
+  initially I had used LAG() but since the ORDER BY would make dates in DESC order for the latest date,
+  I switched to LEAD() so that the latest dates had their previous dates attached,
+  this also ended up working better with ROW_NUMBER() instead of LAG().
+- "Assume the most sanitary restaurant is the one with the highest number of points
+  received in any inspection (not just the last one)."
+  When interpretting the statement, I wasn't sure if there was any trick to 
+  whether I needed to filter out each restarant's highest score
+  or just hardcode 100 since that was the max possible points.
+- Deciding whether to have multiple windows functions then performing a calculation with them seemed
+  really messy so made sure to make a separate table to perform the calculations for clarity.
+  
+############################
