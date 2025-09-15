@@ -1,0 +1,378 @@
+Date: 09/15/2025
+
+############################
+
+Website:
+StrataScratch - ID 2060
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Ebay - Manager of the Largest Department
+Given a list of a company’s employees, find the first and last names of all employees whose position contains the word “manager” and who work in the largest department(s) — that is, departments with the highest number of employees. 
+If multiple departments share the same largest size, return managers from all such departments.
+
+Data Dictionary:
+Table name = 'az_employees'
+id: numeric (num)
+department_id: numeric (num)
+first_name: character (str)
+last_name: character (str)
+department_name: character (str)
+position: character (str)
+
+Code:
+Solution #1
+## Question:
+# Given a list of a company's employees,
+# find the first and last names of all employees whose position contains the word "manager" and
+# who work in the largest departments - that is, departments with the highest number of employees.
+# If multiple departments share the same largest size, return managers from all such departments.
+
+## Output:
+# first_name, last_name
+# (names of all employees whose position contain "manager" and work in largest departments)
+# include ties for departments that share same largest size)
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#az_employees <- read_csv('az_employees.csv')
+df <- data.frame(az_employees)
+head(df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 100
+data.frame(lapply(df, class))
+colSums(is.na(df))
+nrow(df)
+
+## Iteration 1:
+# Find names of all employees whose position contain "manager" and work in largest departments
+largest_departments <- df %>%
+    group_by(department_id) %>%
+    summarise(
+        # Count number of employees per department
+        employee_count = n(), .groups="drop"
+    ) %>%
+    slice_max(
+        # Extract departments with highest number of employee_count, includes ties
+        employee_count
+    )
+    
+result_df <- df %>%
+    filter(
+        # Filter for employees that work in largest departments and position contains "manager"
+        department_id %in% largest_departments$department_id,
+        str_like(position, "%manager%", ignore_case = TRUE)
+    ) %>%
+    select(
+        # Select relevant columns
+        first_name, last_name
+    ) %>%
+    arrange(last_name, first_name)
+
+## Iteration 2:
+# Find names of all employees whose position contain "manager" and work in largest departments
+result_df <- df %>%
+    group_by(department_id) %>%
+    mutate(
+        # Count number of employees per department
+        department_employee_count = n()
+    ) %>%
+    ungroup() %>%
+    filter(
+        # Filter for employees that work in largest departments and position contains "manager"
+        department_employee_count == max(department_employee_count),
+        str_like(position, "%manager%", ignore_case = TRUE)
+    ) %>%
+    select(
+        # Select relevant columns
+        first_name, last_name
+    ) %>%
+    arrange(last_name, first_name)
+
+## Result:
+result_df
+
+Notes:
+- Different ways to search for text similar to SQL's ILIKE
+  str_detect(), str_like(), or grepl()
+  ex.
+      filter(str_detect(my_column, "search_term", ignore.case = TRUE))
+      filter(str_like(my_column, "search%", ignore_case = TRUE))
+      filter(grepl("search_term", my_column, ignore.case = TRUE))
+- In my first iteration #1, had two separate dataframes, one with the counts of employees per department
+  and the other was filtering for the departments from the first DataFrame in the second DataFrame
+  which contained the original dataset. While it's easier to understand and break into separate steps,
+  I could see a more concise and optimal approach when using similar functions and keeping it to one
+  DataFrame as done in iteration #2
+
+
+############################
+
+Website:
+StrataScratch - ID 2098
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Deloitte - Election Results
+The election is conducted in a city and everyone can vote for one or more candidates, or choose not to vote at all. 
+Each person has 1 vote so if they vote for multiple candidates, their vote gets equally split across these candidates. 
+For example, if a person votes for 2 candidates, these candidates receive an equivalent of 0.5 vote each. 
+Some voters have chosen not to vote, which explains the blank entries in the dataset.
+Find out who got the most votes and won the election. 
+Output the name of the candidate or multiple names in case of a tie.
+To avoid issues with a floating-point error you can round the number of votes received by a candidate to 3 decimal places.
+
+Data Dictionary:
+Table name = 'voting_results'
+voter: object (str)
+candidate: object (str)
+
+Code:
+Solution #1
+## Question:
+# The election is conducted in a city and everyone can vote for one or more candidates,
+# or choose not to vote at all.
+# Each person has 1 vote so if they vote for multiple candidates,
+# their vote gets equally split across these candidates.
+# For example, if a person votes for 2 candidates, these candidates receieve an equivalent of 0.5 vote each.
+# Some voters have chosen not to vote, which explains the blank entries in the dataset.
+# Find out who got the most votes and won the election.
+# Output the name of the candidate or multiple names in case of a tie.
+# To avoid issues with a floating-point error, round the number of votes received by candiates to 3 decimals.
+
+## Output:
+# candidate
+# (find candidates who got the most votes and include ties, votes equally split across candidates,
+# ex. if person votes for 2 candidates, candidates receieve an equivalent of 0.5 vote each,
+# blank entries are voters that choose not to vote, round number of votes to 3 decimals)
+
+## Import libraries:
+import pandas as pd
+import numpy as np
+
+## Load and preview data:
+#voting_results = pd.read_csv('voting_results.csv')
+df = pd.DataFrame(voting_results)
+df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - candidate(7)
+# Rows - 57
+#df.info()
+#df.isna().sum()
+
+## Iteration 1:
+# Find candidates who got the most votes and include ties, votes equally split across candidates
+# 1. Create a conditional statement for voters who voted = 1, not voted = 0
+df['voted'] = np.where(df['candidate'].notna(), 1, 0)
+
+# 2. Count number of votes for each voter
+df['total_votes'] = df.groupby('voter')['candidate'].transform('count')
+
+# 3. Calculate votes for each candidate made by voters, round to 3 decimals
+df['votes'] = round(df['voted'] / df['total_votes'], 3)
+
+# 4. Calculate the total number of votes for each candidate
+result_df = df.groupby('candidate')['votes'].sum().reset_index(name='votes_total')
+
+# 5. Rank the total number of votes for each candidate
+result_df['rank'] = result_df['votes_total'].rank(method='dense',ascending=False)
+
+# 6. Filter for top candidate
+result_df = result_df[
+    result_df['rank'] == 1
+]
+
+# 7. Select relevant columns
+result_df = result_df[['candidate']]
+
+## Iteration 2:
+# Find candidates who got the most votes and include ties, votes equally split across candidates
+# 1. Count number of votes for each voter
+df['total_votes'] = df.groupby('voter')['candidate'].transform('count')
+
+# 2. Calculate votes for each candidate made by voters, round to 3 decimals
+df['votes'] = round(1 / df['total_votes'], 3)
+
+# 3. Calculate the total number of votes for each candidate, drop rows where candidate is null
+result_df = df.dropna(subset=['candidate']).groupby('candidate')['votes'].sum().reset_index(name='votes_total')
+
+# 4. Filter for top candidate
+result_df = result_df[
+    result_df['votes_total'] == result_df['votes_total'].max()
+]
+
+# 5. Select relevant columns
+result_df = result_df[['candidate']]
+
+## Result:
+result_df
+
+Notes:
+- In iteration #1, created a conditional statement for null values, counted number of votes per voter,
+  calculated votes for each candidate, ranked each total then filtered by rank for ties.
+- In iteration #2, counted number of votes per voter, dropped null values, calculated votes for each candidate,
+  then filtered for the maximum total.
+- Iteration #2 is more concise and efficient comparatively to the extra steps and functions in Iteration #1.
+- My goal for iteration #1 was to make sure every part of the question was answered in separate distinct steps,
+  iteration #2 was how to optimize the query.
+
+############################
+
+Website:
+StrataScratch - ID 9734
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+City of San Francisco - Number Of Inspections By Zip
+Find the number of inspections that happened in the municipality with postal code 94102 during January, May or November in each year.
+Output the count of each month separately.
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_address: text (str)
+business_city: text (str)
+business_id: bigint (int)
+business_latitude: double precision (flt)
+business_location: text (str)
+business_longitude: double precision (flt)
+business_name: text (str)
+business_phone_number: double precision (flt)
+business_postal_code: double precision (flt)
+business_state: text (str)
+inspection_date: date (d)
+inspection_id: text (str)
+inspection_score: double precision (flt)
+inspection_type: text (str)
+risk_category: text (str)
+violation_description: text (str)
+violation_id: text (str)
+
+Code:
+Solution #1
+-- Question:
+-- Find the number of inspections that happened in the municipality with postal code 94102 during
+-- January, May, or November in each year.
+-- Output the count of each month separately.
+
+-- Output:
+-- year, january_count, may_count, november_count
+-- (find number of inspections with postal code 94102 for January, May, or November in each year)
+
+-- Preview data:
+SELECT * FROM sf_restaurant_health_violations LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - business_latitude(133), business_location(133), business_longitude(133), 
+--         business_phone_number(214), business_postal_code(10), inspection_score(73),
+--         risk_category(72), violation_description(72), violation_id(72)
+-- Rows - 297
+SELECT 
+    SUM(CASE WHEN business_address IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN business_city IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN business_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN business_latitude IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN business_location IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN business_longitude IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN business_name IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN business_phone_number IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN business_postal_code IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN business_state IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN inspection_date IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN inspection_id IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN inspection_score IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN inspection_type IS NULL THEN 1 ELSE 0 END) AS col14,
+    SUM(CASE WHEN risk_category IS NULL THEN 1 ELSE 0 END) AS col15,
+    SUM(CASE WHEN violation_description IS NULL THEN 1 ELSE 0 END) AS col16,
+    SUM(CASE WHEN violation_id IS NULL THEN 1 ELSE 0 END) AS col17,
+    COUNT(*) AS total_rows
+FROM sf_restaurant_health_violations;
+
+-- Iteration:
+-- Find number of inspections with postal code 94102 for January, May, or November in each year
+-- Output the count of each month separately.
+WITH YearMonthInspections AS (
+SELECT 
+    -- Extract year and month from inspection_date
+    -- Count number of inspections for each year_month
+    EXTRACT(YEAR FROM inspection_date) AS year,
+    EXTRACT(MONTH FROM inspection_date) AS month,
+    COUNT(inspection_id) AS inspection_count
+FROM sf_restaurant_health_violations
+WHERE 
+    -- Filter for postal code 94102 and months in January, May or November
+    business_postal_code = 94102
+    AND EXTRACT(MONTH FROM inspection_date) IN (1, 5, 11)
+GROUP BY
+    EXTRACT(YEAR FROM inspection_date),
+    EXTRACT(MONTH FROM inspection_date)
+)
+-- Calculate the number of counts per month for each year
+SELECT 
+    year,
+    SUM(CASE WHEN month = 1 THEN inspection_count ELSE 0 END) AS jan_count,
+    SUM(CASE WHEN month = 5 THEN inspection_count ELSE 0 END) AS may_count,
+    SUM(CASE WHEN month = 11 THEN inspection_count ELSE 0 END) AS nov_count
+FROM YearMonthInspections
+GROUP BY year
+ORDER BY year;
+
+-- Result:
+-- Find number of inspections with postal code 94102 for January, May, or November in each year
+-- Output the count of each month separately.
+WITH YearMonthInspections AS (
+    SELECT 
+        -- Extract year and month from inspection_date
+        -- Count number of inspections for each year_month
+        EXTRACT(YEAR FROM inspection_date) AS year,
+        EXTRACT(MONTH FROM inspection_date) AS month,
+        COUNT(inspection_id) AS inspection_count
+    FROM 
+        sf_restaurant_health_violations
+    WHERE 
+        -- Filter for postal code 94102 and months in January, May or November
+        business_postal_code = 94102
+        AND EXTRACT(MONTH FROM inspection_date) IN (1, 5, 11)
+    GROUP BY
+        EXTRACT(YEAR FROM inspection_date),
+        EXTRACT(MONTH FROM inspection_date)
+)
+-- Calculate the number of counts per month for each year
+SELECT 
+    year,
+    SUM(CASE WHEN month = 1 THEN inspection_count ELSE 0 END) AS jan_count,
+    SUM(CASE WHEN month = 5 THEN inspection_count ELSE 0 END) AS may_count,
+    SUM(CASE WHEN month = 11 THEN inspection_count ELSE 0 END) AS nov_count
+FROM 
+    YearMonthInspections
+GROUP BY
+    year
+ORDER BY 
+    year;
+
+Notes:
+- The question has an odd way of framing the output as a PivotTable,
+  was trying to think of a way to have the query contain no CTEs or subqueries
+  but made more sense to have a CTE for clarity and debugging.
+
+############################
