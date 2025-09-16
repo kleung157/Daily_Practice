@@ -1,0 +1,399 @@
+Date: 09/16/2025
+
+############################
+
+Website:
+StrataScratch - ID 2064
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+EY - Difference Between Times
+In a marathon, gun time is counted from the moment of the formal start of the race while net time is counted from the moment a runner crosses a starting line. 
+Both variables are in seconds.
+You are asked to check if the interval between the two times is different for male and female runners. 
+First, calculate the average absolute difference between the gun time and net time. 
+Group the results by available genders (male and female). 
+Output the absolute difference between those two values.
+
+Data Dictionary:
+Table name = 'marathon_male'
+place: numeric (num)
+num: numeric (num)
+age: numeric (num)
+pace: numeric (num)
+gun_time: numeric (num)
+net_time: numeric (num)
+div_total: character (str)
+person_name: character (str)
+hometown: character (str)
+Table name = 'marathon_female'
+place: numeric (num)
+num: numeric (num)
+age: numeric (num)
+pace: numeric (num)
+gun_time: numeric (num)
+net_time: numeric (num)
+div_total: character (str)
+person_name: character (str)
+hometown: character (str)
+
+Code:
+Solution #1
+## Question:
+# In a marathon, gun time is counted from the moment of the formal start of the race while
+# net time is counted from the moment a runner crosses a starting line.
+# Both variables are in seconds.
+# You are asked to check if the interval between the two times is different for male and female runners.
+# First, calculate the average absolute difference between the gun time and net time.
+# Group the results by available genders (male and female).
+# Output the absolute difference between those two values.
+
+## Output:
+# absolute_difference
+# ( gun time is counted from the moment of the formal start of the race
+# net time is counted from the moment a runner crosses a starting line
+# variables are in seconds
+# See if the interval between gun time and net time is different for male and female runners
+# Calculate average absolute difference between gun time and net time
+# Group by available genders
+# Calculate absolute difference between two values )
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#marathon_male <- read_csv('marathon_male.csv')
+#marathon_female <- read_csv('marathon_female.csv')
+df <- data.frame(marathon_male)
+df2 <- data.frame(marathon_female)
+head(df, 5)
+head(df2, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - male: 0
+#       - female: 0
+# Rows - male: 100
+#      - female: 98
+data.frame(lapply(df, class))
+data.frame(lapply(df2, class))
+colSums(is.na(df))
+colSums(is.na(df2))
+nrow(df)
+nrow(df2)
+
+## Iteration #1:
+# See if the interval between gun time and net time is different for male and female runners
+male_absolute_difference <- df %>%
+    summarise(
+        # Calculate average absolute difference between gun time and net time
+        average_absolute_difference = mean(abs(gun_time - net_time))
+    )
+    
+female_absolute_difference <- df2 %>%
+    summarise(
+        # Calculate average absolute difference between gun time and net time
+        average_absolute_difference = mean(abs(gun_time - net_time))
+    )
+
+result_df <- 
+    data.frame(
+        # Calculate absolute difference between two values
+        abs(male_absolute_difference - female_absolute_difference)
+    ) %>%
+    select(
+        # Rename column to absolute_difference
+        absolute_difference = average_absolute_difference
+    )
+
+## Result:
+result_df
+
+
+Solution #2
+# Combine the two data frames into a single data frame
+# For this example, let's assume we've added a 'gender' column
+combined_marathon_data <- bind_rows(
+  mutate(marathon_male, gender = "male"),
+  mutate(marathon_female, gender = "female")
+)
+
+# Calculate the average difference grouped by gender
+gender_avg_diffs <- combined_marathon_data %>%
+  group_by(gender) %>%
+  summarise(
+    avg_diff = mean(abs(gun_time - net_time))
+  )
+
+# Calculate the absolute difference between the two groups
+final_diff <- abs(diff(gender_avg_diffs$avg_diff))
+
+# View the result
+print(final_diff)
+
+Notes:
+- When thinking of an approach, couldn't see any way to join male and female datasets by an identifier column
+  so thought to keep the calculations for each dataset to be in separate dataframes. Instead of creating an
+  extra column with mutate() for the interval between times, performed the calculation within the summarise()
+  function while finding the mean. Decided to output as a DataFrame then renamed the column accordingly.
+- Solution #2 offers a more concise method to the problem which combines the dataframes and performs the
+  calculations together as opposed to separate. Went with Soluton #1 to show a more of a step by step approach.
+
+############################
+
+Website:
+StrataScratch - ID 2101
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Deloitte - Maximum of Two Numbers
+Given a single column of numbers, consider all possible permutations of two numbers with replacement, assuming that pairs of numbers (x,y) and (y,x) are two different permutations. 
+Then, for each permutation, find the maximum of the two numbers.
+Output three columns: the first number, the second number and the maximum of the two.
+
+Data Dictionary:
+Table name = 'deloitte_numbers'
+number: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# Given a single column of numbers, consider all possible permutations of two numbers with replacement,
+# assuming that pairs of numbers (x, y) and (y, x) are two different permutations.
+# Then for each permutation, find the maximum of the two numbers.
+# Output the first number, the second number, and the maximum of the two.
+
+## Output:
+# first_number, second_number, maximum
+# [ consider all possible permutations of two numbers with replacement,
+# pairs of numbers (x, y) and (y, x) are two different permutations,
+# for each permutation find the maximum of the two numbers ]
+
+## Import libraries:
+import pandas as pd
+import itertools
+import numpy as np
+
+## Load and preview data:
+#deloitte_numbers = pd.read_csv('deloitte_numbers.csv')
+df = pd.DataFrame(deloitte_numbers)
+df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 5
+# Rows - 0
+#df.info()
+#df.isna().sum()
+
+## Iteration:
+# Consider all possible permutations of two numbers with replacement,
+# pairs of numbers (x, y) and (y, x) are two different permutations,
+# for each permutation find the maximum of the two numbers
+
+# 1. Generate all possible pairs of permutations with replacement, 
+#    convert to DataFrame, rename columns and sort ASC order
+permutation_df = (
+    pd.DataFrame(list(itertools.product(df['number'], repeat=2)))
+    .rename(columns = {0: 'first_number', 1: 'second_number'})
+    .sort_values(by="first_number", ascending=True)
+)
+
+# 2. Find maximum of each permutation of two numbers
+permutation_df['maximum'] = np.maximum(permutation_df['first_number'], permutation_df['second_number'])
+
+## Result:
+permutation_df
+
+Notes:
+- Use itertools.product() to generate all possible permutations of numbers with replacement and a specified length
+  ex. 
+      import pandas as pd
+      import itertools
+
+      numbers = [1, 2]
+      length = 3  # The length of each permutation
+
+      # Generate all permutations with replacement
+      all_permutations = list(itertools.product(numbers, repeat=length))
+
+      # Put the result into a pandas DataFrame for a clean view
+      permutations_df = pd.DataFrame(all_permutations)
+- For finding the maximum of a row, can use pandas or numpy, numpy is more efficient but pandas is more idiomatic
+  ex. 
+      pandas df[['col1', 'col2']].max(axis=1) 
+      permutation_df['maximum'] = permutation_df[['first_number', 'second_number']].max(axis=1)
+  ex. 
+      numpy np.maximum('col1', 'col2')
+      permutation_df['maximum'] = np.maximum(permutation_df['first_number'], permutation_df['second_number'])
+- Was not aware of the itertools library for permutation with replacement. 
+  Thought of writing a for or while loop to generate the numbers but couldn't think of how to do replacement.
+  Originally used a case when conditional statement using np.where instead of np.maximum,
+  the np.maximum is more efficient than writing out the logic of np.where
+
+############################
+
+Website:
+StrataScratch - ID 9736
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+City of San Francisco - Highest Number Of High-risk Violations
+Find details of the business with the highest number of high-risk violations. 
+Output all columns from the dataset considering business_id which consist 'high risk' phrase in risk_category column.
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_address: text (str)
+business_city: text (str)
+business_id: bigint (int)
+business_latitude: double precision (flt)
+business_location: text (str)
+business_longitude: double precision (flt)
+business_name: text (str)
+business_phone_number: double precision (flt)
+business_postal_code: double precision (flt)
+business_state: text (str)
+inspection_date: date (d)
+inspection_id: text (str)
+inspection_score: double precision (flt)
+inspection_type: text (str)
+risk_category: text (str)
+violation_description: text (str)
+violation_id: text (str)
+
+Code:
+Soluton #1
+-- Question:
+-- Find details of the business with the highest number of high-risk violations.
+-- Output all columns from the dataset considering business_id 
+-- which consist 'high risk' phrase in risk_category
+
+-- Output:
+-- all 'business' columns
+-- [ find details of the business with the highest number of high-risk violations,
+-- all columns from the dataset considering business_id which consist 'high risk' phrase in risk_category ]
+
+-- Preview data:
+SELECT * FROM sf_restaurant_health_violations LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - business_latitude(133), business_location(133), business_longitude(133), 
+--         business_phone_number(214), business_postal_code(10), inspection_score(73),
+--         risk_category(72), violation_description(72), violation_id(72)
+-- Rows - 297
+SELECT 
+    SUM(CASE WHEN business_address IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN business_city IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN business_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN business_latitude IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN business_location IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN business_longitude IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN business_name IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN business_phone_number IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN business_postal_code IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN business_state IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN inspection_date IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN inspection_id IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN inspection_score IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN inspection_type IS NULL THEN 1 ELSE 0 END) AS col14,
+    SUM(CASE WHEN risk_category IS NULL THEN 1 ELSE 0 END) AS col15,
+    SUM(CASE WHEN violation_description IS NULL THEN 1 ELSE 0 END) AS col16,
+    SUM(CASE WHEN violation_id IS NULL THEN 1 ELSE 0 END) AS col17,
+    COUNT(*) AS total_rows
+FROM sf_restaurant_health_violations;
+
+-- Iteration:
+-- Find details of the business with the highest number of high-risk violations
+WITH BusinessViolationsRank AS (
+SELECT
+    -- Count number of high risk violations for each business
+    -- Rank number of violations for each business in DESC order and include ties
+    business_id,
+    COUNT(violation_id) AS high_risk_violation_count,
+    DENSE_RANK() OVER(ORDER BY COUNT(violation_id) DESC) AS dense_rank
+FROM sf_restaurant_health_violations
+WHERE 
+    -- Filter for "high risk" categories
+    risk_category ILIKE '%high risk%'
+GROUP BY business_id
+)
+SELECT DISTINCT
+    -- Output all columns from the dataset considering business_id 
+    srhv.business_address,
+    srhv.business_city,
+    srhv.business_id,
+    srhv.business_latitude,
+    srhv.business_location,
+    srhv.business_name,
+    srhv.business_phone_number,
+    srhv.business_postal_code,
+    srhv.business_state
+FROM sf_restaurant_health_violations AS srhv
+JOIN 
+    -- Join business violations rank table with original dataset by business_id to obtain business details
+    BusinessViolationsRank AS bvr
+    ON srhv.business_id = bvr.business_id
+WHERE 
+    -- Filter for highest rank for highest number of high-risk violations
+    bvr.dense_rank = 1;
+    
+-- Result:
+-- Find details of the business with the highest number of high-risk violations
+WITH BusinessViolationsRank AS (
+    SELECT
+        -- Count number of high risk violations for each business
+        -- Rank number of violations for each business in DESC order and include ties
+        business_id,
+        COUNT(violation_id) AS high_risk_violation_count,
+        DENSE_RANK() OVER(ORDER BY COUNT(violation_id) DESC) AS dense_rank
+    FROM 
+        sf_restaurant_health_violations
+    WHERE 
+        -- Filter for "high risk" categories
+        risk_category ILIKE '%high risk%'
+    GROUP BY 
+        business_id
+)
+SELECT DISTINCT
+    -- Output all columns from the dataset considering business_id 
+    srhv.business_address,
+    srhv.business_city,
+    srhv.business_id,
+    srhv.business_latitude,
+    srhv.business_location,
+    srhv.business_name,
+    srhv.business_phone_number,
+    srhv.business_postal_code,
+    srhv.business_state
+FROM 
+    sf_restaurant_health_violations AS srhv
+JOIN 
+    -- Join business violations rank table with original dataset by business_id to obtain business details
+    BusinessViolationsRank AS bvr
+    ON srhv.business_id = bvr.business_id
+WHERE 
+    -- Filter for highest rank for highest number of high-risk violations
+    bvr.dense_rank = 1;
+
+Notes:
+- In SQL, prefer using ranking instead of MAX() to find the highest value in a column since it can account
+  for ties and require less grouping and steps. Hadn't used DISTINCT in a while so it was great to be able
+  to implement it for duplicate columns in the final query. Overall not a difficult problem at all and
+  fairly straightforward to answer using window and aggregation functions.
+
+############################
