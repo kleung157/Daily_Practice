@@ -1,0 +1,353 @@
+Date: 09/17/2025
+
+############################
+
+Website:
+StrataScratch - ID 2065
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+EY - Time from 10th Runner
+In a marathon, gun time is counted from the moment of the formal start of the race while net time is counted from the moment a runner crosses a starting line. 
+Both variables are in seconds.
+How much net time separates Chris Doe from the 10th best net time (in ascending order)? 
+Avoid gaps in the ranking calculation. Output absolute net time difference.
+
+Data Dictionary:
+Table name = 'marathon_male'
+place: numeric (num)
+num: numeric (num)
+age: numeric (num)
+pace: numeric (num)
+gun_time: numeric (num)
+net_time: numeric (num)
+div_tot: character (str)
+person_name: character (str)
+hometown: character (str)
+
+Code:
+Solution #1
+## Question:
+# In a marathon, gun time is counted from the moment of the formal start of the race while
+# net time is counted from the moment a runner crosses a starting line.
+# Both variables in seconds.
+# How much net time separates Chris Doe from the 10th best net time (in ASC order)? 
+# Avoid gaps in the ranking calculation.
+# Output absolute net time difference
+
+## Output:
+# absolute_net_time_difference
+# How much net time (seconds) separates Chris Doe from the 10th best net time (in ASC order)? 
+# Avoid gaps in the ranking calculation.
+
+## Import libraries:
+#install.packges(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#marathon_male <- read_csv('marathon_male.csv')
+df <- data.frame(marathon_male)
+head(df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 100
+data.frame(lapply(df, class))
+colSums(is.na(df))
+nrow(df)
+
+## Iteration #1:
+# How much net time (seconds) separates Chris Doe from the 10th best net time (in ASC order)? 
+# Avoid gaps in the ranking calculation.
+result_df <- df %>%
+    arrange(net_time) %>%
+    mutate(
+        # Rank net time in ASC order
+        net_time_rank = dense_rank(net_time)
+    ) %>%
+    filter(
+        # Filter for row with Chris Doe and row with 10th best time
+        (person_name == "Chris Doe") |
+        (net_time_rank == 10)
+    ) %>%
+    summarise(
+        # Calculate net time difference between Chris Doe and 10th best time
+        absolute_net_time_difference = abs(diff(net_time))
+    ) %>%
+    slice_max(
+        # Extract highest absolute_net_time_difference row
+        absolute_net_time_difference
+    )
+    
+## Iteration #2:
+result_df <- df %>%
+    arrange(net_time) %>%
+    mutate(
+        # Rank net time in ASC order
+        net_time_rank = dense_rank(net_time)
+    ) %>%
+    filter(
+        # Filter for row with Chris Doe and row with 10th best time
+        (person_name == "Chris Doe") |
+        (net_time_rank == 10)
+    ) %>%
+    select(
+        # Select relevant calculation column
+        net_time
+    ) %>%
+    distinct(
+        # Remove duplicate values if there are ties in ranking
+        net_time
+    ) %>%
+    summarise(
+         # Calculate net time difference between Chris Doe and 10th best time
+        absolute_net_time_difference = abs(diff(net_time))
+    )
+    
+## Result:
+result_df
+
+Notes:
+- The summarise() function is designed to only output a single value for each grouping.
+  In iteration #1, the output created two rows due to a tie in ranking,
+  hence the use of slice_max() for a single value.
+  In iteration #2, selected the relevant calculation column and removed ties or duplicate values,
+  then performed the summarise() diff() calculation.
+
+############################
+
+Website:
+StrataScratch - ID 2102
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Netflix - Flags per Video
+For each video, find how many unique users flagged it. 
+A unique user can be identified using the combination of their first name and last name. 
+Do not consider rows in which there is no flag ID.
+
+Data Dictionary:
+Table name = 'user_flags'
+user_firstname: object (str)
+user_lastname: object (str)
+video_id: object (str)
+flag_id: object (str)
+
+Code:
+Solution #1
+## Question:
+# For each video, find how many unique users flagged it.
+# A unique user can be identified using the combination of their first name and last name.
+# Do not consider rows in which there is no flag ID
+
+## Output:
+# video_id, unique_user_count
+# [ For each video, find how many unique users flagged it.
+# Unique user = first name + last name.
+# Do not consider rows in which there is no flag ID ]
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#user_flags = pd.read_csv('user_flags.csv')
+df = pd.DataFrame(user_flags)
+df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - user_firstname(3), user_lastname(3), video_id(1), flag_id(4)
+# Rows - 29
+#df.info()
+#df.isna().sum()
+
+## Iteration:
+# For each video, find how many unique users flagged it.
+# 1. Filter for rows that are not null in flag ID
+filtered_df = df[
+    (df['flag_id'].notna())
+].copy()
+
+# 2. Create unique_user column, unique user = first name + last name
+#    Fill null values in user_firstname and user_lastname with empty string then strip the space
+filtered_df['unique_user'] = (
+    filtered_df['user_firstname'].fillna('') + ' ' + filtered_df['user_lastname'].fillna('')
+).str.strip()
+
+# 3. Count number of unique users for each video_id, rename column and sort ASC order
+result_df = (
+    filtered_df.groupby('video_id')['unique_user'].nunique()
+    .reset_index(name='unique_user_count')
+    .sort_values(by='video_id', ascending=True)
+)
+## Result:
+result_df
+
+Notes:
+- When concatenating string columns, if there are nulls then can fill null values with empty strings
+  and strip the blank space later on 
+  df =  ( df['col1].fillna('') + '' + df['col2'].fillna('') ).str.strip()
+  ex.
+       filtered_df['unique_user'] = (
+           filtered_df['user_firstname'].fillna('') + ' ' + df['user_lastname'].fillna('')
+        ).str.strip()
+- notna() is more efficient and optimal than dropna() when filtering for values in a column
+- Was encountering a number of null values in the first and last name columns, thought perhaps the
+  concatenation would add in the blank space of the nulls but have to manually enter the blanks.
+  Other than that the question was fairly straightforward with grouping and an aggregation.
+
+############################
+
+Website:
+StrataScratch - ID 9739
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+City of San Francisco - Worst Businesses
+Identify the business with the most violations each year, based on records that include a violation ID. 
+For each year, output the year, the name of the business with the most violations, and the corresponding number of violations.
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_address: text (str)
+business_city: text (str)
+business_id: bigint (int)
+business_latitude: double precision (flt)
+business_location: text (str)
+business_longitude: double precision (flt)
+business_name: text (str)
+business_phone_number: double precision (flt)
+business_postal_code: double precision (flt)
+business_state: text (str)
+inspection_date: date (d)
+inspection_id: text (str)
+inspection_score: double precision (flt)
+inspection_type: text (str)
+risk_category: text (str)
+violation_description: text (str)
+violation_id: text (str)
+
+Code:
+Solution #1
+-- Question:
+-- Identify the business with the most violations each year, based on records that include a violation ID.
+-- For each year, output year, name of business with most violations, corresponding number of violations.
+
+-- Output:
+-- year, year, business_name, number_of_violations
+-- Identify the business with the most violations each year based on records that include a violation ID.
+
+-- Preview data:
+SELECT * FROM sf_restaurant_health_violations LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - business_latitude(133), business_location(133), business_longitude(133), 
+--         business_phone_number(214), business_postal_code(10), inspection_score(73),
+--         risk_category(72), violation_description(72), violation_id(72)
+-- Rows - 297
+SELECT 
+    SUM(CASE WHEN business_address IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN business_city IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN business_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN business_latitude IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN business_location IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN business_longitude IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN business_name IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN business_phone_number IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN business_postal_code IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN business_state IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN inspection_date IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN inspection_id IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN inspection_score IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN inspection_type IS NULL THEN 1 ELSE 0 END) AS col14,
+    SUM(CASE WHEN risk_category IS NULL THEN 1 ELSE 0 END) AS col15,
+    SUM(CASE WHEN violation_description IS NULL THEN 1 ELSE 0 END) AS col16,
+    SUM(CASE WHEN violation_id IS NULL THEN 1 ELSE 0 END) AS col17,
+    COUNT(*) AS total_rows
+FROM sf_restaurant_health_violations;
+
+-- Iteration:
+-- Identify the business with the most violations each year based on records that include a violation ID.
+WITH YearlyBusinessViolationRank AS (
+SELECT 
+    -- Extract year from inspection_date
+    -- Count number of violations for each business_name
+    -- Rank businesses by number of violations for each year, include ties
+    EXTRACT(YEAR FROM inspection_date) AS year,
+    business_name,
+    COUNT(violation_id) AS number_of_violations,
+    DENSE_RANK() OVER(
+        PARTITION BY EXTRACT(YEAR FROM inspection_date) ORDER BY COUNT(violation_id) DESC
+    ) AS dense_rank
+FROM sf_restaurant_health_violations
+WHERE
+    -- Filter for records that contain violation_id
+    violation_id IS NOT NULL
+GROUP BY 
+    EXTRACT(YEAR FROM inspection_date),
+    business_name
+)
+SELECT 
+    year,
+    business_name,
+    number_of_violations
+FROM YearlyBusinessViolationRank
+WHERE 
+    -- Filter for businesses with highest number of violations 
+    dense_rank = 1
+ORDER BY year;
+
+-- Result:
+-- Identify the business with the most violations each year based on records that include a violation ID.
+WITH YearlyBusinessViolationRank AS (
+    SELECT 
+        EXTRACT(YEAR FROM inspection_date) AS year, -- Extract year from inspection_date
+        business_name,
+        COUNT(violation_id) AS number_of_violations, -- Count number of violations for each business_name
+        DENSE_RANK() OVER(    -- Rank businesses by number of violations for each year, include ties
+            PARTITION BY EXTRACT(YEAR FROM inspection_date) 
+            ORDER BY COUNT(violation_id) DESC
+        ) AS dense_rank
+    FROM 
+        sf_restaurant_health_violations
+    WHERE
+        violation_id IS NOT NULL     -- Filter for records that contain violation_id
+    GROUP BY 
+        EXTRACT(YEAR FROM inspection_date),
+        business_name
+)
+SELECT 
+    year,
+    business_name,
+    number_of_violations
+FROM 
+    YearlyBusinessViolationRank
+WHERE 
+    dense_rank = 1    -- Filter for businesses with highest number of violations 
+ORDER BY 
+    year;
+
+Notes:
+- Was trying to determine if the ORDER BY clause in DENSE_RANK needed to include the year if it
+  was already in the PARTITION BY clause. Ended up not needing the year in the ORDER BY and only
+  the COUNT(violation_id) was considered. Much easier to create a rank in the same CTE where the
+  aggregation occured rather than in a separate CTE so there's less intermediate CTEs but finding
+  a balance of how to make it look clear to understand can be tough. Aside from that the question
+  was fairly straightforward to solve using windows and aggregation functions
+- Trying format of going back to having note documentation on the right side of each line rather than on top
+
+############################
