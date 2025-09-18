@@ -1,0 +1,382 @@
+Date: 09/18/2025
+
+############################
+
+Website:
+StrataScratch - ID 2066
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+EY - Fastest Hometowns
+Find the hometowns with the top 3 average net times. Output the hometowns and their average net time. 
+Keep in mind that a lower net_time is better. 
+In case there are ties in net time, return all unique hometowns.
+
+Data Dictionary:
+Table name = 'marathon_male'
+place: numeric (num)
+num: numeric (num)
+age: numeric (num)
+pace: numeric (num)
+gun_time: numeric (num)
+net_time: numeric (num)
+div_tot: character (str)
+person_name: character (str)
+hometown: character (str)
+
+Code:
+Solution #1
+## Question:
+# Find the hometowns with the top 3 average net times.
+# Output the hometowns and their average net time.
+# Keep in mind that a lower net_time is better.
+# In case there are ties in net time, return all unique hometowns.
+
+## Output:
+# hometown, average_net_time
+# Find the hometowns with the top 3 average net times.
+# Keep in mind that a lower net_time is better.
+# In case there are ties in net time, return all unique hometowns.
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#marathon_male <- read_csv('marathon_male.csv')
+df <- data.frame(marathon_male)
+head(df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 100
+data.frame(lapply(df, class))
+colSums(is.na(df))
+nrow(df)
+
+## Iteration:
+# hometown, average_net_time
+# Find the hometowns with the top 3 average net times.
+# Keep in mind that a lower net_time is better.
+# In case there are ties in net time, return all unique hometowns.
+result_df <- df %>%
+    group_by(hometown) %>%
+    summarise(
+        # Calculate the average net time for each hometown
+        average_net_time = mean(net_time)
+    ) %>%
+    mutate(
+        # Rank all hometown average net times in ASC order (lowest first) and include ties
+        net_time_rank = dense_rank(average_net_time)
+    ) %>%
+    ungroup() %>%
+    filter(
+        # Filter for top 3 average net times by rank
+        net_time_rank <= 3 
+    ) %>%
+    arrange(
+        # Arrange ranks then hometown in ASC order
+        net_time_rank, hometown
+    ) %>%
+    select(
+        # Select relevant columns
+        hometown, average_net_time
+    )
+
+## Result:
+result_df
+
+Notes:
+- The question was straightforward for solving using a SQL like approach with groupings, aggregations,
+  rankings, filtering and orderings. 
+
+############################
+
+Website:
+StrataScratch - ID 2104
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Google - User with Most Approved Flags
+Which user flagged the most distinct videos that ended up approved by YouTube? 
+Output, in one column, their full name or names in case of a tie. 
+In the user's full name, include a space between the first and the last name.
+
+Data Dictionary:
+Table name = 'user_flags'
+user_firstname: object (str)
+user_lastname: object (str)
+video_id: object (str)
+flag_id: object (str)
+Table name = 'flag_reviews'
+flag_id: object (str)
+reviewed_by_yt: bool (bool)
+reviewed_date: datetime64 (dt)
+reviewed_outcome: object (str)
+
+Code:
+Solution #1 (sql approach, step by step logic approach)
+## Question:
+# Which user flagged the most distinct videos that ended up approved by Youtube?
+# Output in one column their full name or names in case of a tie.
+# In the user's full name, include a space between the first and the last name.
+
+## Output:
+# full_name
+# Which user flagged the most distinct videos that ended up approved by Youtube?
+# Output in one column their full name or names in case of a tie.
+# In the user's full name, include a space between the first and the last name.
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#user_flags = pd.read_csv('user_flags.csv')
+#flag_review = pd.read_csv('flag_review.csv')
+df = pd.DataFrame(user_flags)
+df2 = pd.DataFrame(flag_review)
+df.head(5)
+df2.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - user_flags: user_firstname(3), user_lastname(3), video_id(1), flag_id(4)
+#       - flag_review: reviewed_date(9), reviewed_outcome(9)
+# Rows - user_flags: 29
+#      - flag_review: 27
+#df.info()
+#df.isna().sum()
+#df2.info()
+#df2.isna().sum()
+
+## Iteration:
+# full_name
+# Which user flagged the most distinct videos that ended up approved by Youtube?
+# Output in one column their full name or names in case of a tie.
+# In the user's full name, include a space between the first and the last name.
+# 1. Merge user_flags and flag_review DataFrames by flag_id
+merged_df = pd.merge(user_flags, flag_review, on="flag_id", how="inner")
+
+# 2. Create a user full name column with first and last name, 
+#    account for nulls in either column with empty strings and remove extra space
+merged_df['full_name'] = (
+    merged_df['user_firstname'].fillna('') + ' ' + merged_df['user_lastname'].fillna('')
+).str.strip()
+
+# 3. Filter for reviewed_outcome = 'APPROVED' and flag_id is not null
+filtered_df = merged_df[
+    (merged_df['reviewed_outcome'] == 'APPROVED') &
+    (merged_df['flag_id'].notna())
+] 
+
+# 4. Count number of unique flagged videos that were approved for each full_name  
+result_df = (
+    filtered_df.groupby('full_name')['video_id'].nunique()
+    .reset_index(name='distinct_flagged_video_count')
+)
+
+# 5. Rank the number of unique flagged videos in DESC order and include ties
+result_df['rank'] = result_df['distinct_flagged_video_count'].rank(method='dense', ascending=False)
+
+# 6. Filter for highest count with the top rank
+result_df = result_df[
+    result_df['rank'] == 1
+]
+
+# 7. Select relevant output column and sort values ASC order
+result_df = result_df[['full_name']].sort_values(by="full_name", ascending=True)
+
+## Result:
+result_df
+
+
+Solution #2 (concise approach)
+"""
+# Sort by count in descending order
+result_df = result_df.sort_values(by='distinct_flagged_video_count', ascending=False)
+# Find the highest count
+max_count = result_df['distinct_flagged_video_count'].iloc[0]
+# Filter for all users with that count
+top_users = result_df[result_df['distinct_flagged_video_count'] == max_count]
+# Select the final column
+result_df = top_users[['full_name']].sort_values(by="full_name")
+"""
+
+Notes:
+- Used a SQL like approach to solving the problem in Solution #1. 
+  Instead of using a max() aggregation wanted to use dense rank to make sure the dataset looked correct,
+  by doing so I can see whether the rankings are including ties in the data step by step.
+  The alternative solution, solution #2, is more concise using sort and assigning a max with slicing
+  then filtering for the relevant highest count.
+
+############################
+
+Website:
+StrataScrach - ID 9741
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+City of San Francisco - Inspection Scores For Businesses
+Find the median inspection score of each business and output the result along with the business name. 
+Order records based on the inspection score in descending order.
+Try to come up with your own precise median calculation. 
+In Postgres there is percentile_disc function available, however it's only approximation.
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_address: text (str)
+business_city: text (str)
+business_id: bigint (int)
+business_latitude: double precision (flt)
+business_location: text (str)
+business_longitude: double precision (flt)
+business_name: text (str)
+business_phone_number: double precision (flt)
+business_postal_code: double precision (flt)
+business_state: text (str)
+inspection_date: date (d)
+inspection_id: text (str)
+inspection_score: double precision (flt)
+inspection_type: text (str)
+risk_category: text (str)
+violation_description: text (str)
+violation_id: text (str)
+
+Code:
+Solution #1
+-- Question: 
+-- Find the median inspection score of each business and output the results along with the business name.
+-- Order records based on the inspection score in descending order.
+-- Try to come up with your own precise median calculation.
+-- In Postgres there is percentile_disc function available, however it's only approximation.
+
+-- Output:
+-- business_name, median_inspection_score
+-- Find the median inspection score of each business and output the results along with the business name.
+-- Order records based on the inspection score in descending order.
+-- Try to come up with your own precise median calculation.
+-- In Postgres there is percentile_disc function available, however it's only approximation.
+
+-- Preview data:
+SELECT * FROM sf_restaurant_health_violations LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - business_latitude(133), business_location(133), business_longitude(133), 
+--         business_phone_number(214), business_postal_code(10), inspection_score(73),
+--         risk_category(72), violation_description(72), violation_id(72)
+-- Rows - 297
+SELECT 
+    SUM(CASE WHEN business_address IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN business_city IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN business_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN business_latitude IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN business_location IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN business_longitude IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN business_name IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN business_phone_number IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN business_postal_code IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN business_state IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN inspection_date IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN inspection_id IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN inspection_score IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN inspection_type IS NULL THEN 1 ELSE 0 END) AS col14,
+    SUM(CASE WHEN risk_category IS NULL THEN 1 ELSE 0 END) AS col15,
+    SUM(CASE WHEN violation_description IS NULL THEN 1 ELSE 0 END) AS col16,
+    SUM(CASE WHEN violation_id IS NULL THEN 1 ELSE 0 END) AS col17,
+    COUNT(*) AS total_rows
+FROM sf_restaurant_health_violations;
+
+-- Iteration:
+-- business_name, median_inspection_score
+-- Find the median inspection score of each business and output the results along with the business name.
+-- Order records based on the inspection score in descending order.
+-- Try to come up with your own precise median calculation.
+-- In Postgres there is percentile_disc function available, however it's only approximation.
+SELECT 
+    business_name,
+    -- Calculate median inspection score using PERCENTILE_CONT
+    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY inspection_score ASC) AS median_inspection_score
+FROM sf_restaurant_health_violations
+WHERE inspection_score IS NOT NULL    -- Filter for businesses that have an inspection score
+GROUP BY business_name
+ORDER BY median_inspection_score DESC;   -- Order records by inspection score DESC order
+
+-- Result:
+SELECT 
+    business_name,
+    PERCENTILE_CONT(0.5) WITHIN GROUP (    -- Calculate median inspection score using PERCENTILE_CONT
+        ORDER BY inspection_score ASC
+    ) AS median_inspection_score
+FROM 
+    sf_restaurant_health_violations
+WHERE 
+    inspection_score IS NOT NULL    -- Filter for businesses that have an inspection score
+GROUP BY 
+    business_name
+ORDER BY
+    median_inspection_score DESC;   -- Order records by inspection score DESC order
+
+
+Solution #2
+"""
+WITH NtileBuckets AS (
+  -- Step 1: Assign each inspection score to a bucket (1 or 2) for each business
+  SELECT
+    business_name,
+    inspection_score,
+    -- NTILE(2) divides the ordered rows into two equal buckets
+    NTILE(2) OVER (PARTITION BY business_name ORDER BY inspection_score) AS bucket_number,
+    -- Count the total number of inspections for each business
+    COUNT(*) OVER(PARTITION BY business_name) AS total_inspections
+  FROM
+    sf_restaurant_health_violations
+  WHERE
+    inspection_score IS NOT NULL
+)
+
+-- Step 2: Calculate the median score for each business
+SELECT
+    business_name,
+    -- For an even number of inspections, the median is the average of the last value in bucket 1 and the first in bucket 2.
+    -- For an odd number, it's the single value at the boundary. AVG() handles both cases.
+    AVG(inspection_score) AS median_inspection_score
+FROM
+    NtileBuckets
+WHERE
+    -- Filter for the last row of the first bucket and the first row of the second bucket
+    bucket_number = 1 OR (bucket_number = 2 AND total_inspections % 2 = 0)
+GROUP BY
+    business_name
+ORDER BY
+    median_inspection_score DESC;
+"""
+
+Notes:
+- PERCENTILE_DISC() function is an approximation of the median 
+  but PERCENTILE_CONT() interpolates and averages the two middle values for the true midpoint
+  PERCENTILE_CONT('percent') WITHIN GROUP (ORDER BY 'col') OVER (PARTITION BY 'col')
+  ex. 
+      SELECT
+           department,
+           PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY salary) OVER (PARTITION BY department) AS median_salary
+      FROM
+           employees;
+- Solution #1 is the more concise and optimal approach to finding the median without the need for unnecesary steps.
+  Solution #2 is calculating the median precisely through a series of steps without a proper function.
+  Most likely would use the built-in function in Solution #1 over Solution #2.
+  
+############################
