@@ -1,0 +1,383 @@
+Date: 09/19/2025
+
+############################
+
+Website:
+StrataScratch - ID 2068
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Meta - Successful Lower Priced Product
+The sales department wants to identify lower-priced products that still sell well.
+Find product IDs that meet both of the following criteria:
+⦁    The product has been sold at least twice (i.e., appeared in at least two different purchases).
+⦁    The unit-weighted average sale price (cost_in_dollars) for that product is at least $3. 
+      A unit-weighted average sales price is defined as the total revenue for the product divided by the total number of units sold.
+Return a list containing product IDs along with their corresponding brand name.
+
+Data Dictionary:
+Table name = 'online_products'
+product_id: numeric (num)
+product_category: numeric (num)
+product_class: character (str)
+brand_name: character (str)
+is_low_fat: character (str)
+is_recyclable: character (str)
+product_family: character (str)
+Table name = 'online_orders'
+product_id: numeric (num)
+promotion_id: numeric (num)
+cost_in_dollars: numeric (num)
+customer_id: numeric (num)
+units_sold: numeric (num)
+date_sold: POSIXCt,POSIXt (dt)
+
+Code:
+Solution #1
+## Question:
+# Sales department wants to identify lower-priced products that still sell well.
+# Find product IDs that meet both of the following criteria:
+# The product has been sold at least twice (appeared in two different purchases)
+# The unit-weighted average sale price (cost_in_dollars) for that product is at least $3.
+# unit-weighted average sale price = total revenue for the product / total number of units sold
+# Return a list containing product IDs along with their corresponding brand name.
+
+## Output:
+# brand_name, product_id
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#online_products <- read_csv('online_products.csv')
+#online_orders <- read_csv('online_orders.csv')
+products_df <- data.frame(online_products)
+orders_df <- data.frame(online_orders)
+head(products_df, 5)
+head(orders_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - products: 0
+#       - orders: 0
+# Rows - products: 12
+#      - orders: 33
+data.frame(lapply(products_df, class))
+data.frame(lapply(orders_df, class))
+colSums(is.na(products_df))
+colSums(is.na(orders_df))
+nrow(products_df)
+nrow(orders_df)
+
+## Iteration:
+# brand_name, product_id
+# Find product IDs that meet both of the following criteria:
+# The product has been sold at least twice (appeared in two different purchases)
+# The unit-weighted average sale price (cost_in_dollars) for that product is at least $3.
+# unit-weighted average sale price = total revenue for the product / total number of units sold
+# Return a list containing product IDs along with their corresponding brand name.
+result_df <- orders_df %>%
+    inner_join(
+        # Join orders and products DataFrames by product_id
+        products_df, by="product_id"
+    ) %>%
+    group_by(product_id) %>%
+    mutate(
+        # Count number of purchases for each product
+        product_sold_count = n()
+    ) %>%
+    ungroup() %>%
+    filter(
+        # Filter for products sold at least twice in two different purchases
+        # Filter for products that have unit-weighted average sale price at least $3
+        (product_sold_count >= 2) &
+        (cost_in_dollars >= 3)
+    ) %>%
+    group_by(brand_name) %>%
+    summarise(
+        # Find unique product ids for each brand_name
+        unique_product_id = unique(product_id), .groups="drop"
+    ) %>%
+    arrange(
+        # Sort in ASC order
+        brand_name, unique_product_id
+    )
+
+## Result:
+result_df
+
+Notes:
+- This question says that the unit-weighted average sale price is the cost_in_dollars column
+  but defines it later as total revenue for the product / total number of units sold.
+  It isn't clear if the unit-weighted average sale price is calculate already in the cost_in_dollars column
+  and there isn't a total revenue for the product column provided in any of the data.
+  When trying to calculate the total revenue for the product using the sum of cost_in_dollars,
+  the values that come out for unit-weighted average sale price do not filter any results whatsoever.
+  When using the solution #1 approach, there is a list of product_ids that appear after filtering
+  with cost_in_dollars rather than calculating a unit weighted average sale price. 
+- Another problem that occurs is the number of purchases for each product,
+  there is no purchase_id or order_id in the online_orders table,
+  the interpretation is to count using n() since there isn't an identifier and
+  the assumption is that each row is a purchase/order.
+- The question and data provided have incongruencies overall that make solving it inconsistent
+  and not clear. Methods to solve can range a number of ways.
+- On StrataScratch, the IDE uses python with an R library which creates an error to convert unique values to a list
+
+############################
+
+Website:
+StrataScratch - ID 2106
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Google - Rows With Missing Values
+The data engineering team at YouTube want to clean the dataset user_flags. 
+In particular, they want to examine rows that have missing values in more than one column. 
+List these rows.
+
+Data Dictionary:
+Table name = 'user_flags'
+user_firstname: object (str)
+user_lastname: object (str)
+video_id: object (str)
+flag_id: object (str)
+
+Code:
+Solution #1
+## Question:
+# The data engineering team at Youtube wants to clean the dataset user_flags.
+# In particular, they want to examine rows that have missing values in more than one column.
+# List these rows.
+
+## Output:
+# List rows that have missing values in more than one column
+
+## Import libraries:
+import pandas as pd
+import numpy as np
+
+## Load and preview data:
+#user_flags = pd.read_csv('user_flags.csv')
+df = pd.DataFrame(user_flags)
+df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - user_firstname(3), user_lastname(3), video_id(1), flag_id(4)
+# Rows - 29
+#df.info()
+#df.isna().sum()
+
+## Iteration:
+# List rows that have missing values in more than one column
+# 1. Count number of nulls in the columns for each row
+df['number_of_nulls'] = (
+    df['user_firstname'].isna().astype(int) + df['user_lastname'].isna().astype(int) + 
+    df['video_id'].isna().astype(int) + df['flag_id'].isna().astype(int)
+)
+
+# 2. Filter for rows that have missing values in more than one column
+result_df = df[
+    df['number_of_nulls'] > 1
+]
+
+## Result:
+result_df
+
+Solution #2
+"""
+missing_values_count = user_flags.isnull().sum(axis=1)
+rows_to_examine = user_flags[missing_values_count > 1]
+"""
+
+Notes:
+- Tried to use isna().sum() for each row but had forgotten about the axis condition that could be edited.
+  Solution #2 shows an easier, concise and efficient apporach that utilizes this method.
+  Went with Solution #1, decided to simply convert each row's columns to booleans then to an integer value
+  and sum the values to filter accordingly.
+
+############################
+
+Website:
+StrataScratch - ID 9763
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Airbnb - Most Popular Room Types
+Find the room types that are searched by most people. 
+Output the room type alongside the number of searches for it. 
+If the filter for room types has more than one room type, consider only unique room types as a separate row. 
+Sort the result based on the number of searches in descending order.
+
+Data Dictionary:
+Table name = 'airbnb_searches'
+ds: date (d)
+ds_checkin: date (d)
+ds_checkout: date (d)
+filter_neighborhoods: text (str)
+filter_price_max: double precision (flt)
+filter_price_min: double precision (flt)
+filter_room_types: text (str)
+id_user: text (str)
+n_guests_max: bigint (int)
+n_guests_min: bigint (int)
+n_nights: double precision (flt)
+n_searches: bigint (int)
+origin_country: text (str)
+
+Code:
+Attempt #1
+-- Question:
+-- Find the room types that are searched by most people.
+-- Output the room type alongside the number of searches for it.
+-- If the filter for room types has more than one room type, 
+-- consider only unique room types as a separate row.
+-- Sort the result based on the number of searches in DESC order.
+
+-- Output:
+-- room_types, number_of_searches
+
+-- Preview data:
+SELECT * FROM airbnb_searches LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - ds_checkin(10), ds_checkout(10), filter_neighborhoods(122),
+--       - filter_price_max(36), filter_price_min(36), n_nights(10),
+-- Rows - 130
+SELECT
+    SUM(CASE WHEN ds IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN ds_checkin IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN ds_checkout IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN filter_neighborhoods IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN filter_price_max IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN filter_price_min IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN filter_room_types IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN id_user IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN n_guests_max IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN n_guests_min IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN n_nights IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN n_searches IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN origin_country IS NULL THEN 1 ELSE 0 END) AS col13,
+    COUNT(*) AS total_rows
+FROM airbnb_searches;
+
+-- Iteration:
+-- room_types, number_of_searches
+-- Find the room types that are searched by most people.
+-- Output the room type alongside the number of searches for it.
+-- If the filter for room types has more than one room type, 
+-- consider only unique room types as a separate row.
+-- Sort the result based on the number of searches in DESC order.
+SELECT 
+    CASE
+        -- If filter_room_types contains more than one comma,
+        -- or the comma position is not in position 1,
+        -- Then label as 'unique' room type
+        -- Otherwise strip the comma from the room_type name
+        WHEN regexp_count(filter_room_types, ',') > 1 OR STRPOS(filter_room_types, ',') > 1
+        THEN 'unique' 
+        ELSE TRIM(REPLACE(filter_room_types, ',', '')) 
+        END 
+    AS room_types,
+    SUM(n_searches) AS number_of_searches_total    -- Calculate the total number of searches for room types
+FROM airbnb_searches
+GROUP BY room_types
+ORDER BY number_of_searches_total DESC; -- Sort results by number of searches DESC order
+
+-- Result:
+-- room_types, number_of_searches
+-- Find the room types that are searched by most people.
+-- Output the room type alongside the number of searches for it.
+-- If the filter for room types has more than one room type, 
+-- consider only unique room types as a separate row.
+-- Sort the result based on the number of searches in DESC order.
+SELECT 
+    CASE
+        WHEN 
+            regexp_count(filter_room_types, ',') > 1  -- If filter_room_types contains more than one comma,
+            OR STRPOS(filter_room_types, ',') > 1     -- or the comma position is not in position 1,
+        THEN                                          -- Then label as 'unique' room type
+            'unique'                                  -- Otherwise strip the comma from the room_type name
+        ELSE 
+            TRIM(REPLACE(filter_room_types, ',', '')) 
+        END 
+    AS room_types,
+    SUM(n_searches) AS number_of_searches_total    -- Calculate the total number of searches for room types
+FROM 
+    airbnb_searches
+GROUP BY 
+    room_types
+ORDER BY
+    number_of_searches_total DESC; -- Sort results by number of searches DESC order
+
+
+Solution #1
+"""
+WITH room_types_split AS (
+    SELECT
+        id_user,
+        unnest(string_to_array(filter_room_types, ',')) AS room_type_untrimmed
+    FROM
+        airbnb_searches
+),
+cleaned_room_types AS (
+    SELECT
+        id_user,
+        TRIM(room_type_untrimmed) AS room_type
+    FROM
+        room_types_split
+    WHERE 
+        TRIM(room_type_untrimmed) <> ''
+)
+SELECT
+    room_type,
+    COUNT(DISTINCT id_user) AS total_searches
+FROM
+    cleaned_room_types
+GROUP BY
+    room_type
+ORDER BY
+    total_searches DESC;
+"""
+
+Notes:
+- To count the number of times a character appears in text, 
+  can use regexp_count or length/replace in the select statement
+  ex.
+       regexp_count(col, ',') AS comma_count
+  ex.
+       LENGTH(col) - LENGTH(REPLACE(col, ',', '')) AS comma_count
+- To determine the position of a specific string use string position function in the SELECT statement
+  SQL Server: CHARINDEX()
+  MYSQL/ORACLE: LOCATE() or INSTR()
+  Postgres: STRPOS()
+  ex.
+       STRPOS(filter_room_types, ',')
+- Converting a string list to an array, use string_to_array() then unnest() to extract the values
+  ex. 
+       unnest(string_to_array(filter_room_types, ',')) AS room_type_untrimmed
+- Filtering out blank rows in columns that are not true nulls, use WHERE TRIM('col') <> ''
+  ex.
+       TRIM(room_type_untrimmed) <> ''
+- In attempt #1, misinterpretted making filtered room types with more than one room type classified as unique
+  as opposed to considering them as their own separate row and unique. Also n_searches column is not the same as
+  searched by most people or number of searches for the room type.
+- For Solution #1, converts the stringed lists to arrays and unnests the values for each user_id.
+  Then trims the blank space left and filters out any blank rows in room_type columns.
+  From there, calculate the distinct users that searched for each room type, order by total_searches
+  
+############################
