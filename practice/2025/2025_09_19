@@ -299,12 +299,6 @@ GROUP BY room_types
 ORDER BY number_of_searches_total DESC; -- Sort results by number of searches DESC order
 
 -- Result:
--- room_types, number_of_searches
--- Find the room types that are searched by most people.
--- Output the room type alongside the number of searches for it.
--- If the filter for room types has more than one room type, 
--- consider only unique room types as a separate row.
--- Sort the result based on the number of searches in DESC order.
 SELECT 
     CASE
         WHEN 
