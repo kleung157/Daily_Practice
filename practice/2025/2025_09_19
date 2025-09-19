@@ -75,12 +75,12 @@ nrow(products_df)
 nrow(orders_df)
 
 ## Iteration:
-# brand_name, product_id
 # Find product IDs that meet both of the following criteria:
 # The product has been sold at least twice (appeared in two different purchases)
 # The unit-weighted average sale price (cost_in_dollars) for that product is at least $3.
 # unit-weighted average sale price = total revenue for the product / total number of units sold
 # Return a list containing product IDs along with their corresponding brand name.
+# brand_name, product_id
 result_df <- orders_df %>%
     inner_join(
         # Join orders and products DataFrames by product_id
@@ -276,12 +276,12 @@ SELECT
 FROM airbnb_searches;
 
 -- Iteration:
--- room_types, number_of_searches
 -- Find the room types that are searched by most people.
 -- Output the room type alongside the number of searches for it.
 -- If the filter for room types has more than one room type, 
 -- consider only unique room types as a separate row.
 -- Sort the result based on the number of searches in DESC order.
+-- room_types, number_of_searches
 SELECT 
     CASE
         -- If filter_room_types contains more than one comma,
