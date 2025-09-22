@@ -1,0 +1,373 @@
+Date: 09/22/2025
+
+############################
+
+Website:
+StrataScratch - ID 2070
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Meta - Top Three Classes
+The marketing department wants to identify the top-performing product classes based on the number of orders placed for each class.
+If multiple product classes have the same number of sales and qualify for the top 3, include all of them in the output.
+
+Data Dictionary:
+Table name = 'online_products'
+product_id: numeric (num)
+product_category: numeric (num)
+product_class: character (str)
+brand_name: character (str)
+is_low_fat: character (str)
+is_recyclable: character (str)
+product_family: character (str)
+Table name = 'online_orders'
+product_id: numeric (num)
+promotion_id: numeric (num)
+cost_in_dollars: numeric (num)
+customer_id: numeric (num)
+units_sold: numeric (num)
+date_sold: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1
+## Question:
+# The marketing department wants to identify the top-performing product classes based on the number
+# of orders placed for each class.
+# If multiple product classes have the same number of sales and qualify for the top 3, include them all.
+
+## Output:
+# product_class
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#products_df <- read_csv('online_products.csv')
+#orders_df <- read_csv('online_orders.csv')
+products_df <- data.frame(online_products)
+orders_df <- data.frame(online_orders)
+head(products_df, 5)
+head(orders_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - products: 0
+#         orders: 0
+# Orders - products: 12
+#          orders: 33
+data.frame(lapply(products_df, class))
+data.frame(lapply(orders_df, class))
+colSums(is.na(products_df))
+colSums(is.na(orders_df))
+nrow(products_df)
+nrow(orders_df)
+
+## Iteration:
+# The marketing department wants to identify the top-performing product classes based on the number
+# of orders placed for each class.
+# If multiple product classes have the same number of sales and qualify for the top 3, include them all.
+# product_class
+result_df <- orders_df %>%
+    inner_join(
+        # Join orders and products DataFrames by product_id
+        products_df, by="product_id"
+    ) %>%
+    group_by(product_class) %>%
+    summarise(
+         # Count number of orders placed for each class
+        number_of_orders_count = n(), .groups="drop"
+    ) %>%
+    mutate(
+        # Rank number of orders for each product class in DESC order, include ties
+        product_rank = dense_rank(desc(number_of_orders_count))
+    ) %>%
+    filter(
+        # Filter for product classes that are in top 3 number of orders
+        product_rank <= 3
+    ) %>%
+    select(
+        # Select relevant columns
+        product_class
+    ) %>%
+    arrange(product_class)
+    
+## Result:
+result_df
+
+Notes:
+- When interpretting the problem, was trying to decide between counting the number of rows n() or summing the 
+  units sold sum() for "number of orders placed for each class". 
+  The second part of the question says "number of sales" so that made it a bit confusing on which to decide. 
+  To me the count sounds more applicable but seeing the words numbers and sales made me think of a total 
+  using sum aggregation.
+
+############################
+
+Website:
+StrataScratch - ID 2108
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Asana - Responsible for Most Customers
+Each Employee is assigned one territory and is responsible for the Customers from this territory. 
+There may be multiple employees assigned to the same territory.
+Write a query to get the Employees who are responsible for the maximum number of Customers. 
+Output the Employee ID and the number of Customers.
+
+Data Dictionary:
+Table name = 'map_employee_territory'
+empl_id: object (str)
+territory_id: object (str)
+Table name = 'map_customer_territory'
+
+Code:
+Solution #1
+## Question:
+# Each employee is assigned one territory and is responsible for the customers from this territory.
+# There may be multiple employees assigned to the same territory.
+# Write a query to get the employees who are responsible for the maximum number of customers.
+# Output the employee id and number of customers.
+
+## Output:
+# empl_id, customer_count
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#map_employee_territory = pd.read_csv('map_employee_territory')
+#map_customer_territory = pd.read_csv('map_customer_territory')
+employee_df = pd.DataFrame(map_employee_territory)
+customer_df = pd.DataFrame(map_customer_territory)
+employee_df.head(5)
+customer_df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - employee: 0
+#       - customer: 0
+# Rows - employee: 9
+#      - customer: 15
+#employee_df.info()
+#employee_df.isna().sum()
+#customer_df.info()
+#customer_df.isna().sum()
+
+## Iteration:
+# Each employee is assigned one territory and is responsible for the customers from this territory.
+# There may be multiple employees assigned to the same territory.
+# Write a query to get the employees who are responsible for the maximum number of customers.
+# Output the employee id and number of customers.
+# empl_id, customer_count
+# 1. Join employee and customer dataframes by territory_id
+merged_df = pd.merge(employee_df, customer_df, on="territory_id", how="inner")
+
+# 2. Count number of customers for each employee id
+result_df = merged_df.groupby('empl_id')['cust_id'].count().reset_index(name="customer_count")
+
+# 3. Filter for employees who are responsible for maximum number of customers, sort in ASC order
+result_df = result_df[
+    result_df['customer_count'] == result_df['customer_count'].max()
+].sort_values(by='empl_id', ascending=True)
+
+## Result:
+print("Employees who are responsible for maximum number of customers:")
+result_df
+
+Notes:
+- Was considering using nunique() instead of count() for aggregating the number of customer ids but the 
+  question did not explicitly state anything about unique or distinct customer ids. 
+  
+############################
+
+Website:
+StrataScratch - ID 9776
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Meta - Common Interests Amongst Users
+Count the subpopulations across datasets. 
+Assume that a subpopulation is a group of users sharing a common interest (ex: Basketball, Food). 
+Output the percentage of overlapping interests for two posters along with those poster's IDs. 
+Calculate the percentage from the number of poster's interests. 
+The poster column in the dataset refers to the user that posted the comment.
+
+Data Dictionary:
+Table name = 'facebook_posts'
+post_date: date (dt)
+post_id: bigint (bigint)
+post_keywords: text (str)
+post_text: text (str)
+poster: bigint (int)
+
+Code:
+Solution #1
+-- Question: 
+-- Count the subpopulations across datasets.
+-- Assume that a subpopulation is a group of users sharing a common interest (ex. basketball, food)
+-- Output the percentage of overlapping interests for two posters along with those poster's IDs.
+-- Calculate the percentage from the number of poster's interests.
+-- The poster column in the dataset refers to the user that posted the comment.
+
+-- Output:
+-- poster_id1, poster_id2, percentage_overlapping_interests
+
+-- Preview data:
+SELECT * FROM facebook_posts LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - 0
+-- Rows - 6
+SELECT
+    SUM(CASE WHEN post_date IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN post_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN post_keywords IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN post_text IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN poster IS NULL THEN 1 ELSE 0 END) AS col5,
+    COUNT(*) AS total_rows
+FROM facebook_posts;
+
+-- Iteration:
+-- Count the subpopulations across datasets.
+-- Assume that a subpopulation is a group of users sharing a common interest (ex. basketball, food)
+-- Output the percentage of overlapping interests for two posters along with those poster's IDs.
+-- Calculate the percentage from the number of poster's interests.
+-- The poster column in the dataset refers to the user that posted the comment.
+-- poster_id1, poster_id2, percentage_overlapping_interests
+WITH PostKeywordSplit AS (
+SELECT 
+    poster,
+    unnest(                                                          -- Remove [ ] brackets from keywords
+        string_to_array(                                             -- Convert string to an array
+            (REPLACE(REPLACE(post_keywords, '[', ''), ']', '')), ',' -- Split the array into separate rows
+        )
+    ) AS interests
+FROM facebook_posts
+),
+PosterSharedInterest AS (
+SELECT
+    pks1.poster AS poster_id1,
+    pks2.poster AS poster_id2, 
+    pks1.interests,
+    COUNT(pks1.interests) OVER(  -- Count total interests per poster
+        PARTITION BY pks1.poster
+    ) AS total_interests,
+    COUNT(CASE WHEN pks2.poster IS NOT NULL THEN pks2.poster END) OVER( -- Count shared interest per poster
+        PARTITION BY pks1.poster
+    ) AS common_interests
+FROM PostKeywordSplit AS pks1
+LEFT JOIN PostKeywordSplit AS pks2
+    ON pks1.interests = pks2.interests  -- Left self join to match interests by poster
+    AND pks1.poster < pks2.poster  -- Don't match the same poster, < to ensure pairs are counted once
+)
+SELECT DISTINCT  -- Remove duplicated rows
+    poster_id1,
+    poster_id2,
+    ROUND(
+        100.0 * common_interests / total_interests  -- Calculate percentage of overlapping interests
+    ) AS percentage_overlapping_interests
+FROM PosterSharedInterest
+WHERE poster_id2 IS NOT NULL;  -- Remove non matching rows
+
+
+Solution #2
+WITH
+  -- Step 1: Normalize the data.
+  -- We start by splitting the comma-separated `post_keywords` string into individual rows.
+  -- This creates a temporary table where each row represents a unique (poster, interest) pair.
+  -- The `LOWER` and `TRIM` functions are used to ensure interests like 'sports' and ' Sports' are treated as the same.
+  poster_interests AS (
+    SELECT
+      poster,
+      LOWER(TRIM(unnest(string_to_array(post_keywords, ',')))) AS interest
+    FROM
+      facebook_posts
+    GROUP BY
+      poster,
+      interest
+  ),
+  
+  -- Step 2: Count the total number of unique interests for each poster.
+  -- This CTE calculates the total count of distinct interests for each user, which will be the
+  -- denominator for our percentage calculation.
+  total_interests_per_poster AS (
+    SELECT
+      poster,
+      COUNT(interest) AS total_count
+    FROM
+      poster_interests
+    GROUP BY
+      poster
+  ),
+  
+  -- Step 3: Find the number of common (overlapping) interests for each pair of posters.
+  -- We perform a self-join on the `poster_interests` table where the `interest` is the same.
+  -- The `p1.poster < p2.poster` condition prevents matching a poster with themselves and
+  -- ensures that each pair is counted only once (e.g., we get (1, 2) but not (2, 1)).
+  common_interests AS (
+    SELECT
+      p1.poster AS poster1,
+      p2.poster AS poster2,
+      COUNT(*) AS common_count
+    FROM
+      poster_interests p1
+    INNER JOIN
+      poster_interests p2 ON p1.interest = p2.interest
+    WHERE
+      p1.poster < p2.poster
+    GROUP BY
+      p1.poster,
+      p2.poster
+  )
+  
+-- Step 4: Final calculation and output.
+-- We join the `common_interests` table with the `total_interests_per_poster` table twice
+-- to get the total interest counts for both posters in the pair.
+SELECT
+  ci.poster1,
+  ci.poster2,
+  -- Calculate percentage based on poster1's total interests.
+  -- We cast the values to float (100.0) to ensure a decimal result.
+  (100.0 * ci.common_count / ti1.total_count) AS percentage_from_poster1,
+  -- Calculate percentage based on poster2's total interests.
+  (100.0 * ci.common_count / ti2.total_count) AS percentage_from_poster2
+FROM
+  common_interests ci
+INNER JOIN
+  total_interests_per_poster ti1 ON ci.poster1 = ti1.poster
+INNER JOIN
+  total_interests_per_poster ti2 ON ci.poster2 = ti2.poster
+ORDER BY
+  percentage_from_poster1 DESC,
+  percentage_from_poster2 DESC;
+  
+Notes:
+- The first hurdle in the problem was unnesting the string list, the format was [a, b, c].
+  Had to replace all the brackets with blank spaces, convert the list to an array then unnest.
+- After this step, tried to perform windows functions for aggregations in one CTE as opposed to
+  multiple CTEs. Would have been eaiser to separate the aggregations then perform the calculation
+  aftewards. Teetered between using an inner join or left join, the main issue was deciding whether
+  the join clause needed a filter for pks1.posters <> pks2.poster or pks1.posters < pks2.poster.
+  The latter filter is more correct to create pairs of posters that are not counted more than once.
+- When I performed the final calculation, the problem that arose is that total interests isn't the
+  combined total interests of two posters and doesn't account for the shared interest being deducted.
+  So went back and tried to figure out how to account for those discrepancies.
+- My approach was encompassed in Solution #1, the problem doesn't account for my calculation stipulation.
+  Neither solution #1 or solution #2 take into account the concern but I guess this would be a matter of
+  interpretation of the problem.
+
+############################
