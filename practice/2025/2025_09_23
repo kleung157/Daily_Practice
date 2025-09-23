@@ -1,0 +1,477 @@
+Date: 09/23/2025
+
+############################
+
+Website:
+StrataScratch - ID 2071
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Meta - Same Brand Purchases
+The marketing department is aiming its next promotion at customers who have purchased products from two particular brands: Fort West and Golden.
+You have been asked to prepare a list of customers who purchased products from both brands.
+
+Data Dictionary:
+Table name = 'online_products'
+product_id: numeric (num)
+product_category: numeric (num)
+product_class: character (str)
+brand_name: character (str)
+is_low_fat: character (str)
+is_recyclable: character (str)
+product_family: character (str)
+Table name = 'online_orders'
+product_id: numeric (num)
+promotion_id: numeric (num)
+cost_in_dollars: numeric (num)
+customer_id: numeric (num)
+units_sold: numeric (num)
+date_sold: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1
+## Question:
+# The marketing department is aiming its next promotion at customers who have purchased products
+# from two particular brands: Fort West and Golden.
+# You have been asked to prepare a list of customers who purchased products from both brands.
+
+## Output:
+# customer_id
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#online_products <- read_csv('online_products.csv')
+#online_orders <- read_csv('online_orders.csv')
+products_df <- data.frame(online_products)
+orders_df <- data.frame(online_orders)
+head(products_df, 5)
+head(orders_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+#       - 0
+# Rows - 12
+#      - 33
+data.frame(lapply(products_df, class))
+data.frame(lapply(orders_df, class))
+colSums(is.na(products_df))
+colSums(is.na(orders_df))
+nrow(products_df)
+nrow(orders_df)
+
+## Iteration:
+# The marketing department is aiming its next promotion at customers who have purchased products
+# from two particular brands: Fort West and Golden.
+# You have been asked to prepare a list of customers who purchased products from both brands.
+# customer_id
+
+brand_df <- products_df %>%
+    inner_join(
+        # Join products and orders DataFrames by product_id
+        orders_df, by='product_id'
+    )
+    
+fort_west <- brand_df %>%
+    filter(
+        # Filter for Fort West customers
+        brand_name == 'Fort West'
+    ) %>%
+    select(brand_name, customer_id)
+    
+golden <- brand_df %>%
+    filter(
+        # Filter for Golden customers
+        brand_name == 'Golden'
+    ) %>%
+    select(brand_name, customer_id)
+    
+result_list <- fort_west %>%
+    inner_join(
+        # Match unique Fort West and Golden customers using inner join
+        golden, by='customer_id'
+    ) %>%
+    select(
+        # Select relevant columns
+        customer_id
+    ) %>%
+    distinct(
+        # Remove duplicate rows and find distinct values
+        customer_id
+    ) %>%
+    as.list(
+        # Convert column to a list of customers
+        customer_id
+    )
+
+## Result:
+result_list
+
+
+Solution #2
+# 1. Merge the two data frames on 'product_id'
+merged_data <- merge(online_orders, online_products, by = "product_id")
+
+# 2. Get a list of customers who bought from Fort West
+fort_west_customers <- merged_data[merged_data$brand_name == "Fort West", "customer_id"]
+
+# 3. Get a list of customers who bought from Golden
+golden_customers <- merged_data[merged_data$brand_name == "Golden", "customer_id"]
+
+# 4. Find customers who are in both lists
+promotional_customers <- intersect(fort_west_customers, golden_customers)
+
+# 5. Print the list of customers
+print(unique(promotional_customers))
+
+
+Solution #3
+print(unique(promotional_customers))
+promotional_customers <- online_orders %>%
+  inner_join(online_products, by = 'product_id') %>%
+  filter(brand_name %in% c('Fort West', 'Golden')) %>%
+  group_by(customer_id) %>%
+  summarise(unique_brands = n_distinct(brand_name), .groups = 'drop') %>%
+  filter(unique_brands == 2) %>%
+  pull(customer_id)
+
+print(promotional_customers)
+
+Notes:
+- In Solution #1, decided to create separate DataFrames for unique customer ids to come to together then
+  figure out a way to convert the matched values to a list. Previously couldn't find a way to convert a
+  column of values to a list in StrataScratch's environment that uses Python with R package. Somehow using
+  dplyr and as.list() as a separate pipe function works. No use in using group_by and summarise( unique() )
+  since it doesn't produce lists in the environment. Less efficient method but produces the desired solution.
+- If I wasn't too occupied on trying to produce a list, it would make sense to have a more streamlined
+  concise and efficient approach like Solution #3. Solution #3 would be similar to how I would approach
+  the problem in a SQL like manner. Filtering for specific categories in columns then applying relevant 
+  functions to filter once again.
+- Solution #2 is less steps but similar to Solution #1, it uses intersection instead of join to find the
+  matching values between both lists then applies unique to remove duplicates.
+
+############################
+
+Website:
+StrataScratch - ID 2110
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Walmart - Salary Less Than Twice The Average
+Write a query to get the list of managers whose salary is less than twice the average salary of employees reporting to them. 
+For these managers, output their ID, salary and the average salary of employees reporting to them.
+
+Data Dictionary:
+Table name = 'map_employee_hierarchy'
+empl_id: object (str)
+manager_empl_id: object (str)
+Table name = 'dim_employee
+empl_id: object (str)
+empl_name: object (str)
+empl_city: object (str)
+empl_dob: datetime64 (dt)
+empl_pin: int64 (int)
+salary: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# Write a query to get the list of managers whose salary is less than twice the average salary of
+# employees reporting to them.
+# For these managers, output their ID, salary, and average salary of employees reporting to them.
+
+## Output:
+# empl_id, salary, empl_average_salary
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#map_employee_hierarchy = pd.read_csv('map_employee_hierarchy.csv')
+#dim_employee = pd.read_csv('dim_employee.csv')
+df = pd.DataFrame(map_employee_hierarchy)
+df2 = pd.DataFrame(dim_employee)
+df.head(5)
+df2.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - employee_hierarchy: manager_empl_id(1)
+#       - dim_employee: 0
+# Rows - employee_hierarchy: 9
+#      - dim_employee: 9
+#df.info()
+#df.isna().sum()
+#df2.info()
+#df2.isna().sum()
+
+## Iteration:
+# Write a query to get the list of managers whose salary is less than twice the average salary of
+# employees reporting to them.
+# For these managers, output their ID, salary, and average salary of employees reporting to them.
+# empl_id, salary, empl_average_salary
+
+# 1. Join map_employee_hierarchy and dim_employee DataFrames by empl_id
+merged_df = pd.merge(df, df2, on="empl_id", how="inner")
+
+# 2. Calculate the average salary of employees reporting to managers 
+manager_employee_salary = merged_df.groupby("manager_empl_id")['salary'].mean().reset_index(name='empl_average_salary')
+
+# 3. Join merged_df and manager_employee_salary by empl_id = manager_empl_id to obtain manager salaries.
+result_df = pd.merge(merged_df, manager_employee_salary, left_on="empl_id", right_on="manager_empl_id", how="inner")
+
+# 4. Select relevant columns
+result_df = result_df[['empl_id', 'salary', 'empl_average_salary']]
+
+# 5. Filter for managers whose salary is less than twice the average salary of employees reporting to them.
+#    Sort results in ASC order by empl_id
+result_df = result_df[
+    (result_df['salary'] < 2 * result_df['empl_average_salary'])
+].sort_values(by="empl_id", ascending=True)
+
+## Result:
+result_df
+
+Notes:
+- When performing groupby and an aggregation in Python, null values are not considered unless they are filled
+  in with a value. No need to filter out nulls like in R which had na.rm = TRUE in the summarise aggregation
+  dplyr package.
+- For the line "managers whose salary is less than twice the average salary of employees reporting to them",
+  I initially filtered this as ( (result_df['salary'] / result_df['empl_average_salary'] ) < 2 ) but it makes
+  a lot more sense to just go by how it is literally written salary < 2 * average salary
+- Although its faster to use df and df2 as aliases for DataFrames, naming them out seems to be a lot more
+  useful for potentially reusing these DataFrames in the query as opposed to creating new DataFrames
+
+############################
+
+Website:
+StrataScratch - ID 9784
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Meta - Time Between Two Events
+Meta/Facebook's web logs capture every action from users starting from page loading to page scrolling. 
+Find the user with the least amount of time between a page load and their scroll down. 
+Your output should include the user id, page load time, scroll down time, and time between the two events in seconds.
+
+Data Dictionary:
+Table name = 'facebook_web_log'
+action: text (str)
+timestamp: timestamp (dt)
+user_id: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Meta/Facebook's web logs capture every action from users starting from page loading to page scrolling.
+-- Find the user with the least amount of time between a page load and their scroll down. 
+-- Output should include the user id, page load time, scroll down time, and time between two events in secs.
+
+-- Output:
+-- user_id, page_load_time, scroll_down_time, time_between_events
+
+-- Preview data:
+SELECT * FROM facebook_web_log LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - 0
+-- Rows - 30
+SELECT
+    SUM(CASE WHEN action IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN timestamp IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    COUNT(*) AS total_rows
+FROM facebook_web_log;
+
+-- Iteration:
+-- Meta/Facebook's web logs capture every action from users starting from page loading to page scrolling.
+-- Find the user with the least amount of time between a page load and their scroll down. 
+-- Output should include the user id, page load time, scroll down time, and time between two events in secs.
+-- user_id, page_load_time, scroll_down_time, time_between_events
+WITH UserActionTimes AS (
+-- Use LAG to find previous action time and previous action
+-- Calculate time between events, timestamp - previous_action_time
+SELECT 
+    user_id,
+    LAG(timestamp) OVER(PARTITION BY user_id ORDER By timestamp) AS previous_action_time,
+    LAG(Action) OVER (PARTITION BY user_id ORDER BY timestamp) AS previous_action,
+    timestamp,
+    action,
+    timestamp - LAG(timestamp) OVER(PARTITION BY user_id ORDER BY timestamp) AS time_between_events
+FROM facebook_web_log
+),
+UserPageScrollEvents AS (
+-- Find every pair of page_load and scroll_down for each user
+-- Filter every combination in separate queries then use union to combine
+SELECT 
+    user_id,
+    previous_action_time AS page_load_time,
+    timestamp AS scroll_down_time,
+    time_between_events
+FROM UserActionTimes
+WHERE previous_action = 'page_load'
+    AND action = 'scroll_down'
+
+UNION 
+
+SELECT 
+    user_id,
+    previous_action_time AS scroll_down_time,
+    timestamp AS page_load_time,
+    time_between_events
+FROM UserActionTimes
+WHERE previous_action = 'scroll_down'
+    AND action = 'page_load'
+),
+UserRank AS (
+-- Rank time between events in ASC order and account for ties
+SELECT 
+    user_id,
+    page_load_time,
+    scroll_down_time,
+    time_between_events,
+    DENSE_RANK() OVER(ORDER BY time_between_events) AS dense_rank_asc
+FROM UserPageScrollEvents 
+)
+-- Filter for users whose rank reflects the least amount of time spent 
+-- between page_load and scroll_down events.
+-- Cast timestamp which has date and time to just time
+SELECT 
+    user_id,
+    page_load_time::TIME,
+    scroll_down_time::TIME,
+    time_between_events
+FROM UserRank
+WHERE dense_rank_asc = 1;
+
+-- Result:
+WITH UserActionTimes AS (
+    SELECT 
+        user_id,
+        LAG(timestamp) OVER(  -- Use LAG to find previous action time and previous action
+            PARTITION BY user_id ORDER By timestamp    
+        ) AS previous_action_time,
+        LAG(Action) OVER (
+            PARTITION BY user_id ORDER BY timestamp
+        ) AS previous_action,
+        timestamp,
+        action,
+        timestamp - LAG(timestamp) OVER(  -- Calculate time between events, timestamp - previous_action_time
+            PARTITION BY user_id ORDER BY timestamp
+        ) AS time_between_events
+    FROM 
+        facebook_web_log
+),
+UserPageScrollEvents AS (
+    SELECT 
+        user_id,
+        previous_action_time AS page_load_time,
+        timestamp AS scroll_down_time,
+        time_between_events
+    FROM 
+        UserActionTimes
+    WHERE 
+        previous_action = 'page_load'
+        AND action = 'scroll_down'
+
+    UNION -- Find every pair of page_load and scroll_down for each user
+          -- Filter every combination in separate queries then use union to combine
+
+    SELECT 
+        user_id,
+        previous_action_time AS scroll_down_time,
+        timestamp AS page_load_time,
+        time_between_events
+    FROM 
+        UserActionTimes
+    WHERE 
+        previous_action = 'scroll_down'
+        AND action = 'page_load'
+),
+UserRank AS (
+    SELECT 
+        user_id,
+        page_load_time,
+        scroll_down_time,
+        time_between_events,
+        DENSE_RANK() OVER(  -- Rank time between events in ASC order and account for ties
+            ORDER BY time_between_events
+        ) AS dense_rank_asc
+    FROM 
+        UserPageScrollEvents 
+)
+SELECT 
+    user_id,
+    page_load_time::TIME,  -- Cast timestamp which has date and time to just time
+    scroll_down_time::TIME,
+    time_between_events
+FROM 
+    UserRank
+WHERE 
+    dense_rank_asc = 1;  -- Filter for users whose rank reflects the least amount of time spent 
+                         -- between page_load and scroll_down events.
+
+
+Solution #2
+SELECT
+    t1.user_id,
+    t1.timestamp AS page_load_time,
+    t2.timestamp AS scroll_down_time,
+    -- Calculate the time difference in seconds.
+    -- The exact function depends on your SQL dialect.
+    -- Examples for other dialects:
+    --   PostgreSQL: EXTRACT(EPOCH FROM (t2.timestamp - t1.timestamp))
+    --   SQL Server: DATEDIFF(second, t1.timestamp, t2.timestamp)
+    --   MySQL: TIMESTAMPDIFF(SECOND, t1.timestamp, t2.timestamp)
+    (t2.timestamp - t1.timestamp) AS time_in_seconds
+FROM
+    -- Join the table to itself to compare 'page load' and 'scroll down' events.
+    facebook_web_log AS t1
+INNER JOIN
+    facebook_web_log AS t2
+    ON t1.user_id = t2.user_id
+WHERE
+    t1.action = 'page_load'
+    AND t2.action = 'scroll_down'
+    AND t2.timestamp > t1.timestamp
+ORDER BY
+    time_in_seconds ASC
+-- Select only the top row, which represents the minimum time difference.
+LIMIT 1;
+
+Notes:
+- When starting the problem, I was initially interpretting the time for page_load and scroll_down as the time 
+  it takes for each event rather than the timestamp that it started. It didn't make sense to have the time for 
+  each event and then have time between events also be a column so went with the actual time rather than duration.
+- Once I was able to get past that, using LAG() to show the combination of actions/times and their previous 
+  action/times made a lot more sense to create and calculate the time between the events
+- The question doesn't state whether page_load and scroll_down combinations have to be in that order or reversed
+  so I decided to include both combinations using separate filtered queries then unioning the results together.
+- While I could have used ORDER BY and LIMIT 1 to get the least amount of time between events, I wanted to
+  consider cases where a tie might occur and avoid using min function in a separate CTE.
+- At the last part of my approach Solution #1, I converted the datetime columns into purely time columns for
+  presentation and filtering for rank seems a lot better for reproducibility if reusing code for a future scenario.
+- Solution #2 takes a inner self join approach to skip the need for LAG but doesn't account for potential
+  intermediate actions between the users. Other potential edge cases would be missed even though the answer
+  for this particular problem comes out to be the same as Solution #1.
+- While Solution #2 may be a faster optimized approach to the problem, I would still continue to go with
+  Solution #1 as my approach because it is how I thought the problem out step by step for clarity and
+  reproducibility
+
+############################
