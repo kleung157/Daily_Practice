@@ -1,0 +1,340 @@
+Date: 09/25/2025
+
+############################
+
+Website:
+StrataScratch - ID 2075
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Allstate - Homework Results
+Given the homework results of a group of students, calculate the average grade and the completion rate of each student. 
+A homework is considered not completed if no grade has been assigned.
+Output first name of a student, their average grade, and completion rate in percentages. 
+Note that it's possible for several students to have the same first name but their results should still be shown separately.
+
+Data Dictionary:
+Table name = 'allstate_homework'
+student_id: numeric (num)
+homework_id: numeric (num)
+grade: numeric (num)
+Table name = 'allstate_state'
+student_id: numeric (num)
+student_firstname: character (str)
+student_lastname: character (str)
+
+Code:
+Solution #1
+## Question:
+# Given the homework results of a group of students, 
+# calculate the average grade and the completion rate of each student.
+# A homework is considered not completed if no grade has been assigned.
+# Output first name of student, their average grade, and completion rate in percentages.
+# Note that it's possible for several students to have the same first name but their results
+# should still be shown separately.
+
+## Output:
+# student_firstname, average_grade, completion_rate_percentage
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#allstate_homework <- read_csv('allstate_homework.csv')
+#allstate_students <- read_csv('allstate_students.csv')
+homework_df <- data.frame(allstate_homework)
+students_df <- data.frame(allstate_students)
+head(homework_df, 5)
+head(students_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - homework: 6
+#       - students: 0
+# Rows - homework: 12
+#      - students: 4
+data.frame(lapply(homework_df, class))
+data.frame(lapply(students_df, class))
+colSums(is.na(homework_df))
+colSums(is.na(students_df))
+nrow(homework_df)
+nrow(students_df)
+
+## Iteration:
+# Given the homework results of a group of students, 
+# calculate the average grade and the completion rate of each student.
+# A homework is considered not completed if no grade has been assigned.
+# Output first name of student, their average grade, and completion rate in percentages.
+# Note that it's possible for several students to have the same first name but their results
+# should still be shown separately.
+# student_firstname, average_grade, completion_rate_percentage
+
+# 1. Create a single pipe chain DataFrame
+result_df <- homework_df %>%
+    inner_join(
+        # Join homework and students DataFrames by student_id
+        students_df, by="student_id"
+    ) %>%
+    mutate(
+        # Fill null values in grades with a 0 to later use in average calculation
+        grade = replace_na(grade, 0),
+        # Categorize homework as completed with 1 or not completed as 0
+        completed = case_when(
+            grade > 0 ~ 1, 
+            TRUE ~ 0
+        )
+    ) %>%
+    group_by(student_id, student_firstname) %>%
+    summarise(
+        # Calculate the average grade for each student
+        average_grade = mean(grade),
+        # Calculate completion rate percentage for each student, percentage = completed / total_rows
+        completion_rate_percentage = round(
+            sum(completed) / n()
+        , digits=2) * 100.0
+    ) %>%
+    ungroup() %>%
+    select(
+        # Select relevant columns
+        student_firstname, average_grade, completion_rate_percentage    
+    ) %>%
+    arrange(student_firstname)
+
+## Result:
+result_df
+
+Notes:
+- To use case_when() in R, use a ~ operator after each argument for if True/False
+  ex. 
+      mutate(
+          completed = case_when(
+              grade > 0 ~ 1, 
+              TRUE ~ 0
+      )
+- To fill null values with different values use replace_na('col', 'value')
+  ex.
+      mutate(
+          grade = replace_na(grade, 0)
+      )
+- On my initial approach, I had used summarise(average_grade = mean(grade, na.rm=TRUE) to calculate the
+  average grade but it doesn't really reflect the true average grade that the student earned since it removes
+  the null values that are homeworks considered to be not completed. Replacing with a 0 makes it so that the
+  row that was previously null is factored into the calculation for the average. The problem doesn't state
+  for the true average performance but that is my interpretation of the problem when I see average.
+- It was helpful to categorize homework completion using the case_when() statement so that summarizing
+  was easier to identify the completed rows and create the compeltion rate percentage similarly as to how
+  I would perform the calculation using SUM and CASE WHEN in SQL.
+
+############################
+
+Website:
+StrataScratch - ID 2114
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+DoorDash - First Ever Ratings
+The company you work for is looking at their delivery drivers' first-ever delivery with the company.
+You have been tasked with finding what percentage of drivers' first-ever completed orders have a rating of 0.
+Note: Please remember that if an order has a blank value for actual_delivery_time, it has been canceled and therefore does not count as a completed delivery.
+
+Data Dictionary:
+Table name = 'delivery_orders'
+delivery_id: object (str)
+order_placed_time: datetime64 (dt)
+predicted_delivery_time: datetime64 (dt)
+actual_delivery_time: datetime64 (dt)
+delivery_rating: float64 (flt)
+driver_id: object (str)
+restaurant_id: object (str)
+consumer_id: object (str)
+
+Code:
+Solution #1
+## Question:
+# The company you work for is looking at their delivery drivers' first-ever delivery with the company.
+# You have been tasked with finding what percentage of drivers' first-ever completed orders have a 0 rating.
+# Note, please remember that if an order has a blank value for actual_delivery_time,
+# it has been canceled and therefore does not count as a completed delivery.
+
+## Output:
+# percentage_completed_orders_with_0_rating
+
+## Import libraries:
+import pandas as pd
+import numpy as np
+
+## Load and preview data:
+#delivery_orders = pd.read_csv('delivery_orders.csv')
+orders_df = pd.DataFrame(delivery_orders)
+orders_df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - actual_delivery_time(3), delivery_rating(3)
+# Rows - 50
+#orders_df.info()
+#orders_df.isna().sum()
+
+## Iteration:
+# The company you work for is looking at their delivery drivers' first-ever delivery with the company.
+# You have been tasked with finding what percentage of drivers' first-ever completed orders have 0 rating.
+# Note, please remember that if an order has a blank value for actual_delivery_time,
+# it has been canceled and therefore does not count as a completed delivery.
+# percentage_completed_orders_with_0_rating
+
+# 1. Filter for first ever delivery completed orders for each driver
+first_order_df = orders_df[
+    (orders_df['actual_delivery_time'].notna())
+].copy().groupby('driver_id')['order_placed_time'].min().reset_index()
+
+# 2. Match the first completed order times and driver ids with original dataset
+result_df = pd.merge(first_order_df, orders_df, on=["driver_id", "order_placed_time"], how="inner")
+
+# 3. Categorize rows with completed orders that have 0 rating
+result_df['completed_with_0'] = np.where(result_df['delivery_rating'] == 0, 1, 0)
+
+# 4. Calculate percentage of drivers first-ever completed orders with 0 rating
+#    percentage = (zero rating orders / total completed orders) * 100.0
+result_series = pd.Series(
+    (result_df['completed_with_0'].sum() / result_df['completed_with_0'].count()) * 100.0
+, name="percentage_completed_orders_with_0_rating")
+
+## Result:
+print("Percentage of drivers' first-ever completed orders that have a rating of 0:")
+result_series
+
+Notes:
+- My first thought was to use sort_values() then aggregating with first() for solving the problem but I
+  kept running into only having the driver_id and order_placed_time without the delivery_ratings and
+  actual_delivery_time columns. Decided to use min() instead of first() for the earliest first dates for
+  each driver_id then inner joined similarly to how I would tackle a problem like this in SQL using separate
+  CTES. While this method is less efficient, it is still clear to understand the breakdown of the problem and
+  produces the intended solution.
+- This question was another example recently where using CASE WHEN to categorize columns then summing
+  the true values and dividing by total count for percentage came in real handy in terms of cross platform
+  languages in R, Python and SQL.
+
+############################
+
+Website:
+StrataScratch - ID 9791
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Meta - Views Per Keyword
+Create a report showing how many views each keyword has. 
+Output the keyword and the total views, and order records with highest view count first.
+
+Data Dictionary:
+Table name = 'facebook_posts'
+post_date: date (dt)
+post_id: bigint (int)
+post_keywords: text (str)
+post_text: text (str)
+poster: bigint (int)
+Table name = 'facebook_post_views'
+post_id: bigint (int)
+viewer_id: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Create a report showing how many views each keyword has.
+-- Output the keyword and the total views, and order records with highest view count first.
+
+-- Output:
+-- keyword, total_views
+
+-- Preview data:
+SELECT * FROM facebook_posts LIMIT 5;
+SELECT * FROM facebook_post_views LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - posts: 0
+--       - post_views: 0
+-- Rows - posts: 6
+--      - post_views: 9
+SELECT
+    SUM(CASE WHEN post_date IS NULL THEN 1 ELSE 0 END) as col1,
+    SUM(CASE WHEN post_id IS NULL THEN 1 ELSE 0 END) as col2,
+    SUM(CASE WHEN post_keywords IS NULL THEN 1 ELSE 0 END) as col3,
+    SUM(CASE WHEN post_text IS NULL THEN 1 ELSE 0 END) as col4,
+    SUM(CASE WHEN poster IS NULL THEN 1 ELSE 0 END) as col5,
+    COUNT(*) AS total_rows
+FROM facebook_posts;
+
+SELECT
+    SUM(CASE WHEN post_id IS NULL THEN 1 ELSE 0 END) as col1,
+    SUM(CASE WHEN viewer_id IS NULL THEN 1 ELSE 0 END) as col2,
+    COUNT(*) AS total_rows
+FROM facebook_post_views;
+
+-- Iteration:
+-- Create a report showing how many views each keyword has.
+-- Output the keyword and the total views, and order records with highest view count first.
+-- keyword, total_views
+-- 1. Left join facebook_posts and facebook_post_views tables by post_id
+-- 2. Extract keywords from post_keywords column, replace any brackets [] with blank spaces ''
+-- 3. Count number of views for each keyword
+-- 4. Order records with highest view count first
+SELECT
+    unnest(
+        string_to_array(
+            REPLACE(
+                REPLACE(p.post_keywords, '[', '')
+            , ']', '')
+        , ',')
+    ) AS keyword,
+    COUNT(v.viewer_id) AS view_count
+FROM facebook_posts AS p
+LEFT JOIN facebook_post_views AS v
+    ON p.post_id = v.post_id
+GROUP BY keyword
+ORDER BY view_count DESC;
+
+-- Result:
+SELECT
+    unnest( -- Extract keywords from post_keywords column, replace any brackets [] with blank spaces ''
+        string_to_array(
+            REPLACE(
+                REPLACE(p.post_keywords, '[', '')
+            , ']', '')
+        , ',')
+    ) AS keyword,
+    COUNT(v.viewer_id) AS view_count -- Count number of views for each keyword
+FROM 
+    facebook_posts AS p
+LEFT JOIN 
+    facebook_post_views AS v -- Left join facebook_posts and facebook_post_views tables by post_id
+    ON p.post_id = v.post_id
+GROUP BY 
+    keyword
+ORDER BY 
+    view_count DESC; -- Order records with highest view count first
+
+Notes:
+- When I first performed the join, I used an inner join and did not see all the values from both tables
+  so decided to use left join to make sure that all the keywords were included from facebook_posts table even
+  if there were no viewer_ids from the facebook_post_views table corresponding to the matching post_id.
+- Have gotten used to using REPLACE() from Excel's version of it, could use REGEXP_REPLACE() but it's only
+  available for certain SQL servers.
+- Unfortunately unnest() and string_to_array() are PostgreSQL syntax but since I am aware of these, I used
+  them to extract the keywords out of a string list.
+- When deciding whether to use COUNT(DISTINCT) or COUNT(), the question asks for views for each key word
+  rather than how many views for each post so COUNT() made more sense to use.
+
+############################
