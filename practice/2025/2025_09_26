@@ -1,0 +1,399 @@
+Date: 09/26/2025
+
+############################
+
+Website:
+StrataScratch - ID 2077
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Linkedin - Employed at Google
+Find IDs of LinkedIn users who were employed at Google on November 1st, 2021. 
+Do not consider users who started or ended their employment at Google on that day but do include users who changed their position within Google on that day.
+
+Data Dictionary:
+Table name = 'linkedin_users'
+user_id: numeric (num)
+employer: character (str)
+position: character (str)
+start_date: POSIXct, POSIXt (dt)
+end_date: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1
+## Question:
+# Find IDs of LinkedIn users who were employed at Google on November 1st, 2021.
+# Do not consider users who started or ended their employment at Google on that day but 
+# do include users who changed their position within Google on that day.
+
+## Output:
+# user_id
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#linkedin_users <- read_csv('linkedin_users.csv')
+users_df <- data.frame(linkedin_users)
+head(users_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - end_date(5)
+# Rows - 11
+data.frame(lapply(users_df, class))
+colSums(is.na(users_df))
+nrow(users_df)
+
+## Iteration:
+# Find IDs of LinkedIn users who were employed at Google on November 1st, 2021.
+# Do not consider users who started or ended their employment at Google on that day but 
+# do include users who changed their position within Google on that day.
+# user_id
+
+# 1. Assign target date variable
+target_date = as.POSIXct('2021-11-01')
+
+# 2. Find existing users employed at Google on November, 1st 2021
+existing_employees <- users_df %>%
+    filter(
+        # Filter for Google employees where start or end date is not November 1st, 2021
+        # Null means the employee is still working and is considered employed
+        employer == 'Google' &
+        start_date < target_date &
+        (end_date > target_date | is.na(end_date))
+    ) %>%
+    select(user_id)
+
+# 3. Find users employed at Google who changed their position on November 1st, 2021
+changed_employees <- users_df %>%
+    filter(
+        # Filter for Google employees where start or end date is November 1st, 2021 or is NULL
+        employer == 'Google' &
+        (start_date == target_date | end_date == target_date | is.na(end_date))
+    ) %>%
+    arrange(
+        # Arrange by user_id alphabetically A-Z and by earliest date
+        user_id, start_date
+    ) %>%
+    group_by(user_id) %>%
+    mutate(
+        # Find previous position end date for each user_id to see if they changed positions
+        previous_end_date = lag(end_date),
+        # Create a case when statement where start_date = November 1st 2021 
+        # and previous end date is not NULL 
+        # means changed_positions is TRUE, otherwise FALSE
+        changed_position = case_when(
+            (start_date == target_date & !is.na(previous_end_date)) ~ 1,
+            TRUE ~ 0
+        )
+    ) %>%
+    filter(
+        # Filter for changed position where TRUE (1)
+        changed_position == 1
+    ) %>%
+    select(user_id)
+
+# 4. Combine existing employees and changed employees into a single DataFrame
+#    Arrange user_id in ASC order
+result_df = bind_rows(existing_employees, changed_employees) %>%
+    arrange(user_id)
+
+## Result:
+result_df
+
+
+Solution #2
+"""
+# Define the target date
+target_date <- as.POSIXct('2021-11-01', tz = "UTC")
+
+# 1. Find users with continuous employment across the date
+existing_users <- users_df %>%
+  filter(
+    employer == 'Google',
+    start_date < target_date,
+    (is.na(end_date) | end_date > target_date)
+  ) %>%
+  select(user_id)
+
+# 2. Find users who changed positions on the target date
+position_changers <- users_df %>%
+  filter(employer == 'Google') %>%
+  arrange(user_id, start_date) %>%
+  group_by(user_id) %>%
+  mutate(next_start_date = lead(start_date, n = 1L)) %>%
+  filter(end_date == target_date & next_start_date == target_date) %>%
+  select(user_id)
+
+# 3. Combine and get unique user IDs
+final_user_ids <- bind_rows(existing_users, position_changers) %>%
+  pull(user_id) %>%
+  unique()
+
+# Print the result
+print(final_user_ids)
+"""
+
+Notes:
+- The tricky part of this problem is making sure the filters for the target date are correct using enough
+  parenthesis with | or & operators as well as making sure the comparison operators are correct.
+- It is safer to use LAG() on a date column rather than categorical column to avoid any potential confusion
+- Solution #1 follows a LAG() approach with CASE WHEN to categorize the changed positions which is a little
+  more verbose but explains a step by step process for how the logic went through my mind. Soluton #2 is not
+  my approach but is an alternative simple and concise solution using LEAD() and less filters to arrive at
+  a the same solution.
+- Trying to avoid hard coding any potential values, assigning objects to variable names if I have to reuse
+  them multiple times in a query.
+
+############################
+
+Website:
+StrataScratch - ID 2117
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Shopify - Employee with Most Orders
+What is the last name of the employee or employees who are responsible for the most orders?
+
+Data Dictionary:
+Table name = 'shopify_orders'
+order_id: int64 (int)
+shop_id: int64 (int)
+user_id: int64 (int)
+order_amount: int64 (int)
+total_items: int64 (int)
+payment_method: object (str)
+created_at: datetime64 (dt)
+resp_employee_id: int64 (int)
+carrier_id: float64 (flt)
+Table name = 'shopify_employees'
+id: int64 (int)
+first_name: object (str)
+last_name: object (str)
+department: object (str)
+
+Code:
+Solution #1
+## Question:
+# What is the last name of the employee or employees who are responsible for the most orders?
+
+## Output:
+# last_name
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#shopify_orders = pd.read_csv('shopify_orders.csv')
+#shopify_employees = pd.read_csv('shopify_employees.csv')
+orders_df = pd.DataFrame(shopify_orders)
+employees_df = pd.DataFrame(shopify_employees)
+orders_df.head(5)
+employees_df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - orders: carrier_id(5)
+#       - employees: 0
+# Rows - orders: 30
+#      - employees: 12
+#orders_df.info()
+#orders_df.isna().sum()
+#employees_df.info()
+#employees_df.isna().sum()
+
+## Iteration:
+# What is the last name of the employee or employees who are responsible for the most orders?
+# last_name
+
+# 1. Join orders and employees DataFrames by resp_employee_id and id respectively
+merged_df = pd.merge(orders_df, employees_df, left_on="resp_employee_id", right_on="id", how="inner")
+
+# 2. Count number of orders for each employee using employee id and last name
+result_df = merged_df.groupby(['resp_employee_id', 'last_name'])['order_id'].count().reset_index(name="order_count")
+
+# 3. Filter for employees with highest order count which includes ties
+result_df = result_df[
+    result_df['order_count'] == result_df['order_count'].max()    
+]
+
+# 4. Select relevant columns then sort in ASC order
+result_df = result_df[['last_name']].sort_values(by='last_name', ascending=True)
+
+## Result:
+print("Last name of the employee or employees who are responsible for the most orders:")
+result_df
+
+Notes:
+- The question was pretty straightfoward using joins, aggregations, filter and sort functions similar to how
+  I would approach the problem in SQL. Checked to see if a left join was necessary versus a inner join but
+  the left join did not produce any other results so stuck with the inner join. Used count() as an aggregation
+  since orders were distinctly labeled with different ids. Opted with max() instead of rank() function to 
+  account for highest value in a column and potential ties.
+
+############################
+
+Website:
+StrataScratch - ID 9793
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Meta - Average Time Between Steps
+Facebook wants to understand the average time users take to perform certain activities in a feature. 
+User activity is captured in the column step_reached.
+Calculate the average time it takes for users to progress through the steps of each feature.
+Your approach should first calculate the average time it takes for each user to progress through their steps within the feature. 
+Then, calculate the feature's average progression time by taking the average of these user-level averages. 
+Ignore features where no user has more than one step.
+Output the feature ID and the average progression time in seconds.
+
+Data Dictionary:
+Table name = 'facebook_product_features_realizations'
+feature_id: bigint (int)
+step_reached: bigint (int)
+timestamp: timestamp (dt)
+user_id: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Facebook wants to understand the average time users take to perform certain activities in a feature.
+-- User activity is captured in the column step_reached.
+-- Calculate the average time it takes for users to progress through the steps of each feature.
+-- Your approach should first calculate the average time it takes for each user to progress through their
+-- steps within the feature.
+-- Then, calculate the feature's average progression time by taking the average of these user-level averages.
+-- Ignore features where no user has more than one step.
+-- Output the feature ID and the average progression time in seconds.
+
+-- Output:
+-- feature_id, average_progression_time
+
+-- Preview data:
+SELECT * FROM facebook_product_features_realizations LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - 0
+-- Rows - 15
+SELECT 
+    SUM(CASE WHEN feature_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN step_reached IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN timestamp IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM facebook_product_features_realizations;
+
+-- Iteration:
+-- Facebook wants to understand the average time users take to perform certain activities in a feature.
+-- User activity is captured in the column step_reached.
+-- Calculate the average time it takes for users to progress through the steps of each feature.
+-- Your approach should first calculate the average time it takes for each user to progress through their
+-- steps within the feature.
+-- Then, calculate the feature's average progression time by taking the average of these user-level averages.
+-- Ignore features where no user has more than one step.
+-- Output the feature ID and the average progression time in seconds.
+-- feature_id, average_progression_time
+
+-- 1. Find time it takes for users to progress through steps of each feature
+-- 2. Calculate the average progression time for each user within a feature
+-- 3. Calculate feature average progression time using user average step duration
+WITH FeatureUserStepProgressionTime AS (
+SELECT 
+    feature_id,
+    user_id,
+    step_reached,
+    timestamp,
+    timestamp - LAG(timestamp) OVER(
+        PARTITION BY feature_id, user_id 
+        ORDER BY timestamp
+    ) AS step_duration
+FROM facebook_product_features_realizations
+),
+FeatureUserStepAverages AS (
+SELECT 
+    feature_id,
+    user_id,
+    AVG(step_duration) AS user_average_step_duration
+FROM FeatureUserStepProgressionTime
+GROUP BY
+    feature_id,
+    user_id
+HAVING COUNT(step_reached) > 1 -- Ignore features where no user has more than one step.
+)
+SELECT
+    feature_id,
+    AVG(user_average_step_duration) AS average_progression_time
+FROM FeatureUserStepAverages
+GROUP BY feature_id
+ORDER BY feature_id;
+
+-- Result:
+WITH FeatureUserStepProgressionTime AS (
+    SELECT 
+        feature_id,
+        user_id,
+        step_reached,
+        timestamp,
+        -- Find time it takes for users to progress through steps of each feature
+        timestamp - LAG(timestamp) OVER(
+            PARTITION BY 
+                feature_id, 
+                user_id 
+            ORDER BY 
+                timestamp
+        ) AS step_duration
+    FROM 
+        facebook_product_features_realizations
+),
+FeatureUserStepAverages AS (
+    SELECT 
+        feature_id,
+        user_id,
+        -- Calculate the average progression time for each user within a feature
+        AVG(step_duration) AS user_average_step_duration
+    FROM 
+        FeatureUserStepProgressionTime
+    GROUP BY
+        feature_id,
+        user_id
+    HAVING 
+        -- Ignore features where no user has more than one step.
+        COUNT(step_reached) > 1 
+)
+SELECT
+    feature_id,
+    -- Calculate feature average progression time using user average step duration
+    AVG(user_average_step_duration) AS average_progression_time
+FROM 
+    FeatureUserStepAverages
+GROUP BY 
+    feature_id
+ORDER BY 
+    feature_id;
+
+Notes:
+- The number of times where the LAG() function on a date column has been useful continues to grow for me.
+  This particular problem benefits from using the LAG() function to generate a time interval necessary for
+  calculating an aggregation like an average. Thought maybe I would have to use EXTRACT(EPOCH FROM) to get
+  the seconds from the interval but it ended up not being necessary for PostgreSQL and this problem.
+- When the problem stated "Ignore features where no user has more than one step.", I was suprised to think
+  of the idea of filtering out using HAVING COUNT() rather than using a WHERE clause. It made intuitive
+  sense after having the previous CTE I created still have a step_reached column where I could filter out
+  using HAVING COUNT() since that current CTE had a GROUP BY clause.
+
+############################
