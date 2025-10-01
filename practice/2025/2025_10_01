@@ -1,0 +1,361 @@
+Date: 10/1/2025
+
+############################
+
+Website:
+StrataScratch - ID 2079
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Lyft - City with Most Customers
+For each city, find the number of rides in August 2021 that were paid without using a promotional code (i.e., where no discount was applied). 
+Output the city or cities where this number was the highest.
+
+Data Dictionary:
+Table name = 'lyft_orders'
+order_id: numeric (num)
+customer_id: character (str)
+driver_id: character (str)
+country: character (str)
+city: character (str)
+Table name = 'lyft_payments'
+order_id: numeric (num)
+order_date: POSIXct, POSIXt (dt)
+promo_code: logical (bool)
+order_fare: numeric (num)
+
+Code:
+Solution #1
+## Question:
+# For each city, find the number of rides in August 2021 that were paid without using a promotional code.
+# (i.e. where no discount was applied).
+# Output the city or cities where this number was the highest.
+
+## Output:
+# city
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#lyft_orders <- read_csv('lyft_orders.csv')
+#lyft_payments <- read_csv('lyft_payments.csv')
+orders_df <- data.frame(lyft_orders)
+payments_df <- data.frame(lyft_payments)
+head(orders_df, 5)
+head(payments_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - orders: 0
+#       - payments: 0
+# Rows - orders: 21
+#      - payments: 21
+data.frame(lapply(orders_df, class))
+data.frame(lapply(payments_df, class))
+colSums(is.na(orders_df))
+colSums(is.na(payments_df))
+nrow(orders_df)
+nrow(payments_df)
+
+## Iteration:
+# For each city, find the number of rides in August 2021 that were paid without using a promotional code.
+# (i.e. where no discount was applied).
+# Output the city or cities where this number was the highest.
+# city
+result_df <- orders_df %>%
+    # 1. Join orders and payments DataFrames by order_id
+    inner_join(payments_df, by="order_id") %>%
+    # 2. Filter for dates in August 2021
+    # 3. Filter for rides without promotional code
+    filter(
+        (year(order_date) == 2021) &
+        (month(order_date) == 8) &
+        (promo_code == FALSE)
+    ) %>%
+    # 4. Count the number of rides for each city
+    group_by(city) %>%
+    summarise(
+        ride_count = n(), .groups="drop"
+    ) %>%
+    # 5. Use slice to filter for cities where number of rides was highest, includes ties
+    slice_max(ride_count) %>%
+    # 6. Arrange cities in ASC order
+    arrange(city)
+    
+## Result:
+result_df
+
+Notes:
+- When filtering for logical data types, use !'col' or 'col' == FALSE instead of using 'col' == "FALSE" 
+  because the latter is filtering for a character string and the former is filtering for logical/boolean.
+- Remember to use ungroup() or .groups="drop" in summarise() function when using a group_by() to preserve the
+  nature of the DataFrame for later use if needed.
+- Decided to implement the built in function slice_max() instead of filter(max()) for finding rows with the 
+  maximum which includes ties. A lot easier to use instead of ranking as well.
+
+############################
+
+Website:
+StrataScratch - ID 2118
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Shopify - Most Sold in Germany
+Find the product with the most orders from users in Germany. 
+Output the market name of the product or products in case of a tie.
+
+Data Dictionary:
+Table name = 'shopify_orders'
+order_id: int64 (int)
+shop_id: int64 (int)
+user_id: int64 (int)
+order_amount: int64 (int)
+total_items: int64 (int)
+payment_method: object (str)
+created_at: datetime64 (dt)
+resp_employee_id: int64 (int)
+carrier_id: float64 (flt)
+Table name = 'shopify_users'
+id: int64 (int)
+username: object (str)
+first_name: object (str)
+last_name: object (str)
+country: object (str)
+city: object (str)
+Table name = 'dim_product'
+prod_sku_id: object (str)
+prod_sku_name: object (str)
+prod_brand: object (str)
+market_name: object (str)
+Table name = 'map_product_order'
+order_id: int64 (int)
+product_id: object (str)
+
+Code:
+Solution #1
+## Question:
+# Find the product with the most orders from "users" in Germany.
+# Output the market name of the product or products in case of a tie.
+
+## Output:
+# market_name
+
+## Import libraries:
+import pandas as pd
+import numpy as np
+
+## Load and preview data:
+#shopify_orders = pd.read_csv('shopify_orders.csv')
+#shopify_users = pd.read_csv('shopify_users.csv')
+#dim_product = pd.read_csv('dim_product.csv')
+#map_product_order = pd.read_csv('map_product_order.csv')
+orders_df = pd.DataFrame(shopify_orders)
+users_df = pd.DataFrame(shopify_users)
+product_df = pd.DataFrame(dim_product)
+product_order_df = pd.DataFrame(map_product_order)
+orders_df.head(5)
+users_df.head(5)
+product_df.head(5)
+product_order_df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - orders: carrier_id(5)
+#       - users: 0
+#       - product: 0
+#       - product_order: 0
+# Rows - orders: 30
+#      - users: 27
+#      - product: 18
+#      - product_order: 52
+#orders_df.info()
+#orders_df.isna().sum()
+#users_df.info()
+#users_df.isna().sum()
+#product_df.info()
+#product_df.isna().sum()
+#product_order_df.info()
+#product_order_df.isna().sum()
+
+## Iteration:
+# Find the product with the most orders from "users" in Germany.
+# Output the market name of the product or products in case of a tie.
+# market_name
+# 1. Join orders, users, product, and product_order DataFrames
+#    Merge orders and users by user_id and id respectively
+#    Merge product and product order by prod_sku_id and product_id respectively
+#    Merge the results of previous merges by order_id
+merged_df = pd.merge(orders_df, users_df, left_on="user_id", right_on="id", how="inner")
+merged_df2 = pd.merge(product_df, product_order_df, left_on="prod_sku_id", right_on="product_id", how="inner")
+final_merged_df = pd.merge(merged_df, merged_df2, on="order_id", how="inner")
+
+# 2. Filter for orders from "users" in Germany
+# 3. Count number of orders for each market_name product by country
+result_df = final_merged_df[
+    final_merged_df["country"] == "Germany"
+].groupby(["country", "market_name"])["order_id"].count().reset_index(name="order_count")
+
+# 4. Filter for highest order count for market_name product and include ties
+result_df = result_df[
+    result_df["order_count"] == result_df["order_count"].max()
+]
+
+# 5. Select relevant columns and arrange in ASC order
+result_df = result_df[["market_name"]].sort_values(by="market_name", ascending=True)
+
+## Result:
+print("Products with the most orders from customers in Germany.")
+result_df
+
+Notes:
+- When merging multiple DataFrames together, instead of creating multiple intermediate merged DataFrames,
+  can create a single chain of merges using .merge() on DataFrames() as opposed to pd.merge().
+  ex. 
+      merged_df = (
+          orders_df
+          .merge(users_df, left_on="user_id", right_on="id", how="inner")
+          .merge(product_order_df, on="order_id", how="inner")
+          .merge(product_df, left_on="product_id", right_on="prod_sku_id", how="inner")
+      )
+- Understanding how the DataFrames joined by their separate ids was probably the most difficult part of the
+  problem since there were 4 DataFrames that needed to be joined into one DataFrameto see all the data. After
+  that the question was straightforward to perform filtering, aggregation and sorting functions.
+
+############################
+
+Website:
+StrataScratch - ID 9794
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Google - Words With Two Vowels
+Find all words which contain exactly two vowels in any list in the table.
+
+Data Dictionary:
+Table name = 'google_word_lists'
+words1: text (str)
+words2: text (str)
+
+Code:
+Solution #1
+-- Question:
+-- Find all words which contain exactly two vowels in any list in the table.
+
+-- Output:
+-- words_with_two_vowels
+
+-- Preview data:
+SELECT * FROM google_word_lists LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - 0
+-- Rows - 4
+SELECT
+    SUM(CASE WHEN words1 IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN words2 IS NULL THEN 1 ELSE 0 END) AS col2,
+    COUNT(*) AS total_rows
+FROM google_word_lists;
+
+-- Iteration:
+-- Find all words which contain exactly two vowels in any list in the table.
+-- words_with_two_vowels
+-- 1. Convert lists from string to array and unnest them by commas in separate queries
+-- 2. Union both queries to find distinct words between lists
+-- 3. Use regular expressions count to find number of vowels 'A' 'E' 'I' 'O' 'U' 'Y' in each word
+-- 4. Filter for words that contain exactly two vowels
+WITH DistinctWords AS (
+SELECT 
+    unnest(string_to_array(words1, ',')) AS unnested_array_words
+FROM google_word_lists
+
+UNION
+
+SELECT
+    unnest(string_to_array(words2, ',')) AS unnested_array_words
+FROM google_word_lists
+)
+SELECT
+    unnested_array_words,
+    REGEXP_COUNT(unnested_array_words, '[aeiouy]') AS vowel_count
+FROM DistinctWords
+WHERE REGEXP_COUNT(unnested_array_words, '[aeiouy]') = 2
+ORDER BY unnested_array_words; 
+
+-- Result:
+WITH DistinctWords AS (
+    -- 1. Convert lists from string to array and unnest them by commas in separate queries
+    SELECT 
+        unnest(
+            string_to_array(words1, ',')
+        ) AS unnested_array_words
+    FROM 
+        google_word_lists
+
+    -- 2. Union both queries to find distinct words between lists
+    UNION
+
+    SELECT
+        unnest(
+            string_to_array(words2, ',')
+        ) AS unnested_array_words
+    FROM 
+        google_word_lists
+)
+SELECT
+    unnested_array_words AS words_with_two_vowels
+FROM 
+    DistinctWords
+WHERE 
+    -- 3. Use regular expressions count to find number of vowels 'A' 'E' 'I' 'O' 'U' 'Y' in each word
+    -- 4. Filter for words that contain exactly two vowels
+    REGEXP_COUNT(unnested_array_words, '[aeiouy]') = 2
+ORDER BY 
+    unnested_array_words;
+
+Notes:
+- When using REGEXP_COUNT() function, it's best to account for both case-sensitive and case-insensitive
+  scenarios in case the data has varying capitalizations. REGEXP_COUNT() is available for Oracle, PostgresSQL,
+  Snowflake and MYSQL.
+  Ex. 
+      REGEXP_COUNT(unnested_array_words, '[aeiouyAEIOUY]')
+- For cross platform counting of characters, its best to use LENGTH() and REPLACE()
+  Ex.
+      SELECT
+          (
+              LENGTH(MyString)
+              - LENGTH(REPLACE(
+                  REPLACE(
+                      REPLACE(
+                          REPLACE(
+                            REPLACE(MyString, 'a', ''), -- Remove all 'a's
+                            'e', ''),                   -- Remove all 'e's
+                        'i', ''),
+                    'o', ''),
+                'u', '')
+              )
+           ) AS VowelCount
+       FROM
+           MyTable;
+- Was trying to make a self join work with two columns with lists of words that were converted from a string
+  to an array and unnested. It turned out to be easier to just use a UNION since it gets all the distinct
+  values from both columns. 
+- Once all the words were in one column, I attempted to use ILIKE to find the number of vowels in each word
+  but that seemed a bit too complicated when combining a CASE WHEN statement and WHERE clause. Decided to
+  go with PostgreSQL's dedicated function REGEXP_COUNT() to be more direct in counting vowel characters.
+
+############################
