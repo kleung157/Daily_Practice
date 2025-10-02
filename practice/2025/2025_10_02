@@ -1,0 +1,351 @@
+Date: 10/2/2025
+
+############################
+
+Website:
+StrataScratch - ID 2081
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Meta - Recommendation System
+You are given the list of Facebook friends and the list of Facebook pages that users follow. 
+Your task is to create a new recommendation system for Facebook. 
+For each Facebook user, find pages that this user doesn't follow but at least one of their friends does. 
+Output the user ID and the ID of the page that should be recommended to this user.
+
+Data Dictionary:
+Table name = 'users_friends'
+user_id: numeric (num)
+friend_id: numeric (num)
+Table name = 'users_pages'
+user_id: numeric (num)
+page_id: numeric (num)
+
+Code:
+Solution #1
+## Question:
+# You are given the list of Facebook friends and the list of Facebook pages that users follow.
+# Your task is to create a new recommendation sys for Facebook.
+# For each Facebook user,  find pages that this user doesn't follow but at least one of their friends does.
+# Output the user ID and the ID of the page that should be recommended to this user.
+
+## Output:
+# user_id, page_id
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#users_friends <- read_csv('users_friends.csv')
+#users_pages <- read_csv('users_pages.csv')
+friends_df <- data.frame(users_friends)
+pages_df <- data.frame(users_pages)
+head(friends_df, 5)
+head(pages_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+#       - 0
+# Rows - 12
+#      - 11
+data.frame(lapply(friends_df, class))
+data.frame(lapply(pages_df, class))
+colSums(is.na(friends_df))
+colSums(is.na(pages_df))
+nrow(friends_df)
+nrow(pages_df)
+
+## Iteration:
+# You are given the list of Facebook friends and the list of Facebook pages that users follow.
+# Your task is to create a new recommendation sys for Facebook.
+# For each Facebook user,  find pages that this user doesn't follow but at least one of their friends does.
+# Output the user ID and the ID of the page that should be recommended to this user.
+# user_id, page_id
+# 1. Find all possible pages that can be followed by users
+possible_pages <- pages_df %>%
+    select(page_id) %>%
+    distinct(page_id) %>%
+    arrange(page_id)
+    
+# 2. Find all pages that user's friends follows
+#    Select the original user_id and page_id that friend follows and remove duplicates
+user_friend_page_df <- friends_df %>%
+    inner_join(pages_df, by=c("friend_id"="user_id")) %>%
+    select(user_id, page_id) %>%
+    distinct(user_id, page_id) %>%
+    arrange(user_id, page_id)
+
+# 3. Return rows that appear in user's friend pages but not in pages that users originally follow
+result_df = setdiff(user_friend_page_df, pages_df)
+
+## Result:
+result_df
+
+
+Solution #2
+"""
+recommendations_df <- users_friends %>%
+  # STEP 1: Link each user to all pages followed by their friends
+  # Join 'users_friends' (L) with 'users_pages' (R) on friend_id = user_id
+  inner_join(users_pages, by = c("friend_id" = "user_id")) %>%
+  
+  # STEP 2: Select only the required columns and rename them for clarity
+  # The resulting table shows: User -> Friend's Page
+  select(
+    user_id = user_id,       # The user receiving the recommendation
+    recommended_page_id = page_id # The page the friend follows
+  ) %>%
+  
+  # STEP 3: Remove duplicate recommendations (since multiple friends might follow the same page)
+  distinct() %>%
+  
+  # STEP 4: Identify pages the user *already* follows
+  # Perform an Anti-Join: remove rows where (user_id, recommended_page_id)
+  # already exists in the original 'users_pages' table
+  anti_join(users_pages, by = c("user_id" = "user_id", "recommended_page_id" = "page_id")) %>%
+  
+  # STEP 5: Final output cleanup
+  arrange(user_id, recommended_page_id)
+"""
+
+Notes:
+- Was originally thinking of using sets, lists and intersections to determine the matches and non matches
+  hence the variable that contains all possible pages for each user. R on Python isn't great with lists so 
+  switched to using JOINs but couldn't figure out how to add filters where the ids for say users and pages 
+  were not equal to each other. That led me to think of the union() function and other built in functions like 
+  setdiff(). I had already made sure the columns were the same number for each DataFrame being compared and 
+  the names were also identical. This approach is seen in Solution #1, whereas the JOIN approach using 
+  anti-join that I had previously wanted to use but didn't know the function to is in Solution #2.
+- The anti-join() function is generally more preferred than the setdiff().
+- Even though I spent a considerable amount of time on this problem, I am glad to have stuck to it and arrived
+  at an approachthat can be implemented to obtain a solution that is useable.
+
+############################
+
+Website:
+StrataScratch - ID 2119
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Meta - Most Lucrative Products
+You have been asked to find the 5 most lucrative products (including ties) in terms of total revenue for the first half of 2022 (from January to June inclusive).
+Output their IDs and the total revenue. 
+There may be more than 5 rows in the output since you are including ties.
+
+Data Dictionary:
+Table name = 'online_orders'
+product_id: int64 (int)
+promotion_id: int64 (int)
+cost_in_dollars: int64 Int)
+customer_id: int64 (int)
+date_sold: datetime64 (dt)
+units_sold: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# You have been asked to find the 5 most lucrative products (including ties) in terms of total revenue for
+# the first half of 2022 (from January to June inclusive).
+# Output their IDs and the total revenue.
+# There may be more than 5 rows in the output since you are including ties.
+
+## Output:
+# product_id, total_revenue
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#online_orders <- pd.read_csv('online_orders.csv')
+orders_df = pd.DataFrame(online_orders)
+orders_df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 33
+#orders_df.info()
+#orders_df.isna().sum()
+
+## Iteration:
+# You have been asked to find the 5 most lucrative products (including ties) in terms of total revenue for
+# the first half of 2022 (from January to June inclusive).
+# Output their IDs and the total revenue.
+# There may be more than 5 rows in the output since you are including ties.
+# product_id, total_revenue
+# 1. Filter for first half of 2022 (January to June)
+filtered_df = orders_df[
+    (orders_df["date_sold"].dt.year == 2022) &
+    (orders_df["date_sold"].dt.month <= 6)
+].copy()
+
+# 2. Calculate the revenue for each order using cost_in_dollars * units_sold
+filtered_df["revenue"] = filtered_df["cost_in_dollars"] * filtered_df["units_sold"]
+
+# 3. Calculate the total revenue for each product_id
+result_df = filtered_df.groupby("product_id")["revenue"].sum().reset_index(name="total_revenue")
+
+# 4. Rank total revenue in DESC order and include ties
+result_df["rank"] = result_df["total_revenue"].rank(method="dense", ascending=False)
+
+# 5. Filter for top 5 most lucrative products
+result_df = result_df[
+    result_df["rank"] <= 5
+]
+
+# 6. Select relevant columns and sort values in DESC order by total_revenue
+result_df = result_df[["product_id", "total_revenue"]].sort_values(by="total_revenue", ascending=False)
+
+## Result:
+print("The 5 most lucrative products in terms of total revenue for the first half of 2022:")
+result_df
+
+Notes:
+- When filtering for the first half of 2022, thought of using quarters or having a start/end date to compare
+  to but once I used .dt.year, I naturally thought of using .dt.month in a similar manner as using EXTRACT
+  in SQL. 
+- The rest of the problem was pretty straightfoward in calculating the necessary components before
+  performing an aggregation function with group by then ranking, filtering, selecting, and sorting. Even
+  though the problem had said to account for ties, there weren't any in the final result.
+
+############################
+
+Website:
+StrataScratch - ID 9814
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Google - Counting Instances in Text
+Find the number of times the exact words bull and bear appear in the contents column.
+Count all occurrences, even if they appear multiple times within the same row. 
+Matches should be case-insensitive and only count exact words, that is, exclude substrings like bullish or bearing.
+Output the word (bull or bear) and the corresponding number of occurrences.
+
+Data Dictionary:
+Table name = 'google_file_store'
+contents: text (str)
+filename: text (str)
+
+Code:
+Solution #1
+-- Question:
+-- Find the number of times the exact words bull and bear appear in the contents column.
+-- Count all occurences, even if they appear multiple times within the same row.
+-- Matches should be case-insensitive and only count exact words, that is, 
+-- exclude substrings like bullish or bearing.
+-- Output the word (bull or bear) and the corresponding number of occurences.
+
+-- Output:
+-- word, number_of_occurences
+
+-- Preview data:
+SELECT * FROM google_file_store LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - 0
+-- Rows - 3
+SELECT
+    SUM(CASE WHEN contents IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN filename IS NULL THEN 1 ELSE 0 END) AS col2,
+    COUNT(*) AS total_rows
+FROM google_file_store;
+
+-- Iteration:
+-- Find the number of times the exact words bull and bear appear in the contents column.
+-- Count all occurences, even if they appear multiple times within the same row.
+-- Matches should be case-insensitive and only count exact words, that is, 
+-- exclude substrings like bullish or bearing.
+-- Output the word (bull or bear) and the corresponding number of occurences.
+-- word, number_of_occurences
+-- 1. Replace all commas and periods with ''
+-- 2. Unnest all words from each sentence converted array
+-- 3. Trim any excess white space
+-- 4. Create a CASE statement to account for case-insensitive matches
+--    Convert extracted word to LOWER case and any non exact matches are excluded
+-- 5. Filter for words that are exactly "bull" or "bear"
+-- 6. Count number of occurences for each word
+WITH CleanedWords AS (
+SELECT 
+    TRIM(
+        unnest(
+            STRING_TO_ARRAY(
+                REPLACE(
+                    REPLACE(contents, ',', '')
+                , '.', '')
+            , ' ')
+        )
+    ) AS extracted_word
+FROM google_file_store
+)
+SELECT 
+    CASE 
+        WHEN LOWER(extracted_word) = 'bull' THEN 'bull'
+        WHEN LOWER(extracted_word) = 'bear' THEN 'bear'
+        ELSE 'other'
+    END AS word,
+    COUNT(*) AS number_of_occurences
+FROM CleanedWords
+WHERE LOWER(extracted_word) = 'bull'
+    OR LOWER(extracted_word) = 'bear'
+GROUP BY word
+ORDER BY word;
+
+-- Result:
+WITH CleanedWords AS (
+    SELECT 
+        TRIM( -- 3. Trim any excess white space
+            unnest( -- 2. Unnest all words from each sentence converted array
+                STRING_TO_ARRAY(
+                    REPLACE( -- 1. Replace all commas and periods with ''
+                        REPLACE(contents, ',', '')
+                    , '.', '')
+                , ' ')
+            )
+        ) AS extracted_word
+    FROM 
+        google_file_store
+)
+SELECT 
+    CASE -- 4. Create a CASE statement to account for case-insensitive matches
+         --    Convert extracted word to LOWER case and any non exact matches are excluded
+        WHEN LOWER(extracted_word) = 'bull' THEN 'bull'
+        WHEN LOWER(extracted_word) = 'bear' THEN 'bear'
+        ELSE 'other'
+    END AS word,
+    COUNT(*) AS number_of_occurences -- 6. Count number of occurences for each word
+FROM 
+    CleanedWords
+WHERE 
+    LOWER(extracted_word) = 'bull' -- 5. Filter for words that are exactly "bull" or "bear"
+    OR LOWER(extracted_word) = 'bear'
+GROUP BY 
+    word
+ORDER BY 
+    word;
+
+Notes:
+- I am surprised at how intuitive it is for me now to manipulate text and extract the words in a string so
+  seemlessly while also accounting for other potential delimiters. It's been helpful to practice SQL and
+  the lessons in Excel have similar functions that are constant reminders for text manipulation.
+- Initially, I used ILIKE to filter for words that matched 'bull' or 'bear'. However, that matches any
+  corresponding substrings that may have those words included as well. The safer way is to convert all the 
+  words into lower case and then have any cases of substrings with the exact words be marked as another 
+  instance using a CASE WHEN statement. For the words that contain the exact matching word of 'bull'
+  or 'bear', just have the exact output of those words to include in the final count.
+
+############################
