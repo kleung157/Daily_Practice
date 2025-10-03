@@ -1,0 +1,310 @@
+Date: 10/03/2025
+
+############################
+
+Website:
+StrataScratch - ID 2084
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Meta - Blocked Users
+You are given a table of users who have been blocked from Facebook, together with the date, duration, and the reason for the blocking. 
+The duration is expressed as the number of days after blocking date and if this field is empty, this means that a user is blocked permanently.
+For each blocking reason, count how many users were blocked in December 2021. 
+Include both the users who were blocked in December 2021 and those who were blocked before but remained blocked for at least a part of December 2021.
+
+Data Dictionary:
+Table name = 'fb_blocked_users'
+user_id: numeric (num)
+block_reason: character (str)
+block_date: POSIXct, POSIXt (dt)
+block_duration: numeric (num)
+
+Code:
+Solution #1
+## Question:
+# You are given a table of users who have been blocked from Facebook,
+# together with the date, duration, and the reason for the blocking.
+# The duration is expressed as the number of days after blocking date and
+# if this field is empty, this means that a user is blocked permanently.
+# For each blocking reason, count how many users were blocked in December 2021.
+# Include both the users who were blocked in December 2021 and those who were
+# blocked before but remained blocked for at least a part of December 2021.
+
+## Output:
+# block_reason, user_count
+
+## Import libraries:
+#install.packages(tidyverse)
+#install.packages(lubridate)
+library(tidyverse)
+library(lubridate)
+
+## Load and preview data:
+#fb_blocked_users <- read_csv('fb_blocked_users.csv')
+blocked_users_df <- data.frame(fb_blocked_users)
+head(blocked_users_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - block_duration(4)
+# Rows - 14
+data.frame(lapply(blocked_users_df, class))
+colSums(is.na(blocked_users_df))
+nrow(blocked_users_df)
+
+## Iteration:
+# You are given a table of users who have been blocked from Facebook,
+# together with the date, duration, and the reason for the blocking.
+# The duration is expressed as the number of days after blocking date and
+# if this field is empty, this means that a user is blocked permanently.
+# For each blocking reason, count how many users were blocked in December 2021.
+# Include both the users who were blocked in December 2021 and those who were
+# blocked before but remained blocked for at least a part of December 2021.
+# block_reason, user_count
+dec_start_date <- as.POSIXct('2021-12-01')
+dec_end_date <- as.POSIXct('2021-12-31')
+
+result_df <- blocked_users_df %>%
+    mutate(
+        # 1. Calculate block end date by adding block_duration days to block_date
+        block_end_date = block_date + days(block_duration)
+    ) %>%
+    filter(
+        # 2. Filter for users with block_date before December 31 2021
+        (block_date <= dec_end_date) &
+        # 3. Filter for users with block_end_date >= December 1 2021 or null which means permanently banned
+        (block_end_date >= dec_start_date | is.na(block_end_date))
+    ) %>%
+    group_by(block_reason) %>%
+    summarise(
+        # 4. Count number of distinct users for each blocking reason, noticed duplicate user_ids
+        distinct_user_count = n_distinct(user_id), .groups="drop"
+    ) %>%
+    arrange(block_reason)
+
+## Result:
+result_df
+
+Notes:
+- To add a numeric type column to POSIXct type column, can convert the POSIXct to as.Date() then add the numeric
+  values directly. The alternative is converting the numeric column into days() and adding onto POSIXct column.
+  The lubridate package is necessary for both.
+  ex. 
+       block_end_date = block_date + days(block_duration)
+  ex. 
+       block_end_date = as.Date(block_date) + block_duration)
+- Trying to get better about not hard coding values and assigning them a variable so that it is clear what
+  the value does and it can be reused in later parts of the query.
+- For these types of questions, the filtering step is the most tricky part and have to pay close attention as
+  to how the filters for | OR arguments and & AND arguments are added with parentheses.
+
+############################
+
+Website:
+StrataScratch - ID 2121
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Meta - Highest Sales with Promotions
+The marketing department is assessing the success of their promotional campaigns.
+You have been asked to find which products sold the most units for each promotion.
+Your output should contain the promotion ID, product ID, and corresponding total sales for the most successful product ID. 
+In the case of a tie, output all results.
+
+Data Dictionary:
+Table name = 'online_orders'
+product_id: int64 (int)
+promotion_id: int64 (int)
+cost_in_dollars: int64 (int)
+customer_id: int64 (int)
+date_sold: datetime64 (dt)
+units_sold: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# The marketing department is assessing the success of their promotional campaigns.
+# You have been asked to find which products sold the most units for each promotion.
+# Output should contain the promotion ID, product ID, 
+# and corresponding sales for the most successful product ID.
+# In case of a tie, output all results.
+
+## Output:
+# promotion_id, product_id, total_sales
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#online_orders = pd.read_csv('online_orders.csv')
+orders_df = pd.DataFrame(online_orders)
+orders_df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 34
+#orders_df.info()
+#orders_df.isna().sum()
+
+## Iteration:
+# The marketing department is assessing the success of their promotional campaigns.
+# You have been asked to find which products sold the most units for each promotion.
+# Output should contain the promotion ID, product ID, 
+# and corresponding sales for the most successful product ID.
+# In case of a tie, output all results.
+# promotion_id, product_id, total_sales
+# 1. Calculate sales for each order using cost_in_dollars * units_sold
+orders_df['sales'] = orders_df['cost_in_dollars'] * orders_df['units_sold']
+
+# 2. Calculate total units sold and total sales for each product per promotion
+result_df = (
+    orders_df.groupby(['promotion_id','product_id'])
+    .agg(total_units_sold=('units_sold', 'sum'),
+         total_sales=('sales', 'sum'))
+    .reset_index()
+)
+
+# 3. Rank total units sold in DESC order for each product per promotion and include ties
+result_df['rank'] = (
+    result_df.groupby('promotion_id')['total_units_sold'].rank(method='dense', ascending=False)
+)
+
+# 4. Filter for product with highest total units sold in each promotion using rank
+result_df = result_df[
+    result_df['rank'] == 1
+]
+
+# 5. Select relevant columns and sort in ASC order
+result_df = result_df[['promotion_id', 'product_id', 'total_sales']].sort_values(by='promotion_id', ascending=True)
+
+## Result:
+print("Products that sold the most units for each promotion and their corresponding sales:")
+result_df
+
+Notes:
+- The question asks for "products sold the most units for each promotion" which would mean the total number
+  of units sold is the objective to be ranked for each product per promotion. Once that was accomplished,
+  the question later says "corresponding total sales for most successsful product" which I interpretted as
+  the sales being calculated as cost_in_dollars * units_sold then aggregating to get the sum total sales.
+  I did not think it would be the total units sold as the total sales.
+
+############################
+
+Website:
+StrataScratch - ID 9815
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Google - Price Of A Handyman
+Find the price that a small handyman business is willing to pay per employee. 
+Get the result based on the mode of the adword earnings per employee distribution. 
+Small businesses are considered to have not more than ten employees.
+
+Data Dictionary:
+Table name = 'google_adwords_earnings'
+adwords_earnings: bigint (int)
+business_name: text (str)
+business_type: text (str)
+n_employees: bigint (int)
+year: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Find the price that a small handyman business is willing to pay per employee.
+-- Get the result based on the mode of the adword earnings per employee distribution.
+-- Small businesses are considered to have not more than ten employees.
+
+-- Output:
+-- price_per_employee
+
+-- Preview data:
+SELECT * FROM google_adwords_earnings LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - 0
+-- Rows - 15
+SELECT
+    SUM(CASE WHEN adwords_earnings IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN business_name IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN business_type IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN n_employees IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN year IS NULL THEN 1 ELSE 0 END) AS col5,
+    COUNT(*) AS total_rows
+FROM google_adwords_earnings;
+
+-- Iteration:
+-- Find the price that a small handyman business is willing to pay per employee.
+-- Get the result based on the mode of the adword earnings per employee distribution.
+-- Small businesses are considered to have not more than ten employees.
+-- price_per_employee
+-- 1. Filter for handyman business type and businesses with <= 10 n_employees
+-- 2. Calculate adword earnings per number employees
+-- 3. Count number of times each price_per_employee occurs
+-- 4. Rank the count of prices in DESC order and include ties
+-- 5. Filter for price_per_employee that contains the most counts as the mode using rank
+WITH PricePerEmployeeCountRanked AS (
+SELECT 
+    (adwords_earnings / n_employees) AS price_per_employee,
+    COUNT(*) AS price_count,
+    DENSE_RANK() OVER(ORDER BY COUNT(*) DESC) AS count_rank
+FROM google_adwords_earnings
+WHERE business_type = 'handyman'
+    AND n_employees <= 10
+GROUP BY price_per_employee
+)
+SELECT
+    price_per_employee
+FROM PricePerEmployeeCountRanked
+WHERE count_rank = 1;
+
+-- Result:
+WITH PricePerEmployeeCountRanked AS (
+    SELECT 
+        (adwords_earnings / n_employees) AS price_per_employee, -- 2. Calculate earnings per employee
+        COUNT(*) AS price_count, -- 3. Count number of times each price_per_employee occurs
+        DENSE_RANK() OVER( -- 4. Rank the count of price per employee in DESC order and include ties
+            ORDER BY COUNT(*) DESC
+        ) AS count_rank 
+    FROM 
+        google_adwords_earnings
+    WHERE 
+        business_type = 'handyman' -- 1. Filter for handyman business type and n_employees <= 10
+        AND n_employees <= 10
+    GROUP BY 
+        price_per_employee
+)
+SELECT
+    price_per_employee
+FROM 
+    PricePerEmployeeCountRanked
+WHERE 
+    count_rank = 1; -- 5. Filter for price_per_employee that contains the most counts as the mode using rank
+
+Notes:
+- This mode question was disguised as a COUNT and RANK question. 
+- Almost missed the small details of filtering before performing the aggregation in the CTE. 
+- Directly divided the integer data type columns but should definitely consider in the future to check that
+  integers are not 0 to avoid division by zero. 
+- Another point to consider would be using integer types for division rounds the results to the nearest whole 
+  number which is an estimation distribution of the mode compared to converting the integer data type to a 
+  numeric for the calculation and getting the true distribution for the mode. 
+  In this case, I went by the already assigned data types of integer since the mode is usually a single number 
+  and having ties in the rankings would mean there would be multiple values for a mode.
+
+############################
