@@ -1,0 +1,342 @@
+Date: 10/07/2025
+
+############################
+
+Website:
+StrataScratch - ID 2086
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Meta - Number of Conversations
+Count the total number of distinct conversations on WhatsApp. 
+Two users share a conversation if there is at least 1 message between them. 
+Multiple messages between the same pair of users are considered a single conversation.
+
+Data Dictionary:
+Table name = 'whatsapp_messages'
+message_id: numeric (num)
+message_date: POSIXct, POSIXt (dt)
+message_time: POSIXct, POSIXt (dt)
+message_sender_id: character (str)
+message_receiever_id: character (str)
+
+Code:
+Solution #1
+## Question:
+# Count the total number of distinct conversations on WhatsApp.
+# Two users share a conversation if there is at least 1 message between them.
+# Multiple messages between the same pair of users are considered a single conversation.
+
+## Output:
+# distinct_conversation_total
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#whatsapp_messages <- read_csv('whatsapp_messages.csv')
+messages_df <- data.frame(whatsapp_messages)
+head(messages_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 32
+data.frame(lapply(messages_df, class))
+colSums(is.na(messages_df))
+nrow(messages_df)
+
+## Iteration:
+# Count the total number of distinct conversations on WhatsApp.
+# Two users share a conversation if there is at least 1 message between them.
+# Multiple messages between the same pair of users are considered a single conversation.
+# distinct_conversation_count
+result_df <- messages_df %>%
+    rowwise() %>%
+    mutate(
+        # 1. Combine each sender and reciever ids into a list and rearrange in alphabetical order
+        sender_receiver = str_c(sort(c(message_sender_id, message_receiver_id)), collapse = ", ")
+    ) %>%
+    distinct(
+        # 2. Find distinct combination of sender receiever for unique conversations
+        sender_receiver
+    ) %>%
+    ungroup() %>%
+    summarise(
+        # 3. Count all unique conversation rows for conversation total
+        distinct_conversation_total = n()
+    )
+
+## Result:
+result_df
+
+Notes:
+- rowwise() function treats each data row as its own group and can be used for string combination and sorting.
+  str_c() function combines strings together and can be separated with text using collapse parameter.
+  sort() function sorts the values in a particular row
+  ex. data_tidy <- data_tidy %>%
+          # 1. Start operating row-by-row
+          rowwise() %>%
+          # 2. Create the new column 'Combined'
+          mutate(
+          # Combine Col_A and Col_B into a temporary vector c(Col_A, Col_B)
+          # Sort that vector
+          # Collapse the sorted vector into a single string
+          Combined = str_c(sort(c(Col_A, Col_B)), collapse = ", ")
+          ) %>%
+          # 3. Revert to standard data frame
+          ungroup()
+- Was not aware that string concatenation was not instant in R compared to Python. Did not know of the
+  str_c() function nor rowwise() function before solving the problem. However, I did map out my steps for
+  solving this problem in a way that I would for any other langauge. When it came down to performing the
+  row count for the final step, I decided to use summarise(n()) so I can ame the new column compared to
+  nrow() adding an extra step for renaming. Not a difficult problem when solving with pseudo-code and looking
+  through R documentation for the correct functions in mind.
+
+############################
+
+Website:
+StrataScratch - ID 2122
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Meta - Products Never Sold
+The VP of Sales feels that some product categories don't sell and can be completely removed from the inventory.
+As a first pass analysis, they want you to find what percentage of product categories have never been sold.
+
+Data Dictionary:
+Table name = 'online_products'
+product_id: int64 (int)
+product_class: object (str)
+brand_name: object (str)
+is_low_fat: object (str)
+is_recyclable: object (str)
+product_category: int64 (int)
+product_family: object (str)
+Table name = 'online_orders'
+product_id: int64 (int)
+promotion_id: int64 (int)
+cost_in_dollars: int64 (int)
+customer_id: int64 (int)
+date_sold: datetime64 (dt)
+units_sold: int64 (int)
+Table name = 'online_product_categories'
+category_id: int64 (int)
+category_name: object (str)
+
+Code:
+Attempt #1
+# 1. Merge product categories, products, and orders DataFrames together in respective order 
+merged_df = (
+    categories_df
+    .merge(products_df, left_on="category_id", right_on="product_category", how="left")
+    .merge(orders_df, on="product_id", how="left")
+)
+
+# 2. Categorize products that have not been sold by using product_id and date_sold
+merged_df["product_not_sold"] = np.where(merged_df["date_sold"].isna(), 1, 0)
+
+# 3. Count the number of products for each category and sum products not sold
+result_df = (
+    merged_df.groupby("category_name")
+    .agg(
+        total_products=('category_id', 'count'),
+        never_sold=('product_not_sold', 'sum'))
+    .reset_index()
+)
+
+# 4. Percentage = Products that have not sold / Total products in category
+result_df['never_sold_product_category_percentage'] = 100.0 * result_df['never_sold'] / result_df['total_products']
+
+# 5. Select relevant columns and sort in ASC order by category_name
+result_df = result_df[['category_name', 'never_sold_product_category_percentage']].sort_values(by="category_name", ascending=True)
+
+## Result:
+result_df
+
+
+Solution #1
+## Question:
+# The VP of Sales feels that some product categories don't sell 
+# and can be completely removed from the inventory.
+# As a first pass analysis, they want you to find what percentage of product categories have never been sold.
+
+## Output:
+# never_sold_product_category_percentage
+
+## Import libraries:
+import pandas as pd
+import numpy as np
+
+## Load and preview data:
+#online_products = pd.read_csv('online_products.csv')
+#online_orders = pd.read_csv('online_orders.csv')
+#online_product_categories = pd.read_csv('online_product_categories.csv')
+products_df = pd.DataFrame(online_products)
+orders_df = pd.DataFrame(online_orders)
+categories_df = pd.DataFrame(online_product_categories)
+products_df.head(5)
+orders_df.head(5)
+categories_df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - products: 0
+#       - orders: 0
+#       - categories: 0
+# Rows - products: 12
+#      - orders: 34
+#      - categories: 4
+#products_df.info()
+#products_df.isna().sum()
+#orders_df.info()
+#orders_df.isna().sum()
+#categories_df.info()
+#categories_df.isna().sum()
+
+## Iteration:
+# The VP of Sales feels that some product categories don't sell 
+# and can be completely removed from the inventory.
+# As a first pass analysis, they want you to find what percentage of product categories have never been sold.
+# never_sold_product_category_percentage
+# 1. Merge product categories, products, and orders DataFrames together
+#    Full matches determine that a product category has had products that were sold
+merged_df = (
+    categories_df
+    .merge(products_df, left_on="category_id", right_on="product_category", how="inner")
+    .merge(orders_df, on="product_id", how="inner")
+)
+
+# 2. Filter for unique product categories that were sold
+#    Filter product categories from original list that were not sold in the unique product categories
+sold_product_categories = merged_df["category_name"].unique()
+
+not_sold_product_categories = categories_df[
+    ~categories_df["category_name"].isin(sold_product_categories)
+]
+
+# 3. Calculate the percentage of product categories never been sold
+#    percentage = not sold product categories / total product categories
+result_series = pd.Series(100.0 * len(not_sold_product_categories) / len(categories_df), name="percentage")
+
+## Result:
+print("Percentage of product categories that have never been sold:")
+result_series
+
+Notes:
+- When filtering with isin(), adding a tilde ~ returns the opposite boolean result for set differences
+  ex. not_sold_product_categories = categories_df[
+          ~categories_df["category_name"].isin(sold_product_categories)
+      ]
+- Looking at attempt #1, I overcomplicated the problem by thinking that the question wanted me to solve for
+  the percentage of product that had never been sold for each product category since I initially
+  performed a left join to see that multiple rows did not contain a filled date_sold column. 
+- The problem was more simple in asking for the percentage of product categories that have never been sold 
+  so it was more of determining if multiple sets had matching values or not. I switched from using left to
+  inner join in Solution #1 for the merged DataFrames then used the unique() category names to determine the 
+  sold product categories. From there it was helpful to use ~df['col'].isin(df) to filter for not sold product .
+  categories. After that, it was a matter of finding the length of each component with len() and performing 
+  percentage calculations and formatting.
+  
+############################
+
+Website:
+StrataScratch - ID 9816
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Google - Find the list of intersections between both word lists
+Find the list of intersections between both word lists.
+
+Data Dictionary:
+Table name = 'google_word_lists'
+words1: text (str)
+words2: text (str)
+
+Code:
+Solution #1
+-- Question: 
+-- Find the list of intersections between both word lists
+
+-- Output:
+-- word_list_intersection
+
+-- Preview data:
+SELECT * FROM google_word_lists LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - 0
+-- Rows - 4
+SELECT
+    SUM(CASE WHEN words1 IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN words2 IS NULL THEN 1 ELSE 0 END) AS col2,
+    COUNT(*) AS total_rows
+FROM google_word_lists;
+
+-- Iteration:
+-- Find the list of intersections between both word lists
+-- word_list_intersection
+-- 1. Convert word list strings to arrays then unnest all words to single rows in separate queries
+-- 2. Intersect the queries to remove duplicates and only find matching words from both lists
+SELECT
+    unnest(
+        string_to_array(words1, ',')
+    ) AS word_list_intersection
+FROM google_word_lists
+
+INTERSECT
+
+SELECT
+    unnest(
+        string_to_array(words2, ',')
+    ) AS word_list_intersection
+FROM google_word_lists;
+
+-- Result:
+SELECT
+    unnest( -- 1. Convert word list strings to arrays then unnest all words to single rows in separate queries
+        string_to_array(words1, ',')
+    ) AS word_list_intersection
+FROM 
+    google_word_lists
+
+INTERSECT -- 2. Intersect the queries to remove duplicates and only find matching words from both lists
+
+SELECT
+    unnest(
+        string_to_array(words2, ',')
+    ) AS word_list_intersection
+FROM 
+    google_word_lists;
+
+Notes:
+- The INTERSECT function in SQL is available in PostgresSQL, Oracle, SQL Server, and SQLite.
+  It finds the distinct matches between two sets of lists which is similar to a DISTINCT and INNER JOIN.
+  ex. 
+      SELECT words1 FROM google_word_lists
+      INTERSECT
+      SELECT words2 FROM google_word_lists;
+  ex.
+      SELECT DISTINCT A.name
+      FROM TableA AS A
+      INNER JOIN TableB AS B
+          ON A.name = B.name;
+- Question was clear using text manipulation functions to remove delimiters from a list and unnest the values.
+  Normally don't use INTERSECT a lot but seemed a lot easier than having to use an INNER JOIN since PostgresSQL
+  has the function already.
+
+############################
