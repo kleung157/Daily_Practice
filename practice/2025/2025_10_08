@@ -1,0 +1,318 @@
+Date: 10/08/2025
+
+############################
+
+Website:
+StrataScratch - ID 2092
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+DoorDash - Daily Top Merchants
+You have been asked to find the top 3 merchants for each day with the highest number of orders on that day.
+In the event of a tie, multiple merchants may share the same spot, but each day at least one merchant must be in first, second, and third place.
+Your output should include the date in the format YYYY-MM-DD, the name of the merchant, and their place in the daily ranking.
+
+Data Dictionary:
+Table name = 'order_details'
+id: numeric (num)
+customer_id: numeric (num)
+merchant_id: numeric (num)
+n_items: numeric (num)
+order_timestamp: POSIXct, POSIXt (dt)
+total_amount_earned: numeric (num)
+Table name = 'merchant_details'
+id: numeric (num)
+zipcode: numeric (num)
+name: character (str)
+category: character (str)
+
+Code:
+Solution #1
+## Question:
+# You have been asked to find the top 3 merchants for each day with the highest number of orders on that day.
+# In the event of a tie, multiple merchants may share the same spot, but each day at least one merchant must
+# be in first, second, and third place.
+# Your output should include the date in format YYYY-MM-DD, name of merchant, and place in daily ranking
+
+## Output:
+# date, merchant_name, place_rank
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#order_details <- read_csv('order_details.csv')
+#merchant_details <- read_csv('merchant_details.csv')
+order_df <- data.frame(order_details)
+merchant_df <- data.frame(merchant_details)
+head(order_df, 5)
+head(merchant_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - order: 0
+#       - merchant: 0
+# Rows - order: 52
+#      - merchant: 7
+data.frame(lapply(order_df, class))
+data.frame(lapply(merchant_df, class))
+colSums(is.na(order_df))
+colSums(is.na(merchant_df))
+nrow(order_df)
+nrow(merchant_df)
+
+## Iteration:
+# You have been asked to find the top 3 merchants for each day with the highest number of orders on that day.
+# In the event of a tie, multiple merchants may share the same spot, but each day at least one merchant must
+# be in first, second, and third place.
+# Your output should include the date in format YYYY-MM-DD, name of merchant, and place in daily ranking
+# date, merchant_name, place_rank
+result_df <- order_df %>%
+    inner_join(
+        # 1. Merge order and merchant DataFrames by merchant_id and id respectively
+        merchant_df, by=c("merchant_id"="id")
+    ) %>%
+    mutate(
+        # 2. Extract date from order timestamp column in YYYY-MM-DD format
+        date = as.POSIXct(strftime(order_timestamp, "%Y-%m-%d"))
+    ) %>%
+    group_by(date, name) %>%
+    summarise(
+        # 3. Count the number of orders for each merchant name on each date
+        number_of_orders = n()    
+    ) %>%
+    mutate(
+        # 4. Rank the number of orders for each merchant on each date in DESC order, include ties
+        rank = dense_rank(desc(number_of_orders))
+    ) %>%
+    ungroup() %>%
+    filter(
+        # 5. Filter for top 3 merchants with highest number of orders on each date
+        rank <= 3    
+    ) %>%
+    arrange(
+        # 6. Arrange in ASC order by date and rank
+        date, rank
+    ) %>%
+    select(
+        # 7. Select and rename relevant columns
+        date, merchant_name=name, place_rank=rank
+    )
+
+## Result:
+result_df
+
+Notes:
+- Whenever I use as.Date() to extract the date from a POSIXct column in StrataScratch's R environment which uses
+  Python underneath, it always returns a numeric number instead of the actual date. My workaround to get the
+  correct format for the date is to use strftime() and then convert back to POSIXct using as.POSIXct().
+- Beyond the date, the question was fairly straightforward comprising of the usual joins, group_bys, mutate,
+  summarise, filter, rank, arrange, and select functions to obtain the desired outcome from the problem
+
+############################
+
+Website:
+StrataScratch - ID 2124
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Meta - Top Two Media Types
+You have been tasked with finding the top two single-channel media types (ranked in decreasing order) that correspond to the most money the grocery chain had spent on its promotional campaigns.
+Your output should contain the media type and the total amount spent on the advertising campaign. 
+In the event of a tie, output all results and do not skip ranks.
+
+Data Dictionary:
+Table name = 'online_sales_promotions'
+promotion_id: int64 (int)
+start_date: datetime64 (dt)
+end_date: datetime64 (dt)
+media_type: object (str)
+cost: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# You have been tasked with finding the top two single-channel media types (ranked in DESC order)
+# that correspond to the most money the grocery chain had spent on its promotional campaigns.
+# Your output should contain the media type and the total amount spent on the advertising campaign.
+# In the event of a tie, output all results and do not skip ranks.
+
+## Output:
+# media_type, total_amount_on_campaigns
+
+## Import libraries:
+import pandas as pd
+import numpy as np
+
+## Load and preview data:
+#online_sales_promotions = pd.read_csv("online_sales_promotions.csv")
+promotions_df = pd.DataFrame(online_sales_promotions)
+promotions_df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 5
+#promotions_df.info()
+#promotions_df.isna().sum()
+
+## Iteration:
+# You have been tasked with finding the top two single-channel media types (ranked in DESC order)
+# that correspond to the most money the grocery chain had spent on its promotional campaigns.
+# Your output should contain the media type and the total amount spent on the advertising campaign.
+# In the event of a tie, output all results and do not skip ranks.
+# media_type, total_amount_on_campaigns
+# 1. Calculate the total amount spent on campaigns for each media_type
+result_df = promotions_df.groupby("media_type")["cost"].sum().reset_index(name="total_amount_on_campaigns")
+
+# 2. Rank the total amount on campaigns in DESC order and include ties
+result_df["rank"] = result_df["total_amount_on_campaigns"].rank(method="dense",ascending=False)
+
+# 3. Filter for top two media types with highest amount spent on campaigns
+result_df = result_df[
+    result_df["rank"] <= 2    
+]
+
+# 4. Select relevant colums and sort by total amount on campaigns DESC order
+result_df = result_df[["media_type", "total_amount_on_campaigns"]].sort_values(by="total_amount_on_campaigns", ascending=False)
+
+## Result:
+result_df
+
+Notes:
+- This question was very similar to the earlier R problem asking for aggregation and ranking to find the top
+  rows for a specific category/column. The difference in this one was the sum aggregation and not needing to
+  use the dates in the dataset. 
+
+############################
+
+Website:
+StrataScratch - ID 9818
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Google - File Contents Shuffle
+Sort the words alphabetically in 'final.txt' and make a new file named 'wacky.txt'. 
+Output the file contents in one column and the filename 'wacky.txt' in another column. 
+Lowercase all the words. To simplify the question, there is no need to remove the punctuation marks.
+If coding in python, the file contents should be contained in a list.
+
+Data Dictionary:
+Table name = 'google_file_store'
+contents: text (str)
+filename: text (str)
+
+Code:
+Solution #1
+-- Question: 
+-- Sort the words alphabetically in 'final.txt' and make a new file named 'wacky.txt'. 
+-- Output the file contents in one column and the filename 'wacky.txt' in another column.
+-- Lowercase all the words.
+-- To simplify the question, there is no need to remove the punctuation marks.
+
+-- Output:
+-- contents, filename
+
+-- Preview data:
+SELECT * FROM google_file_store LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - 0
+-- Rows - 3
+SELECT
+    SUM(CASE WHEN contents IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN filename IS NULL THEN 1 ELSE 0 END) AS col2,
+    COUNT(*) AS total_rows
+FROM google_file_store;
+
+-- Iteration:
+-- Sort the words alphabetically in 'final.txt' and make a new file named 'wacky.txt'. 
+-- Output the file contents in one column and the filename 'wacky.txt' in another column.
+-- Lowercase all the words.
+-- To simplify the question, there is no need to remove the punctuation marks.
+-- contents, filename
+-- 1. Filter for 'final.txt'
+-- 2. Remove delimiters like punctuation remarks and commas
+-- 3. Lowercase all the words
+-- 4. Trim any excess white space
+-- 5. Convert contents from a text string to an array separating by blanks and unnest the words
+-- 6. Sort the words in alphaetical order, concatenate all the unnested words into a single string
+-- 7. Create a 'wacky.txt' filename column
+WITH OrderedFileWords AS (
+    SELECT 
+        UNNEST(
+            STRING_TO_ARRAY(
+                TRIM(
+                    LOWER(
+                        REPLACE(
+                            REPLACE(contents, ',','')
+                        , '.', '')
+                    )
+                )
+            , ' ')
+        ) AS unnested_words
+    FROM google_file_store
+    WHERE filename = 'final.txt'
+)
+SELECT 
+    STRING_AGG(unnested_words, ' ' ORDER BY unnested_words ASC) AS contents,
+    'wacky.txt' AS filename
+FROM OrderedFileWords;
+
+-- Result:
+WITH OrderedFileWords AS (
+    SELECT 
+        UNNEST( -- 5. Convert contents from a text string to an array, separate by blanks, unnest words
+            STRING_TO_ARRAY( 
+                TRIM( -- 4. Trim any excess white space
+                    LOWER( -- 3. Lowercase all the words
+                        REPLACE( -- 2. Remove delimiters like punctuation remarks and commas
+                            REPLACE(contents, ',','')
+                        , '.', '')
+                    )
+                )
+            , ' ')
+        ) AS unnested_words
+    FROM 
+        google_file_store
+    WHERE 
+        filename = 'final.txt' -- 1. Filter for 'final.txt'
+)
+SELECT
+    STRING_AGG( -- 6. Sort words in alphaetical order, concatenate all the unnested words into a single string
+        unnested_words, ' ' 
+        ORDER BY 
+            unnested_words ASC
+    ) AS contents,
+    'wacky.txt' AS filename -- 7. Create a 'wacky.txt' filename column
+FROM 
+    OrderedFileWords;
+
+Notes:
+- The opposite of UNNEST(STRING_TO_ARRAY()) functions is STRING_AGG() which combines all rows in a column
+  into a single aggregated string and can also ORDER BY the contents of the rows before concatenating
+  ex. 
+      SELECT 
+          STRING_AGG(unnested_words, ' ' ORDER BY unnested_words) AS contents,
+      FROM OrderedWords
+- Whenever I use any sort of string manipulation function, I need to remember to use TRIM() in case there
+  are any excess white space left that could affect some of the data points
+- Decided to make the question a little harder by not adhering to "To simplify the question, there is no need 
+  to remove the punctuation marks.". It added an extra step to my query but wanted to get the practice in of
+  removing the delimiters then performing the other functions necessary to arrive to the solution.
+
+############################
