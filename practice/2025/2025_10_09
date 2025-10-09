@@ -1,0 +1,412 @@
+Date: 10/9/2025
+
+#########################################################
+
+Website:
+StrataScratch - ID 2093
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+DoorDash - First Time Orders
+The company you work with wants to find out what merchants are most popular for new customers.
+You have been asked to find how many orders and first-time orders each merchant has had.
+First-time orders are meant from the perspective of a customer, and are the first order that a customer ever made. In order words, for how many customers was this the first-ever merchant they ordered with?
+Note: Recently, new restaurants have been registered on the system; however, because they may not have received any orders yet, your answer should exclude restaurants that have not received any orders.
+Your output should contain the name of the merchant, the total number of their orders, and the number of these orders that were first-time orders.
+
+Data Dictionary:
+Table name = 'order_details'
+id: numeric (num)
+customer_id: numeric (num)
+merchant_id: numeric (num)
+n_items: numeric (num)
+order_timestamp: POSIXct, POSIXt (dt)
+total_amount_earned: numeric (num)
+Table name = 'merchant_details'
+id: numeric (num)
+zipcode: numeric (num)
+name: character (str)
+category: character (str)
+
+Code:
+Solution #1
+## Question:
+# The company you work with wants to find out what merchants are most popular for new customers.
+# You have been asked to find how many orders and first-time orders each merchant has had.
+# First-time orders are meant from the perspective of a customer,
+# and are the first order that a customer ever made.
+# In order words, for how many customers was this the first-ever merchant they ordered with?
+# Note, recently new restaurants have been registered on the database; however,
+# because they mave have not received any orders yet, 
+# your answer should exclude restaurants that have not received any orders.
+# Your output should contain the name of the merchant, the total number of their orders, and
+# the number of these orders that were first-time orders.
+
+## Output:
+# merchant_name, order_count, first_time_order_count
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#order_details <- read_csv('order_details.csv')
+#merchant_details <- read_csv('merchant_details.csv')
+orders_df <- data.frame(order_details)
+merchants_df <- data.frame(merchant_details)
+head(orders_df, 5)
+head(merchants_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - orders: 0
+#       - merchants: 0
+# Rows - orders: 52
+#      - merchants: 7
+data.frame(lapply(orders_df, class))
+data.frame(lapply(merchants_df, class))
+colSums(is.na(orders_df))
+colSums(is.na(merchants_df))
+nrow(orders_df)
+nrow(merchants_df)
+
+## Iteration:
+# The company you work with wants to find out what merchants are most popular for new customers.
+# You have been asked to find how many orders and first-time orders each merchant has had.
+# First-time orders are meant from the perspective of a customer,
+# and are the first order that a customer ever made.
+# In order words, for how many customers was this the first-ever merchant they ordered with?
+# Note, recently new restaurants have been registered on the database; however,
+# because they mave have not received any orders yet, 
+# your answer should exclude restaurants that have not received any orders.
+# Your output should contain the name of the merchant, the total number of their orders, and
+# the number of these orders that were first-time orders.
+# merchant_name, order_count, first_time_order_count
+result_df <- orders_df %>%
+    inner_join(
+        # 1. Join orders and merchants DataFrames by merchant_id and id respectively.
+        merchants_df, by=c("merchant_id"="id")
+    ) %>%
+    group_by(customer_id) %>%
+    mutate(
+        # 2. Rank customer orders by earliest order timestamp 
+        customer_order_rank = min_rank(order_timestamp),
+        # 3. Create conditional statement, if first time order then 1, else 0
+        first_time_order = case_when(
+            customer_order_rank == 1 ~ 1, 
+            TRUE ~ 0)
+    ) %>%
+    ungroup() %>%
+    group_by(name) %>%
+    summarise(
+        # 4. Count number of orders and count first time orders for each merchant
+        order_count = n(),
+        first_time_order_count = sum(first_time_order),
+        .groups="drop"
+    ) %>%
+    rename(
+        # 5. Rename columns to match desired output
+        merchant_name=name
+    ) %>%
+    arrange(
+        # 6. Arrange in DESC order by first_time_order_count to find merchants most popular for new customers
+        desc(first_time_order_count)
+    )
+    
+## Result:
+result_df
+
+Notes:
+- Was a little off on remembering the structure of the case_when() function. The tilde operator comes after
+  the arguments and not before. Also add a comma between each new line if performing this in a mutate().
+  ex. case_when(
+          condition_1 ~ result_1,
+          condition_2 ~ result_2,
+          TRUE ~ result_default # The final TRUE acts as the 'else'
+     )
+- Filtering within a summarise aggregation was a bit more complicated for me to remember so I created a
+  separate case_when() statement column to make it easier to sum the first time orders. For future reference
+  here are the following filters that can be applied.
+  ex. data_frame %>%
+      group_by(Grouping_Column) %>%
+      summarise(
+          # Total count (standard aggregation)
+          Total_Count = n(),
+
+          # Filtered count (using sum of a logical condition)
+          Filtered_Count = sum(Condition_to_Filter, na.rm = TRUE),
+
+          # Filtered average (using mean of a logical condition)
+          Filtered_Proportion = mean(Condition_to_Filter, na.rm = TRUE),
+
+          # Applying a function to a filtered subset of a *different* column
+          Filtered_Mean_Value = mean(Value_Column[Condition_to_Filter], na.rm = TRUE)
+      )
+- Didn't need to account for ties in the ranking so made sense to use min_rank(). Could have also used
+  min() for timestamp but wouldn't have been able to perform all the work within a single pipe chain. 
+    
+#########################################################
+
+Website:
+StrataScratch - ID 2125
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Noom - Process a Refund
+Calculate and display the minimum, average and the maximum number of days it takes to process a refund for accounts opened from January 1, 2019. 
+Group by billing cycle in months.
+Note: The time frame for a refund to be fully processed is from settled_at until refunded_at.
+
+Data Dictionary:
+Table name = 'noom_signups'
+signup_id: object (str)
+started_at: datetime64 (dt)
+plan_id: int64 (int)
+Table name = 'noom_transactions'
+transaction_id: int64 (int)
+signup_id: object (str)
+settled_at: datetime64 (dt)
+refunded_at: datetime64 (dt)
+usd_gross: int64 (int)
+Table name = 'noom_plans'
+plan_id: int64 (int)
+billing_cycle_in_months: int64 (int)
+plan_rate: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# Calculate and display the minimum, average, and the maximum number of days it takes to process
+# a refund for accounts opened from January 1, 2019.
+# Group by billing cycle in months.
+# Note, the time frame for a refund to be fully processed is from settled_at until refunded_at.
+
+## Output:
+# billing_cycle_in_months, minimum_days, average_days, maximum_days
+
+## Import libraries:
+import pandas as pd
+import numpy as np
+
+## Load and preview data:
+#noom_signups = pd.read_csv('noom_signups.csv')
+#noom_transactions = pd.read_csv('noom_transactions.csv')
+#noom_plans = pd.read_csv('noom_plans.csv')
+signups_df = pd.DataFrame(noom_signups)
+transactions_df = pd.DataFrame(noom_transactions)
+plans_df = pd.DataFrame(noom_plans)
+signups_df.head(5)
+transactions_df.head(5)
+plans_df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - signups: 0
+#       - transactions: 0
+#       - plans: 0
+# Rows - signups: 25
+#      - transactions: 25
+#      - rows: 3
+#signups_df.info()
+#signups_df.isna().sum()
+#transactions_df.info()
+#transactions_df.isna().sum()
+#plans_df.info()
+#plans_df.isna().sum()
+
+## Iteration:
+# Calculate and display the minimum, average, and the maximum number of days it takes to process
+# a refund for accounts opened from January 1, 2019.
+# Group by billing cycle in months.
+# Note, the time frame for a refund to be fully processed is from settled_at until refunded_at.
+# billing_cycle_in_months, minimum_days, average_days, maximum_days
+# 1. Merge signups, transactions and plans DataFrames
+merged_df = (
+    signups_df
+    .merge(transactions_df, on="signup_id", how="inner")
+    .merge(plans_df, on="plan_id", how="inner")
+)
+
+# 2. Calculate the timeframe for a refund to be fully processed
+#    timeframe = refunded_at - settled_at
+merged_df["days_to_process"] = (merged_df["refunded_at"] - merged_df["settled_at"]).dt.days
+
+# 3. Filter for accounts opened from January 1, 2019 and onward
+target_date = pd.to_datetime('2019-01-01')
+
+filtered_df = merged_df[
+    merged_df["started_at"] >= target_date
+]
+
+# 4. Calculate the minimum, mean, and maximum days to process a refund for each billing_cycle_in_month
+result_df = (
+    filtered_df
+    .groupby("billing_cycle_in_months")
+    .agg(minimum_days=('days_to_process','min'),
+         average_days=('days_to_process','mean'),
+         maximum_days=('days_to_process','max'))
+    .reset_index()
+    .sort_values(by="billing_cycle_in_months", ascending=True)
+)
+
+## Result:
+print("minimum, average, and the maximum number of days it takes to process a refund for accounts opened from January 1, 2019:")
+result_df
+
+Notes:
+- When I read the section of the prompt that said "accounts opened from January 1, 2019", couldn't seem to
+  understand if that meant accounts opened from January 1, 2019 and before that date, or was it the opposite
+  meaning on that date and after that date. This was important to consider when filtering for the appropriate
+  data points needed for the final aggregations.
+- Another point to have considered was using dt.total_seconds() and converting seconds to minutes when
+  performing the timeframe calculation for days to process a refund. I used dt.days since there was no
+  time listed in the datetime column and only a date was posted.
+- This time I remembered to assign a target date to a variable instead of hard coding it into the filter.
+
+#########################################################
+
+Website:
+StrataScratch - ID 9821
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Google - Common Friends Friend
+Find the number of a user's friends' friend who are also the user's friend. 
+Output the user id along with the count.
+
+Data Dictionary:
+Table name = 'google_friends_network'
+friend_id: bigint (int)
+user_id: bigint (int)
+
+Code:
+Attempt #1
+WITH UserFriendsFriendTable AS (
+    SELECT 
+        gfn1.user_id,
+        gfn1.friend_id,
+        gfn2.user_id AS friend_id_match,
+        gfn2.friend_id AS users_friends_friend
+    FROM 
+        google_friends_network AS gfn1 -- 1. Self join the google_friends_network with different aliases
+    JOIN google_friends_network AS gfn2
+        ON gfn1.friend_id = gfn2.user_id -- 2. Match friend_id to user_id find the user's friends' friend
+        AND gfn2.friend_id = gfn1.user_id -- 3. Filter for matches where a user's friends' friend is also the                                     original user's friend
+)
+SELECT 
+    user_id, 
+    COUNT(users_friends_friend) AS user_friends_friend_count -- 4. Count the number of users_friends_friend                                                              that match the original user_id
+FROM 
+    UserFriendsFriendTable
+GROUP BY 
+    user_id
+ORDER BY
+    user_id;
+
+
+Solution #1
+-- Question:
+-- Find the number of a user's friends' friend who are also the user's friend.
+-- Output the user id along with the count.
+
+-- Output:
+-- user_id, user_friends_friend_count
+
+-- Preview the data:
+SELECT * FROM google_friends_network LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - 0
+-- Rows - 22
+SELECT
+    SUM(CASE WHEN friend_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    COUNT(*) AS total_rows
+FROM google_friends_network;
+
+-- Iteration:
+-- Find the number of a user's friends' friend who are also the user's friend.
+-- Output the user id along with the count.
+-- user_id, user_friends_friend_count
+-- 1. Self join the google_friends_network with different aliases
+-- 2. Join by matching friend_id to user_id to find the user's friends' friend
+-- 3. Join by matching original user_id
+-- 4. Join by matching user_friends_friend's id to matching friend_id
+-- 5. Count the number of users_friends_friend that match the original user_id
+-- 6. Filter to exclude the direct friend from the count
+WITH UserFriendsFriendTable AS (
+SELECT 
+    gfn1.user_id,
+    gfn1.friend_id,
+    gfn2.user_id AS friend_id_match,
+    gfn2.friend_id AS users_friends_friend,
+    gfn3.user_id AS user_id_match,
+    gfn3.friend_id AS users_friends_friend_match
+FROM google_friends_network AS gfn1
+JOIN google_friends_network AS gfn2
+    ON gfn1.friend_id = gfn2.user_id
+JOIN google_friends_network AS gfn3
+    ON gfn1.user_id = gfn3.user_id
+    AND gfn2.friend_id = gfn3.friend_id
+)
+SELECT 
+    user_id,
+    COUNT(DISTINCT users_friends_friend) AS user_friends_friend_count 
+FROM UserFriendsFriendTable
+WHERE
+    users_friends_friend != user_id
+    AND users_friends_friend != friend_id 
+GROUP BY user_id
+ORDER BY user_id;
+
+-- Result:
+WITH UserFriendsFriendTable AS (
+    SELECT 
+        gfn1.user_id,
+        gfn1.friend_id,
+        gfn2.user_id AS friend_id_match,
+        gfn2.friend_id AS users_friends_friend,
+        gfn3.user_id AS user_id_match,
+        gfn3.friend_id AS users_friends_friend_match
+    FROM 
+        google_friends_network AS gfn1 
+    JOIN google_friends_network AS gfn2 -- 1. Self join the google_friends_network with different aliases
+        ON gfn1.friend_id = gfn2.user_id -- 2. Join by matching friend_id to user_id to find the user's                                          friends' friend
+    JOIN google_friends_network AS gfn3
+        ON gfn1.user_id = gfn3.user_id -- 3. Join by matching original user_id
+        AND gfn2.friend_id = gfn3.friend_id -- 4. Join by matching user_friends_friend's id to friend_id
+)
+SELECT 
+    user_id,
+    COUNT( -- 5. Count the number of users_friends_friend that match the original user_id
+        DISTINCT users_friends_friend
+    ) AS user_friends_friend_count 
+FROM UserFriendsFriendTable
+WHERE
+    users_friends_friend != user_id
+    AND users_friends_friend != friend_id -- 6. Filter to exclude the direct friend from the count
+GROUP BY user_id
+ORDER BY user_id;
+
+Notes:
+- For attempt #1 needed an additional self join to complete the CTE query for matching user's friends' friend
+  to the original user. After the CTE, a DISTINCT clause needed to be added to the COUNT() to ensure non
+  duplicate user friends friend. Another filter to ensure robustness was to add that the users_friends_friend
+  could not be equal to the original user_id nor the original friend_id. 
+- Came pretty close to coming to the correct answer with the original approach but needed to iterate a little 
+  more to get to the complete structure of Solution #1.
+
+#########################################################
