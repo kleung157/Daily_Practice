@@ -304,11 +304,13 @@ WITH UserFriendsFriendTable AS (
         google_friends_network AS gfn1 -- 1. Self join the google_friends_network with different aliases
     JOIN google_friends_network AS gfn2
         ON gfn1.friend_id = gfn2.user_id -- 2. Match friend_id to user_id find the user's friends' friend
-        AND gfn2.friend_id = gfn1.user_id -- 3. Filter for matches where a user's friends' friend is also the                                     original user's friend
+        AND gfn2.friend_id = gfn1.user_id -- 3. Filter for matches where a user's friends' friend is also the
+                                                original user's friend
 )
 SELECT 
     user_id, 
-    COUNT(users_friends_friend) AS user_friends_friend_count -- 4. Count the number of users_friends_friend                                                              that match the original user_id
+    COUNT(users_friends_friend) AS user_friends_friend_count -- 4. Count the number of users_friends_friend                                                              
+                                                                   that match the original user_id
 FROM 
     UserFriendsFriendTable
 GROUP BY 
@@ -384,7 +386,7 @@ WITH UserFriendsFriendTable AS (
     FROM 
         google_friends_network AS gfn1 
     JOIN google_friends_network AS gfn2 -- 1. Self join the google_friends_network with different aliases
-        ON gfn1.friend_id = gfn2.user_id -- 2. Join by matching friend_id to user_id to find the user's                                          friends' friend
+        ON gfn1.friend_id = gfn2.user_id -- 2. Join by matching friend_id to user_id to find the user's friends' friend
     JOIN google_friends_network AS gfn3
         ON gfn1.user_id = gfn3.user_id -- 3. Join by matching original user_id
         AND gfn2.friend_id = gfn3.friend_id -- 4. Join by matching user_friends_friend's id to friend_id
