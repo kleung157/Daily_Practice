@@ -1,0 +1,337 @@
+Date: 10/10/2025
+
+############################
+
+Website:
+StrataScratch - ID 2095
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Amazon - Three Purchases
+List the IDs of customers who made at least 3 orders in both 2020 and 2021.
+
+Data Dictionary:
+Table name = 'amazon_orders'
+id: numeric (num)
+user_id: character (str)
+order_date: POSIXct, POSIXt (dt)
+order_total: numeric (num)
+
+Code:
+Solution #1
+## Question:
+# List the IDS of customers who made at least 3 orders in both 2020 and 2021.
+
+## Output:
+# customers_at_least_3_orders_2020_2021
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#amazon_orders <- read_csv('amazon_orders.csv')
+orders_df <- data.frame(amazon_orders)
+head(orders_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 35
+data.frame(lapply(orders_df, class))
+colSums(is.na(orders_df))
+nrow(orders_df)
+
+## Iteration:
+# List the IDS of customers who made at least 3 orders in both 2020 and 2021.
+# customers_at_least_3_orders_2020_2021
+users_2020_df <- orders_df %>%
+    filter(
+        # 1. Filter for 2020 customer orders
+        year(order_date) == 2020 
+    ) %>%
+    group_by(user_id) %>%
+    summarise(
+        # 2. Count number of orders for 2020 user_ids
+        order_count = n(),
+        .groups = "drop"
+    ) %>%
+    filter(
+        # 3. Filter for users that had at least 3 orders or more
+        order_count >= 3    
+    ) %>%
+    select(user_id)
+
+users_2021_df <- orders_df %>%
+    filter(
+        # 4. Filter for 2021 customer orders
+        year(order_date) == 2021 
+    ) %>%
+    group_by(user_id) %>%
+    summarise(
+        # 5. Count number of orders for 2021 user_ids
+        order_count = n(),
+        .groups = "drop"
+    ) %>%
+    filter(
+        # 6. Filter for users that had at least 3 orders or more
+        order_count >= 3    
+    ) %>%
+    select(user_id)
+    
+result_df <- 
+    intersect(
+        # 7. Find matching user_ids where customers made at least 3 orders in both 2020 and 2021
+        users_2020_df, 
+        users_2021_df
+    ) %>%
+    as.list()
+
+## Result:
+result_df
+
+
+Solution #2
+"""
+customers_at_least_3_orders_2020_2021_alt <- orders_df %>%
+    filter(year(order_date) %in% c(2020, 2021)) %>%
+    group_by(user_id, year = year(order_date)) %>%
+    summarise(order_count = n(), .groups = "drop") %>%
+    filter(order_count >= 3) %>%
+    group_by(user_id) %>%
+    # Count how many qualifying years (2020 or 2021) each user has
+    filter(n() == 2) %>%
+    ungroup() %>%
+    select(user_id) %>%
+    unique()
+"""
+
+Notes:
+- Was trying to determine if I could make a single pipe chain for this problem but my initial approach in
+  Solution #1 was to divide up the years into separate DataFrames then intersect for readability and clarity.
+  This would be similar to how I would perform this approach in SQL by creating separate CTEs and then intersect.
+- Solution #2 solves the problem with a single pipe chain and uses effective grouping to filter out the results
+  instead of having to use the intersect function.
+
+############################
+
+Website:
+StrataScratch - ID 2128
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Amazon - Book Sales
+Calculate the total revenue made per book. 
+Output the book ID and total sales per book. 
+In case there is a book that has never been sold, include it in your output with a value of 0.
+
+Data Dictionary:
+Table name = 'amazon_books'
+book_id: object (str)
+book_title: object (str)
+unit_price: int64 (int)
+Table name = 'amazon_books_order_details'
+order_details_id: object (str)
+order_id: object (str)
+book_id: object (str)
+quantity: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# Calculate the total revenue made per book.
+# Output the book ID and total sales per book.
+# In case there is a book that has never been sold, include it in your output with a value of 0.
+
+## Output:
+# book_id, total_revenue
+
+## Import libraries:
+import pandas as pd
+import numpy as np
+
+## Load and preview data:
+#amazon_books = pd.read_csv('amazon_books.csv')
+#amazon_books_order_details = pd.read_csv('amazon_books_order_details')
+books_df = pd.DataFrame(amazon_books)
+details_df = pd.DataFrame(amazon_books_order_details)
+books_df.head(5)
+details_df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - books: 0
+#         details: 0
+# Rows - books: 20
+#      - details: 30
+#books_df.info()
+#books_df.isna().sum()
+#details_df.info()
+#details_df.isna().sum()
+
+## Iteration:
+# Calculate the total revenue made per book.
+# Output the book ID and total sales per book.
+# In case there is a book that has never been sold, include it in your output with a value of 0.
+# book_id, total_revenue
+# 1. Left join books and details DataFrames to include books never been sold
+merged_df = pd.merge(books_df, details_df, on="book_id", how="left")
+
+# 2. Fill nulls in quantity column where if quantity is null then 0, 
+#    if not then keep existing quantity
+merged_df["quantity"] = merged_df["quantity"].fillna(0)
+
+# 3. Calculate revenue for each order row
+#    revenue = quantity x unit_price
+merged_df["revenue"] = merged_df["quantity"] * merged_df["unit_price"]
+
+# 4. Calculate total revenue made per each book_id
+result_df = (
+    merged_df
+    .groupby("book_id")["revenue"]
+    .sum()
+    .reset_index(name="total_revenue")
+    .sort_values(by="book_id", ascending=True)
+)
+
+## Result:
+print("Total revenue made per book:")
+result_df
+
+Notes:
+- Instead of modifying the quantity column, my initial approach was to create a separate column that had
+  a condition where if the quantity was null then the adjusted price would be 0, else it would stay as the
+  original unit_price. However I realized when doing so I needed to still multiply quantity and unit price
+  to obtain revenue for each order row so I decided that fill.na() was easier to perform on the existing
+  quantity column instead of performing a np.where() function that contained is.na() as an argument on a 
+  totally new column. 
+
+############################
+
+Website:
+StrataScratch - ID 9822
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Google - Find the average number of friends a user has
+Find the average number of friends a user has.
+
+Data Dictionary:
+Table name = 'google_friends_network'
+friend_id: bigint (int)
+user_id: bigint (int)
+
+Code:
+Attempt #1
+WITH UniqueUserFriends AS (
+    SELECT 
+        gfn2.user_id,
+        gfn2.friend_id
+    FROM 
+        google_friends_network AS gfn1
+    JOIN -- 1. Self join the friend network dataset by friend_id = user_id to find user friend's friends
+        google_friends_network AS gfn2
+        ON gfn1.friend_id = gfn2.user_id
+
+    UNION -- 2. Union with the original user_id and friend_id and remove duplicates
+
+    SELECT
+        gfn1.user_id,
+        gfn1.friend_id
+    FROM 
+        google_friends_network AS gfn1
+),
+UserFriendCount AS (
+    SELECT
+        user_id,
+        COUNT(friend_id) AS friend_count -- 3. Count number of friends per user_id
+    FROM 
+        UniqueUserFriends
+    GROUP BY 
+        user_id
+)
+SELECT
+    ROUND( -- 4. Average the number of friends a user has and round to whole number
+        AVG(friend_count)
+    ) AS average_friend_count
+FROM 
+    UserFriendCount;
+
+
+Solution #1
+-- Question:
+-- Find the average number of friends a user has.
+
+-- Output:
+-- average_friend_count
+
+-- Preview data:
+SELECT * FROM google_friends_network LIMIT 5;
+
+-- Check nulls nad rows:
+-- Nulls - 0
+-- Rows - 22
+SELECT
+    SUM(CASE WHEN friend_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    COUNT(*) AS total_rows
+FROM google_friends_network;
+
+-- Iteration:
+-- Find the average number of friends a user has.
+-- average_friend_count
+-- 1. Count number of friends per user_id
+-- 2. Average the number of friends a user has and round to two decimals
+WITH UserFriendCount AS (
+    SELECT
+        user_id,
+        COUNT(friend_id) AS friend_count
+    FROM google_friends_network
+    GROUP BY user_id
+)
+SELECT
+    ROUND(
+        AVG(friend_count)
+    ,2) AS average_friend_count
+FROM UserFriendCount;
+
+-- Result:
+WITH UserFriendCount AS (
+    SELECT
+        user_id,
+        COUNT(friend_id) AS friend_count -- 1. Count number of friends per user_id
+    FROM 
+        google_friends_network
+    GROUP BY 
+        user_id
+)
+SELECT
+    ROUND( -- 2. Average the number of friends a user has and round to two decimals
+        AVG(friend_count)
+    ,2) AS average_friend_count
+FROM 
+    UserFriendCount;
+
+Notes:
+- Since previous problems relating to this prompt and dataset had asked to find the user id's friend' friends
+  I thought maybe it would be better to get a list of all the user id and friend id combinations. This led
+  me to the approach seen in Attempt #1 where I performed a self join to find all possible values then
+  performed a union to obtain all possible scenarios. The question did not explicitly ask for this so it is
+  best to stick to what the question is asking for plain and simple. Solution #1 contains the last 2 queries
+  of my original Attempt #1 approach with some small adjustments to variables and functions. Didn't think
+  that the question could be so simple even though the difficulty rating is "Hard" for this particular question.
+
+############################
