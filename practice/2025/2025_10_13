@@ -1,0 +1,400 @@
+Date: 10/13/2025
+
+############################
+
+Website:
+StrataScratch - ID 2095
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Asana - Completed Tasks
+Find the number of actions that ClassPass workers did for tasks completed in January 2022. 
+The completed tasks are these rows in the asana_actions table with 'action_name' equal to CompleteTask. 
+Note that each row in the dataset indicates how many actions of a certain type one user has performed in one day and the number of actions is stored in the 'num_actions' column.
+Output the ID of the user and a total number of actions they performed for tasks they completed. 
+If a user from this company did not complete any tasks in the given period of time, you should still output their ID and the number 0 in the second column.
+
+Data Dictionary:
+Table name = 'asana_users'
+user_id: numeric (num)
+name: character (str)
+surname: character (str)
+company: character (str)
+Table name = 'asana_actions'
+user_id: numeric (num)
+num_actions: numeric (num)
+date: POSIXct, POSIXt (dt)
+aciton_name: character (str)
+
+Code:
+Solution #1
+## Question:
+# Find the number of actions that ClassPass workers did for tasks completed in January 2022.
+# The completed tasks are these rows in the asana_actions table with 'action_name' equal to CompleteTask.
+# Note that each row in the dataset indicates how many actions of a certain type one user has performed in
+# one day and the number of actions is stored in the 'num_actions' column.
+# Output the ID of the user and a total number of actions they performed for tasks they completed.
+# If a user from this company did not complete any tasks in the given period of time,
+# you should still output their ID and the number 0 in the second column.
+
+## Output:
+# user_id, total_num_actions
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#asana_users <- read_csv('asana_users.csv')
+#asana_actions <- read_csv('asana_actions.csv')
+users_df <- data.frame(asana_users)
+actions_df <- data.frame(asana_actions)
+head(users_df, 5)
+head(actions_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+#       - 0
+# Rows - 6
+#      - 62
+data.frame(lapply(users_df, class))
+data.frame(lapply(actions_df, class))
+colSums(is.na(users_df))
+colSums(is.na(actions_df))
+nrow(users_df)
+nrow(actions_df)
+
+## Iteration:
+# Find the number of actions that ClassPass workers did for tasks completed in January 2022.
+# The completed tasks are these rows in the asana_actions table with 'action_name' equal to CompleteTask.
+# Note that each row in the dataset indicates how many actions of a certain type one user has performed in
+# one day and the number of actions is stored in the 'num_actions' column.
+# Output the ID of the user and a total number of actions they performed for tasks they completed.
+# If a user from this company did not complete any tasks in the given period of time,
+# you should still output their ID and the number 0 in the second column.
+# user_id, total_num_actions
+result_df <- users_df %>%
+    inner_join(
+        # 1. Join users and actions DataFrames by user_id
+        actions_df, by="user_id"
+    ) %>%
+    mutate(
+        # 2. Create a condition where num_actions is 0 if user did not complete any task, 
+        #    else keep num_actions 
+        num_actions_condition = case_when(
+            action_name != 'CompleteTask' ~ 0,
+            TRUE ~ num_actions
+        )
+    ) %>%
+    filter(
+        # 3. Filter for ClassPass workers and timeframe in January 2022
+        company == 'ClassPass',
+        (year(date) == 2022 & month(date) == 1)
+    ) %>%
+    group_by(user_id) %>%
+    summarise(
+        # 4. Calculate total number of actions for tasks completed for each user
+        total_num_actions = sum(num_actions_condition),
+        .groups = "drop"
+    ) %>%
+    arrange(user_id)
+    
+## Result:
+result_df
+
+Notes:
+- The knowledge that I gained recently from my C programming class on if/else statements was helpful in 
+  creating a case_when() statement for an existing column to be manipulated into a new column for further
+  filtering and aggregation. 
+- Stuck with my interpretation of the question in solution #1. The logic could be interpretted
+  in a number of ways but makes more sense keeping it simple rather than complicated.
+  
+############################
+
+Website:
+StrataScratch - ID 2130
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+General Assembly - Duplicate Training Lessons
+Display a list of users who took the same training lessons more than once on the same day. 
+Output their usernames, training IDs, dates and the number of times they took the same lesson.
+
+Data Dictionary:
+Table name = 'users_training'
+u_id: int64 (int)
+u_name: object (str)
+Table name = 'training_details'
+u_t_id: int64 (int)
+u_id: int64 (int)
+training_id: int64 (int)
+training_date: datetime64 (dt)
+
+Code:
+Solution #1
+## Question:
+# Display a list of users who took the same training lessons more than once on the same day.
+# Output their username, training IDs, dates, and the number of times they took the same lesson.
+
+## Output:
+# u_name, training_id, training_date, number_of_times_same_lesson
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#users_training = pd.read_csv('users_training.csv')
+#training_details = pd.read_csv('training_details.csv')
+users_df = pd.DataFrame(users_training)
+details_df = pd.DataFrame(training_details)
+users_df.head(5)
+details_df.head(5)
+
+## Check dataypes, nulls, and rows:
+# Nulls - users: 0
+#       - details: 0
+# Rows - users: 15
+#      - details: 60
+#users_df.info()
+#users_df.isna().sum()
+#details_df.info()
+#details_df.isna().sum()
+
+## Iteration:
+# Display a list of users who took the same training lessons more than once on the same day.
+# Output their username, training IDs, dates, and the number of times they took the same lesson.
+# u_name, training_id, training_date, number_of_times_same_lesson
+# 1. Merge users and details DataFrames by u_id
+merged_df = pd.merge(users_df, details_df, on="u_id", how="inner")
+
+# 2. Count number of times users took the same training lesson on the same day
+result_df = merged_df.groupby(["u_name","training_id","training_date"])["u_t_id"].count().reset_index(name="number_of_times_same_lesson")
+
+# 3. Filter for users that took the same training lessons more than once on the same day
+result_df = result_df[
+    result_df["number_of_times_same_lesson"] > 1
+].sort_values(by=["u_name", "training_id", "training_date"])
+
+## Result:
+print("Users who took the same training lessons more than once on the same day:")
+result_df
+
+Notes:
+- Wasn't sure initially what the u_t_id column was supposed to mean because the prompt did not define it.
+  Eventually as I joined the two tables provided together by their u_id, the data started to make sense as
+  to what needed to be grouped together and then aggregated in a count. The filtering step was clear from
+  the problem and sorting was for final presentation purposes.
+
+############################
+
+Website:
+StrataScratch - ID 9823
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Google - Common Letters
+Find the top 3 most common letters across all the words from both the tables (ignore filename column). 
+Output the letter along with the number of occurrences and order records in descending order based on the number of occurrences.
+
+Data Dictionary:
+Table name = 'google_file_store'
+contents: text (str)
+filename: text (str)
+Table name = 'google_word_lists'
+words1: text (str)
+words2: text (str)
+
+Code:
+Solution #1
+-- Question:
+-- Find the top 3 common letters across all the words from both the tables (ignore filename column).
+-- Output the letter along with the number of occurrences and order records in descending order
+-- based on the number of occurrences.
+
+-- Output:
+-- letter, number_of_occurences
+
+-- Preview data:
+SELECT * FROM google_file_store LIMIT 5;
+SELECT * FROM google_word_lists LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - file_store: 0
+--      - word_lists: 0
+-- Rows - file_store: 3
+--      - word_lists: 4
+SELECT 
+    SUM(CASE WHEN contents IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN filename IS NULL THEN 1 ELSE 0 END) AS col2,
+    COUNT(*) AS total_rows
+FROM google_file_store;
+
+SELECT
+    SUM(CASE WHEN words1 IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN words2 IS NULL THEN 1 ELSE 0 END) AS col2,
+    COUNT(*) AS total_rows
+FROM google_word_lists;
+
+-- Iteration:
+-- Find the top 3 common letters across all the words from both the tables (ignore filename column).
+-- Output the letter along with the number of occurences and order records in descending order
+-- based on the number of occurences.
+-- letter, number_of_occurences
+-- 1. Remove delimiters from column
+-- 2. Set all words to lower case
+-- 3. Trim any excess leading or lagging white space
+-- 4. Convert sentences from strings to an array of words
+-- 5. Separate all words from sentences to individual rows
+-- 6. Union the words from each column of each table into a single CTE
+-- 7. Convert words from strings to an array of letters
+-- 8. Separate all letters from words to individual rows
+-- 9. Count number of occurrences of each letter
+-- 10. Rank every letter based on number of occurences in DESC order, include ties.
+-- 11. Filter for top 3 ranked most common letters
+WITH TotalWordList AS (
+    SELECT 
+        UNNEST(STRING_TO_ARRAY(TRIM(LOWER(REPLACE(REPLACE(contents, ',', ''), '.', ''))), ' ')) AS words
+    FROM google_file_store
+
+    UNION ALL
+
+    SELECT 
+        UNNEST(STRING_TO_ARRAY(TRIM(LOWER(words1)), ',')) AS words
+    FROM google_word_lists
+
+    UNION ALL
+
+    SELECT 
+        UNNEST(STRING_TO_ARRAY(TRIM(LOWER(words2)), ',')) AS words
+    FROM google_word_lists
+),
+LetterOccurrenceRank AS (
+    SELECT 
+        UNNEST(STRING_TO_ARRAY(words, NULL)) AS letter,
+        COUNT(*) AS number_of_occurrences,
+        DENSE_RANK() OVER(ORDER BY COUNT(*) DESC) AS dense_rank
+    FROM TotalWordList
+    GROUP BY letter
+)
+SELECT
+    letter,
+    number_of_occurrences
+FROM LetterOccurrenceRank
+WHERE dense_rank <= 3;
+
+-- Result:
+WITH TotalWordList AS (
+    SELECT 
+        UNNEST( -- 5. Separate all words from sentences to individual rows
+            STRING_TO_ARRAY( -- 4. Convert sentences from strings to an array of words
+                TRIM( -- 3. Trim any excess leading or lagging white space
+                    LOWER( -- 2. Set all words to lower case
+                        REPLACE( -- 1. Remove delimiters from column
+                            REPLACE(contents, ',', '')
+                        , '.', '')
+                    )
+                )
+            , ' ')
+        ) AS words 
+    FROM 
+        google_file_store
+
+    UNION ALL -- 6. Union the words from each column of each table into a single CTE
+
+    SELECT 
+        UNNEST(
+            STRING_TO_ARRAY(
+                TRIM(
+                    LOWER(words1)
+                )
+            , ',')
+        ) AS words
+    FROM 
+        google_word_lists
+
+    UNION ALL
+
+    SELECT 
+        UNNEST(
+            STRING_TO_ARRAY(
+                TRIM(
+                    LOWER(words2)
+                )
+            , ',')
+        ) AS words
+    FROM 
+        google_word_lists
+),
+LetterOccurrenceRank AS (
+    SELECT 
+        UNNEST( -- 8. Separate all letters from words to individual rows
+            STRING_TO_ARRAY(words, NULL) -- 7. Convert words from strings to an array of letters
+        ) AS letter,
+        COUNT(*) AS number_of_occurrences, -- 9. Count number of occurrences of each letter
+        DENSE_RANK() OVER( -- 10. Rank letters based on number of occurences in DESC order, include ties.
+            ORDER BY 
+                COUNT(*) DESC
+        ) AS dense_rank
+    FROM 
+        TotalWordList
+    GROUP BY 
+        letter
+)
+SELECT
+    letter,
+    number_of_occurrences
+FROM LetterOccurrenceRank
+WHERE dense_rank <= 3; -- 11. Filter for top 3 ranked most common letters
+
+Notes:
+- The STRING_TO_ARRAY() function in PostgresSQL can be used to separate individual letters from words using
+  NULL as the array separator then combined with UNNEST() to extract all individual letters into separate rows
+  ex. 
+      SELECT 
+          UNNEST( -- Separate all letters from words to individual rows
+              STRING_TO_ARRAY(words, NULL) -- Convert words from strings to an array of letters
+           ) AS letter
+      FROM samplelist;
+- An alternative method to splitting words to letters uses GENERATE_SERIES() to generate a series of number 
+  according to the length of the word then extracting the characters from the word using SUBSTRING() function
+  ex. 
+      WordCharacters AS (
+         SELECT
+             words,
+             LENGTH(words) AS len,
+             GENERATE_SERIES(1, LENGTH(words)) AS pos -- Generate series of numbers from 1 to the length of the word
+         FROM TotalWordList
+     ),
+     LettersExtracted AS ( -- Extract the individual letter using the generated positions (pos)
+         SELECT
+             SUBSTRING(wc.words, wc.pos, 1) AS letter -- Extract the character at the generated position (pos)
+         FROM WordCharacters wc
+     )
+     SELECT -- Count the occurrences of each letter
+         LOWER(letter) AS letter, -- Convert to lowercase for case-insensitive counting
+         COUNT(*) AS occurrence_count
+     FROM LettersExtracted
+     WHERE letter ~ '[A-Za-z]' -- Exclude any spaces or non-letter characters that might result from splitting
+     GROUP BY 1;
+- The prompt states to ignore the filename column from google_file_store table, I focused mainly on making
+  sure all the words from both tables were extracted and cleaned into a single CTE. From there, it was much
+  easier to answer the key points from the problem using text manipulation, aggregation, ranking, and filtering
+  functions.
+
+############################
