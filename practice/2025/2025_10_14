@@ -1,0 +1,364 @@
+Date: 10/14/2025
+
+############################
+
+Website:
+StrataScratch - ID 2097
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Meta - Premium Accounts
+You have a dataset that records daily active users for each premium account. 
+A premium account appears in the data every day as long as it remains premium. 
+However, some premium accounts may be temporarily discounted, meaning they are not actively paying — this is indicated by a final_price of 0.
+For each of the first 7 available dates in the dataset, count the number of premium accounts that were actively paying on that day. 
+Then, track how many of those same accounts are still premium and actively paying exactly 7 days later, based solely on their status on that 7th day (i.e., both dates must exist in the dataset). 
+Accounts are only counted if they appear in the data on both dates.
+Output three columns:
+•   The date of initial calculation.
+•   The number of premium accounts that were actively paying on that day.
+•   The number of those accounts that remain premium and are still paying after 7 days.
+
+Data Dictionary:
+Table name = 'premium_accounts_by_day'
+users_visited_7d: numeric (num)
+final_price: numeric (num)
+plan_size: numeric (num)
+account_id: character (str)
+entry_date: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1
+## Question:
+# You have a dataset that records daily active users for each premium account.
+# A premium account appears in the data every day as long as it remains premium.
+# However, some premium accounts may be temporarily discounted, 
+# meaning they are not actively paying - this is indicated by a final_price of 0.
+# For each of the first 7 available dates in the dataset,
+# count the number of premium accounts that were actively paying on that day.
+# Then, track how many of those same accounts are still premium and actively paying exactly 7 days later,
+# based solely on their status on that 7th day (i.e. both dates must exist in the dataset).
+# Accounts are only counted if they appear in the data on both dates.
+# Output three columns, the date of initial calculation, number of premium accounts that were actively
+# paying on that day, number of those accounts that remain premium and are still paying after 7 days.
+
+## Output:
+# entry_date, active_paying_accounts, retained_paying_accounts
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+library(lubridate)
+
+## Load and preview data:
+#premium_accounts_by_day <- read_csv('premium_accounts_by_day.csv')
+accounts_df <- data.frame(premium_accounts_by_day)
+head(accounts_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 70
+data.frame(lapply(accounts_df, class))
+colSums(is.na(accounts_df))
+nrow(accounts_df)
+
+## Iteration:
+# You have a dataset that records daily active users for each premium account.
+# A premium account appears in the data every day as long as it remains premium.
+# However, some premium accounts may be temporarily discounted, 
+# meaning they are not actively paying - this is indicated by a final_price of 0.
+# For each of the first 7 available dates in the dataset,
+# count the number of premium accounts that were actively paying on that day.
+# Then, track how many of those same accounts are still premium and actively paying exactly 7 days later,
+# based solely on their status on that 7th day (i.e. both dates must exist in the dataset).
+# Accounts are only counted if they appear in the data on both dates.
+# Output three columns, the date of initial calculation, number of premium accounts that were actively
+# paying on that day, number of those accounts that remain premium and are still paying after 7 days.
+# entry_date, active_paying_accounts, retained_paying_accounts
+result_df <- accounts_df %>%
+    arrange(entry_date) %>%
+    mutate(
+        # 1. Rank entry_dates in ASC order and include ties 
+        date_ranked = dense_rank(entry_date),
+        # 2. Calculate 7 days later date for each entry_date
+        end_date = entry_date + days(7)
+    ) %>%
+    filter(
+        # 3. Filter for the first 7 available dates in the dataset
+        date_ranked <= 7,
+        # 4. Filter for initial actively paying accounts
+        final_price != 0
+    ) %>%
+    select(
+        # 5. Select and rename relevant columns
+        initial_final_price=final_price, account_id, entry_date, end_date
+    ) %>%
+    left_join(
+        # 6. Left join to original accounts dataset by 
+        #    end_date = entry_date and account_id = account_id
+        accounts_df, by=c("end_date"="entry_date", "account_id"="account_id")
+    ) %>%
+    mutate(
+        # 7. Create a conditional statement for premium accounts actively paying after 7 days
+        #    If final_price is 0 or NULL then 0, else 1
+        premium_7day = case_when(
+            final_price == 0 | is.na(final_price) ~ 0,
+            TRUE ~ 1
+        )
+    ) %>%
+    group_by(entry_date) %>%
+    summarise(
+        # 8. Count number of initial active paying premium accounts
+        active_paying_accounts = n(),
+        # 9. Calculate the total number of retained paying premium accounts after 7 days
+        retained_paying_accounts = sum(premium_7day),
+        .groups = "drop"
+    )
+    
+## Result:
+result_df
+
+Notes:
+- For my initial approach to the problem, considered creating two separate DataFrames that were filtered for
+  premium accounts that were actively paying in both conditions. The first condition consisted of accounts
+  that were actively paying on the first 7 available dates for the first DataFrame. The second condition 
+  were accounts that were still actively paying after 7 days from the initial dates from the first condition
+  for the second DataFrame. From there two DataFrames meant two sets of data where I could create an intersection
+  or join to see which parts of the data matched in terms of accounts and dates.
+- As I started the problem, it turned out to be much simpler to have the entire solution in a single pipe chain.
+  I created the necessary conditions for getting the initial premium account data using arrange, mutate, filter,
+  and select functions before performing a left join on the original accounts DataFrame to find any potential
+  matches and not matches for accounts and dates. From there a conditional statement made it easy to categorize
+  the rows of data that were still actively paying after 7 days from those that were not using 1 for TRUE and 
+  0 for FALSE. Grouping and aggregations were straightforward from there to obtain the final solution.
+  
+############################
+
+Website:
+StrataScratch - ID 2132
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Etsy - Caller History
+Given a phone log table that has information about callers' call history, find out the callers whose first and last calls were to the same person on a given day. 
+Output the caller ID, recipient ID, and the date called.
+
+Data Dictionary:
+Table name = 'caller_history'
+caller_id: int64 (int)
+recipient_id: int64 (int)
+date_called: datetime64 (dt)
+
+Code:
+Solution #1
+## Question:
+# Given a phone log table that has information about callers' call history,
+# find out the callers whose first and last calls were to the same person on a given day.
+# Output the caller ID, recipient ID, and the date called.
+
+## Output:
+# caller_id, recipient_id, date
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#caller_history = pd.read_csv('caller_history.csv')
+history_df = pd.DataFrame(caller_history)
+history_df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 12
+#history_df.info()
+#history_df.isna().sum()
+
+## Iteration:
+# Given a phone log table that has information about callers' call history,
+# find out the callers whose first and last calls were to the same person on a given day.
+# Output the caller ID, recipient ID, and the date called.
+# caller_id, recipient_id, date
+# 1. Extract date from date time column
+history_df["date"] = history_df["date_called"].dt.date
+
+# 2. Filter for first and last calls for each caller_id on each date
+result_df = history_df[
+    (history_df["date_called"] == history_df.groupby(["caller_id", "date"])["date_called"].transform('min')) |
+    (history_df["date_called"] == history_df.groupby(["caller_id", "date"])["date_called"].transform('max'))
+].copy()
+
+# 3. Count number of calls between caller_id and recepient_id on each date
+result_df = result_df.groupby(["caller_id", "recipient_id", "date"])["date_called"].count().reset_index(name="call_count")
+
+# 4. Filter for call count = 2 which indicates first and last calls were to same person on a given day
+result_df = result_df[
+    result_df["call_count"] == 2
+]
+
+# 5. Select relevant columns
+result_df = result_df[["caller_id", "recipient_id", "date"]]
+
+# 6. Sort in ASC order 
+result_df = result_df.sort_values(by=(["caller_id", "recipient_id", "date"]), ascending=True)
+
+# Result:
+print("Callers whose first and last calls were to the same person on a given day:")
+result_df
+
+Notes:
+- The date_called column contains date and time so my initial approach was to extract the date into a column
+  called date and use the caller_id and date columns to group and rank the date_called by earliest date and 
+  time. The problem that I ran into was filtering for ranks to obtain the first and last call rows. The first
+  call row wasn't an issue since the rank was 1 all across but the last call row was either 1, 2, or 3. 
+- From there I decided that I needed to think about a method of solving the problem that didn't rely on the rank
+  but could extract the first and last calls directly. I played around with the transform() function on rows
+  and determined it was best to use min and max functions with the same groups that I used in the rank function
+  earlier in order to get the necessary filter conditions. I didn't use first and last functions in transform()
+  because min and max seemed more appropriate without having to sort the data. After that, the aggregations, 
+  filters, selects, and sorts for the solution to the problem came along naturally.
+
+############################
+
+Website:
+StrataScratch - ID 9883
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Google - Find the oldest survivor per passenger class
+Find the oldest survivor of each passenger class.
+Output the name and the age of the survivor along with the corresponding passenger class.
+Order records by passenger class in ascending order.
+
+Data Dictionary:
+Table name = 'titanic'
+age: double precision (dbl)
+cabin: text (str)
+embarked: text (str)
+fare: double precision (dbl)
+name: text (str)
+parch: bigint (int)
+passengerid: bigint (int)
+pclass: bigint (int)
+sex: text (str)
+sibsp: bigint (int)
+survived: bigint (int)
+ticket: text (str)
+
+Code:
+Solution #1
+-- Question:
+-- Find the oldest survivor for each passenger class.
+-- Output the name and the age of the survivor along with the corresponding passenger class.
+-- Order records by passenger class in ascending order.
+
+-- Output:
+-- name, age, pclass
+
+-- Preview data:
+SELECT * FROM titanic LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - age(22), cabin(80), embarked(1), 
+-- Rows - 100
+SELECT
+    SUM(CASE WHEN age is NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN cabin is NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN embarked is NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN fare is NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN name is NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN parch is NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN passengerid is NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN pclass is NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN sex is NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN sibsp is NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN survived is NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN ticket is NULL THEN 1 ELSE 0 END) AS col12,
+    COUNT(*) AS total_rows
+FROM titanic;
+
+-- Iteration:
+-- Find the oldest survivor for each passenger class.
+-- Output the name and the age of the survivor along with the corresponding passenger class.
+-- Order records by passenger class in ascending order.
+-- name, age, pclass
+-- 1. Filter for survivors 
+-- 2. Filter out any NULL or 0 values in age column
+-- 3. Rank survivors by age in DESC order grouped by passenger class, include ties
+-- 4. Filter for oldest survivor for each passenger class using highest rank
+-- 5. Order records by passenger class in ASC order
+WITH SurvivorClassAgeRank AS (
+    SELECT 
+        name,
+        age,
+        pclass,
+        DENSE_RANK() OVER(PARTITION BY pclass ORDER BY age DESC) AS dense_rank
+    FROM titanic
+    WHERE survived = 1 
+        AND age <> 0
+        AND age IS NOT NULL
+)
+SELECT
+    name,
+    age,
+    pclass
+FROM SurvivorClassAgeRank
+WHERE dense_rank = 1
+ORDER BY pclass ASC
+
+-- Result:
+WITH SurvivorClassAgeRank AS (
+    SELECT 
+        name,
+        age,
+        pclass,
+        DENSE_RANK() OVER( -- 3. Rank survivors by age in DESC order grouped by passenger class, include ties
+            PARTITION BY 
+                pclass
+            ORDER BY 
+                age DESC
+        ) AS dense_rank
+    FROM 
+        titanic
+    WHERE 
+        survived = 1 -- 1. Filter for survivors 
+        AND age <> 0 -- 2. Filter out any NULL or 0 values in age column
+        AND age is NOT NULL
+)
+SELECT
+    name,
+    age,
+    pclass
+FROM 
+    SurvivorClassAgeRank
+WHERE 
+    dense_rank = 1 -- 4. Filter for oldest survivor for each passenger class using highest rank
+ORDER BY 
+    pclass ASC -- 5. Order records by passenger class in ASC order
+
+Notes:
+- When checking the data for nulls, I noticed that the age column had a significant amount of missing values.
+  In my initial query, I tried to use the WHERE clause to filter out NULL values but I think because the
+  column is a double precision data type, it doesn't filter correctly so had to use 0 instead of NULL to
+  filter out those rows that were not applicable to the problem. Surprisingly IS NOT NULL works over IS NULL.
+- After the filters were correctly in place for the data, I was able to rank the survivors by oldest age
+  and included ties just in case there were in possible edge case scenarios. This query was placed into a
+  CTE then it was subsequently queried directly to filter for a specific rank for the appropriate data to
+  the solution.
+
+############################
