@@ -1,0 +1,295 @@
+Date: 10/16/2025
+
+############################
+
+Website:
+StrataScratch - ID 2098
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Expedia - World Tours
+A group of travelers embark on world tours starting with their home cities. 
+Each traveler has an undecided itinerary that evolves over the course of the tour. 
+Some travelers decide to abruptly end their journey mid-travel and live in their last destination.
+Given the dataset of dates on which they travelled between different pairs of cities, can you find out how many travellers ended back in their home city? For simplicity, you can assume that each traveler made at most one trip between two cities in a day.
+
+Data Dictionary:
+Table name = 'travel_history'
+traveler: character (str)
+start_city: character (str)
+end_city: character (str)
+date: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1
+## Question:
+# A group of travelers embark on world tours starting with their home cities.
+# Each traveler has an undecided itinerary that evolves over the course of the tour.
+# Some travelers decide to abruptly end their journey mid-travel and live in their last destination.
+# Given the dataset of dates on which they travelled between different pairs of cities,
+# can you find out how many travellers ended back in their home city?
+# For simplicity, you can assume that each traveler made at most one trip between two cities in a day.
+
+## Output:
+# traveler_ended_home_city_count
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#travel_history <- read_csv('travel_history.csv')
+history_df <- data.frame(travel_history)
+head(history_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0 
+# Rows - 31
+data.frame(lapply(history_df, class))
+colSums(is.na(history_df))
+nrow(history_df)
+
+## Iteration:
+result_df <- history_df %>%
+    arrange(
+        # 1. Arrange by traveler and date in ASC order
+        traveler, date
+    ) %>%
+    group_by(traveler) %>%
+    summarise(
+        # 2. Find first start city and last end city for each traveler
+        first_start_city = first(start_city),
+        last_end_city = last(end_city),
+        .groups = "drop"
+    ) %>%
+    filter(
+        # 3. Filter for travelers where first_start_city = last_end_city
+        first_start_city == last_end_city
+    ) %>%
+    summarise(
+        # 4. Count number of travelers that ended back in their home city
+        traveler_ended_home_city_count = n()
+    )
+
+## Result:
+result_df
+
+Notes:
+- To count TRUE results direclty in a summarise() function without having to use filter(), sum() can be 
+  performed with a filter condition.
+  ex. 
+      summarise(
+          traveler_ended_home_city_count = sum(home_city == final_destination)
+      )
+- Before finding out about the first() and last() functions as aggregations, I normally would solve this problem
+  using min() and max() and then perform a join to find matches. The first() and last() functions make it a lot
+  easier to find pull data directly as long as the data is sorted and arrange beforehand.
+
+############################
+
+Website:
+StrataScratch - ID 2133
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Netflix - First Three Most Watched Videos
+
+Data Dictionary:
+Table name = 'videos_watched'
+user_id: object (str)
+video_id: object (str)
+watched_at: datetime64 (dt)
+
+Code:
+Solution #1
+## Question:
+# After a new user creates an account and starts watching videos, the user ID, video ID, 
+# and date watched are captured in the database.
+# Find the top 3 videos most users have watched as their first 3 videos.
+# Output the video ID and the number of times it has been watched as the users' first 3 videos.
+# In the event of a tie, output all the videos in the top 3 that users watched as their first videos.
+
+## Output:
+# video_id, users_watched_as_first_3_videos_count
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#videos_watched = pd.read_csv('videos_watched.csv')
+videos_df = pd.DataFrame(videos_watched)
+videos_df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 51
+#videos_df.info()
+#videos_df.isna().sum()
+
+## Iteration:
+# 1. Rank the videos watched for each user based on watched_at datetime
+videos_df["min_rank"] = videos_df.groupby("user_id")["watched_at"].rank(method="min", ascending=True)
+
+# 2. Filter for users first three videos using rank
+result_df = videos_df[
+    videos_df["min_rank"] <= 3
+].copy()
+
+# 3. Count number of times a video has been watched as a users' first 3 videos
+result_df = result_df.groupby("video_id")["user_id"].count().reset_index(name="users_watched_as_first_3_videos_count")
+
+# 4. Rank the videos based on user watch count and include ties
+result_df["dense_rank"] = result_df["users_watched_as_first_3_videos_count"].rank(method="dense", ascending=False)
+
+# 5. Filter for top 3 videos that users watched as their first videos
+result_df = result_df[
+    result_df["dense_rank"] <= 3     
+]
+
+# 6. Select relevant columns and sort by user watch count in DESC order
+result_df = result_df[["video_id", "users_watched_as_first_3_videos_count"]].sort_values(by="users_watched_as_first_3_videos_count", ascending=False)
+
+## Result:
+print("Top 3 videos most users have watched as their first 3 videos:")
+result_df
+
+Notes:
+- There is a method in the rank() function called "first" that can guarantee a unique order based on the row
+  index if datetime rows are identical.
+  ex.
+      videos_df["min_rank"] = videos_df.groupby("user_id")["watched_at"].rank(method="first", ascending=True)
+- This problem required using multiple rank functions that had different methods of ranking. After establishing
+  that min rank could be used for filtering the initial condition, an aggregation was performed on the filtered
+  data then ranked once again using dense rank to include ties. From there, filter, select and sorting functions
+  were performed to obtain the solution.
+
+############################
+
+Website:
+StrataScratch - ID 9898
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Twitter - Distinct Salaries
+Find the top three distinct salaries for each department. 
+Output the department name and the top 3 distinct salaries by each department. 
+Order your results alphabetically by department and then by highest salary to lowest.
+
+Data Dictionary:
+Table name = 'twitter_employee'
+address: text (str)
+age: bigint (int)
+bonus: bigint (int)
+city: text (str)
+department: text (str)
+email: text (str)
+employee_title: text (str)
+first_name: text (str)
+id: bigint (int)
+last_name: text (str)
+manager_id: bigint (int)
+salary: bigint (int)
+sex: text (str)
+target: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Find the top three distinct salaries for each department.
+-- Output the department name and the top 3 distinct salaries by each department.
+-- Order your results alphabetically by department and then by highest salary to lowest.
+
+-- Output:
+-- department, salary
+
+-- Preview data:
+SELECT * FROM twitter_employee LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - address(9)
+-- Rows - 30
+SELECT
+    SUM(CASE WHEN address IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN age IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN bonus IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN city IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN department IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN email IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN employee_title IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN first_name IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN last_name IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN manager_id IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN salary IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN sex IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN target IS NULL THEN 1 ELSE 0 END) AS col14,
+    COUNT(*) AS total_rows
+FROM twitter_employee;
+
+-- Iteration:
+-- 1. Rank distinct department salaries in DESC order
+-- 2. Filter for top 3 distinct salaries for each department
+-- 3. Order by department ASC and salary DESC
+WITH DepartmentSalaryRank AS (
+SELECT DISTINCT
+    department,
+    salary,
+    DENSE_RANK() OVER(PARTITION BY department ORDER BY salary DESC) AS dense_rank
+FROM twitter_employee
+)
+SELECT
+    department,
+    salary
+FROM DepartmentSalaryRank
+WHERE dense_rank <= 3
+ORDER BY 
+    department ASC,
+    salary DESC;
+
+-- Result:
+WITH DepartmentSalaryRank AS (
+    SELECT DISTINCT
+        department,
+        salary,
+        DENSE_RANK() OVER( -- 1. Rank distinct department salaries in DESC order
+            PARTITION BY department 
+            ORDER BY salary DESC
+        ) AS dense_rank
+    FROM 
+        twitter_employee
+)
+SELECT
+    department,
+    salary
+FROM 
+    DepartmentSalaryRank
+WHERE 
+    dense_rank <= 3 -- 2. Filter for top 3 distinct salaries for each department
+ORDER BY 
+    department ASC, -- 3. Order by department ASC and salary DESC
+    salary DESC;
+
+Notes:
+- This question was categorized as "Hard" SQL question but it actually seemed more straightforward and more
+  of a "Medium" difficulty to me. Most likely because I am familiar with using the DENSE_RANK() function
+  quite often in different programming languages. I did notice that the RANK() function didn't work for this
+  situation since there seems to be a alot of salaries that are of the same values. After creating a CTE with
+  the necessary ranked data, filtering and ordering functions were performed to obtain the solution.
+
+############################
