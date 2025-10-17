@@ -102,8 +102,11 @@ Notes:
   a vote value that involved using a case statement based on each row of votes and the total number of votes
   casted. From there, I totaled the votes for each candidate, ranked, filtered, and selected the final result.
 
-Duration:
-30 minutes
+Solve Duration:
+20 minutes
+
+Notes Duration:
+10 minutes
 
 ############################
 
@@ -208,8 +211,11 @@ Notes:
   and converted that into minutes from seconds. To extract the 90th percentile, the quantile() function was
   a neat one to use and learn about for obtaining the solution.
 
-Duration:
-45 minutes
+Solve Duration:
+20 minutes
+
+Notes Duration:
+25 minutes
 
 ############################
 
@@ -354,7 +360,10 @@ Notes:
   conditions where the row number ASC + 1 = row number DESC for even overlaps, and filter for conditions 
   where the row number ASC = row number DESC for even overlaps. 
 
-Duration:
-45 minutes
+Solve Duration:
+20 minutes
+
+Notes Duration:
+25 minutes
 
 ############################
