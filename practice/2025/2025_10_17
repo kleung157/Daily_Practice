@@ -1,0 +1,351 @@
+Date: 10/17/2025
+
+############################
+
+Website:
+StrataScratch - ID 2099
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Deloitte - Election Results
+The election is conducted in a city and everyone can vote for one or more candidates, or choose not to vote at all. 
+Each person has 1 vote so if they vote for multiple candidates, their vote gets equally split across these candidates. 
+For example, if a person votes for 2 candidates, these candidates receive an equivalent of 0.5 vote each. 
+Some voters have chosen not to vote, which explains the blank entries in the dataset.
+Find out who got the most votes and won the election. 
+Output the name of the candidate or multiple names in case of a tie.
+To avoid issues with a floating-point error you can round the number of votes received by a candidate to 3 decimal places.
+
+Data Dictionary:
+Table name = 'voting_results'
+voter: character (str)
+candidate: character (str)
+
+Code:
+Solution #1
+## Question:
+# The election is conducted in a city and everyone can vote for one or more candidates, 
+# or choose not to vote at all.
+# Each person has 1 vote so if they vote for multiple candidates, 
+# their vote gets equally split across these candidates.
+# For example, if a person votes for 2 candidates,
+# these candidates receive an equivalent of 0.5 vote each.
+# Some voters have chosen not to vote, which explains the blank entries in the dataset.
+# Find out who got the most votes and won the election.
+# Output the name of the candidate or multiple names in case of a tie.
+# To avoid issues with a floating-point error you can round the number of votes received to 3 decimals.
+
+## Output:
+# candidate
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#voting_results <- read_csv('voting_results.csv')
+voting_df <- data.frame(voting_results)
+head(voting_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - candidate(7)
+# Rows - 57
+data.frame(lapply(voting_df, class))
+colSums(is.na(voting_df))
+nrow(voting_df)
+
+## Iteration:
+result_df <- voting_df %>%
+    group_by(voter) %>%
+    mutate(
+        # 1. Count how many candidates a voter voted for
+        total_vote_count = sum(!is.na(candidate)),
+        # 2. If a voter did vote then vote_value = 1 / total_vote_count, else vote_value = 0
+        vote_value = case_when(
+            !is.na(candidate) ~ 1 / total_vote_count,
+            TRUE ~ 0
+        )
+    ) %>%
+    ungroup(voter) %>%
+    group_by(candidate) %>%
+    summarise(
+        # 3. Calculate the total number of votes for each candidate, round to 3 decimal places
+        total_votes = round(sum(vote_value), digits=3)    
+    ) %>%
+    mutate(
+        # 4. Rank the total number of votes for each candidate in DESC order, include ties
+        rank = dense_rank(desc(total_votes))
+    ) %>%
+    filter(
+        # 5. Filter for candidate with most votes by using rank
+        rank == 1
+    ) %>%
+    select(
+        # 6. Select relevant columns
+        candidate
+    )
+
+## Result:
+result_df
+
+Notes:
+- Alternatives to ranking for the top candidate with the most votes could have been done using the slice_max()
+  or max() function. I chose to go for a more step by step approach.
+- For this problem, I wanted to try to use the sum() function with filtering for TRUE/FALSE values. I avoided
+  filtering the null values immediately using the filter() function and wanted to incorporate the null tallies
+  in the solving process. After creating a total vote count for each voter using the sum() function, I made
+  a vote value that involved using a case statement based on each row of votes and the total number of votes
+  casted. From there, I totaled the votes for each candidate, ranked, filtered, and selected the final result.
+
+############################
+
+Website:
+StrataScratch - ID 2135
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Lyft - Actual vs Predicted Arrival Time
+Calculate the 90th percentile difference between Actual and Predicted arrival time in minutes for all completed trips within the first 14 days of 2022.
+
+Data Dictionary:
+Table name = 'trip_details'
+id: object (str)
+client_id: object (str)
+driver_id: object (str)
+city_id: object (str)
+client_rating: float64 (flt)
+driver_rating: float64 (flt)
+request_at: datetime64 (dt)
+predicted_eta: datetime64 (dt)
+actual_time_of_arrival: datetime64 (dt)
+status: object (str)
+
+Code:
+Solution #1
+## Question:
+# Calculate the 90th percentile difference between Actual and Predicted arrival time in minutes for
+# all completed trips within the first 14 days of 2022.
+
+## Output:
+# percentile_difference
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#trip_details = pd.read_csv('trip_details.csv')
+trips_df = pd.DataFrame(trip_details)
+trips_df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - client_rating(7), driver_rating(7), predicted_eta(6), actual_time_of_arrival(6)
+# Rows - 72
+#trips_df.info()
+#trips_df.isna().sum()
+
+## Iteration:
+# 1. Filter for completed trips within the first 14 days of 2022
+start_date = pd.to_datetime("2022-01-01") 
+end_date = pd.to_datetime("2022-01-14")
+
+filtered_df = trips_df[
+    (trips_df["status"] == "completed") &
+    (trips_df["actual_time_of_arrival"] >= start_date) &
+    (trips_df["actual_time_of_arrival"] <= end_date)
+].copy()
+
+# 2. Calculate difference between actual and predicted arrival time in minutes
+filtered_df["difference_in_minutes"] = (filtered_df["actual_time_of_arrival"] - filtered_df["predicted_eta"]).dt.total_seconds() / 60
+
+# 3. Select the 90th percentile difference and convert to Series
+result_series = pd.Series(filtered_df["difference_in_minutes"].quantile(0.90), name="percentile_difference")
+
+## Result:
+print("90th percentile difference in minutes for all completed trips within the first 14 days of 2022:")
+result_series
+
+Notes:
+- When using pandas library, quantile() function can be used to filter for a percentile value
+  ex. 
+      df = pd.DataFrame({'Data': np.random.randint(1, 100, 50)})
+      percentile_value = df['Data'].quantile(0.75)
+      # Filter for data points that are AT or ABOVE the 75th percentile
+      upper_percentile_data = df[df['Data'] >= percentile_value]
+      # Filter for data points that are AT or BELOW the 25th percentile
+      lower_percentile_value = df['Data'].quantile(0.25)
+      lower_percentile_data = df[df['Data'] <= lower_percentile_value]
+- For the numpy library, np.percentile() can be used to filter for a percentile value
+  ex. 
+      data_array = np.random.randint(1, 100, 50)
+      percentile_value_90 = np.percentile(data_array, 90)
+      # Filter for data points that are AT or ABOVE the 90th percentile
+      upper_percentile_array = data_array[data_array >= percentile_value_90]
+      # Filter for data points that are BETWEEN the 10th and 90th percentiles
+      percentile_10 = np.percentile(data_array, 10)
+      percentile_90 = np.percentile(data_array, 90)  
+      # Use the bitwise AND operator (&) for multiple conditions
+      middle_percentile_array = data_array[
+           (data_array >= percentile_10) & (data_array <= percentile_90)
+      ]
+- My interpretation for filtering for the specific time period that the problem was asking for was using
+  the actual_time_of_arrival column because it states that "all completed trips within the first 14 days
+  of 2022". By this I filtered for a start date of 2022-01-01 to an end date of 2022-01-14 and for a status
+  that said "completed". From there I calculated the difference between Actual and Predicted arrival times
+  and converted that into minutes from seconds. To extract the 90th percentile, the quantile() function was
+  a neat one to use and learn about for obtaining the solution.
+
+############################
+
+Website:
+StrataScratch - ID 9900
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Walmart - Median Salary
+Find the median employee salary of each department.
+Output the department name along with the corresponding salary rounded to the nearest whole dollar.
+
+Data Dictionary:
+Table name = 'employee'
+address: text (str)
+age: bigint (int)
+bonus: bigint (int)
+city: text (str)
+department: text (str)
+email: text (str)
+employee_title: text (str)
+first_name: text (str)
+id: bigint (int)
+last_name: text (str)
+manager_id: bigint (int)
+salary: bigint (int)
+sex: text (str)
+target: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Find the median employee salary for each department.
+-- Output the department name along with the corresponding salary rounded to the nearest whole dollar.
+
+-- Output:
+-- department, median_salary
+
+-- Preview data:
+SELECT * FROM employee LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - address(9)
+-- Rows - 30
+SELECT
+    SUM(CASE WHEN address IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN age IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN bonus IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN city IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN department IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN email IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN employee_title IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN first_name IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN last_name IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN manager_id IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN salary IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN sex IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN target IS NULL THEN 1 ELSE 0 END) AS col14,
+    COUNT(*) AS total_rows
+FROM employee;
+
+-- Iteration:
+-- 1. Assign a row number in ASC and DESC order for salary for each department
+-- 2. Filter for where row number ASC = row number DESC for odd overlaps
+--    Filter for where row number ASC + 1 = row number DESC for even overlaps
+--    Filter for where row number ASC = row number DESC + 1 for even overlaps
+-- 3. Calculate the average over the middle salary values for the median salary for each department
+WITH DepartmentSalaryRows AS (
+    SELECT 
+        department,
+        salary,
+        ROW_NUMBER() OVER(PARTITION BY department ORDER BY salary) AS rn_asc,
+        ROW_NUMBER() OVER(PARTITION BY department ORDER BY salary DESC) AS rn_desc
+    FROM employee
+)
+SELECT 
+    department,
+    ROUND(AVG(salary)) AS median_salary
+FROM DepartmentSalaryRows
+WHERE rn_asc = rn_desc
+    OR rn_asc + 1 = rn_desc
+    OR rn_asc = rn_desc + 1
+GROUP BY department
+ORDER BY department;
+
+-- Result:
+WITH DepartmentSalaryRows AS (
+    SELECT 
+        department,
+        salary,
+        ROW_NUMBER() OVER( -- 1. Assign a row number in ASC and DESC order for salary for each department
+            PARTITION BY department 
+            ORDER BY salary
+        ) AS rn_asc,
+        ROW_NUMBER() OVER(
+            PARTITION BY department 
+            ORDER BY salary DESC
+        ) AS rn_desc
+    FROM 
+        employee
+)
+SELECT 
+    department,
+    ROUND( -- 3. Calculate the average over the middle salary values for the median salary for each department
+        AVG(salary) 
+    ) AS median_salary
+FROM
+    DepartmentSalaryRows
+WHERE 
+    rn_asc = rn_desc -- 2. Filter for where row number ASC = row number DESC for odd overlaps
+    OR rn_asc + 1 = rn_desc -- Filter for where row number ASC + 1 = row number DESC for even overlaps
+    OR rn_asc = rn_desc + 1 -- Filter for where row number ASC = row number DESC + 1 for even overlaps
+GROUP BY 
+    department
+ORDER BY
+    department;
+
+Notes:
+- For PostgreSQL and SQLServer, PERCENTILE_CONT() function can be used to interpolate the weighted average
+  and is best used for continuous data types. Using 0.50 for PERCENTILE_CONT() will find the median for a
+  set of values. In Oracle, there is a dedicated function MEDIAN() for finding median for a set of values.
+  To find a discrete value rather than an average, PostgresSQL has PERCENTILE_DISC() to find an exact value
+  from a set of data and is best for categories or counts of data.
+  ex. 
+      SELECT 
+          department,
+          PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY salary) AS median_salary
+      FROM employee
+      GROUP BY department;
+- While there are dedicated functions for making the process of finding the median of a set of values much
+  easier, I wanted to try an approach where it would be a more step by step break down of how to actually
+  calculate the true median. Initially I tried using NTILE() for putting values into buckets but that seemed
+  a bit more complicated as opposed to using ROW_NUMBER() to filter for an average of the middle values. The
+  core filtering logic after assigning row numbers in ASC and DESC order for the salaries of each department,
+  is to filter for conditions where the row number ASC = row number DESC for odd overlaps, filter for 
+  conditions where the row number ASC + 1 = row number DESC for even overlaps, and filter for conditions 
+  where the row number ASC = row number DESC for even overlaps. 
+
+############################
