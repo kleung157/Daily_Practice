@@ -102,6 +102,9 @@ Notes:
   a vote value that involved using a case statement based on each row of votes and the total number of votes
   casted. From there, I totaled the votes for each candidate, ranked, filtered, and selected the final result.
 
+Duration:
+30 minutes
+
 ############################
 
 Website:
@@ -204,6 +207,9 @@ Notes:
   that said "completed". From there I calculated the difference between Actual and Predicted arrival times
   and converted that into minutes from seconds. To extract the 90th percentile, the quantile() function was
   a neat one to use and learn about for obtaining the solution.
+
+Duration:
+45 minutes
 
 ############################
 
@@ -347,5 +353,8 @@ Notes:
   is to filter for conditions where the row number ASC = row number DESC for odd overlaps, filter for 
   conditions where the row number ASC + 1 = row number DESC for even overlaps, and filter for conditions 
   where the row number ASC = row number DESC for even overlaps. 
+
+Duration:
+45 minutes
 
 ############################
