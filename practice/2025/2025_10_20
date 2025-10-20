@@ -1,0 +1,373 @@
+Date: 10/20/2025
+
+############################
+
+Website:
+StrataScratch - ID 2101
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Deloitte - Maximum of Two Numbers
+Given a single column of numbers, consider all possible permutations of two numbers with replacement, assuming that pairs of numbers (x,y) and (y,x) are two different permutations. Then, for each permutation, find the maximum of the two numbers.
+Output three columns: the first number, the second number and the maximum of the two.
+
+Data Dictionary:
+Table name = 'deloitte_numbers'
+number: numeric (num)
+
+Code:
+Solution #1
+## Question:
+# Given a single column of numbers, consider all permutations of two numbers with replacement,
+# assuming that pairs of numbers (x,y) and (y,x) are two different permutations.
+# Then for each permutation, find the maximum of the two numbers.
+# Output three columns, the first number, the second number, and the maximum of the two.
+
+## Output:
+# first_number, second_number, maximum
+
+# Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#deloitte_numbers = read_csv('deloitte_numbers.csv')
+numbers_df = data.frame(deloitte_numbers)
+head(numbers_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 5
+data.frame(lapply(numbers_df, class))
+colSums(is.na(numbers_df))
+nrow(numbers_df)
+
+## Iteration:
+# 1. Arrange starting numbers in ASC order
+numbers_df <- numbers_df %>%
+    arrange(numbers_df)
+
+# 2. For 5 possible numbers, union the numbers_df data 5 times in one column arranged in ASC order
+first_number_df <- bind_rows(numbers_df, numbers_df, numbers_df, numbers_df, numbers_df) %>%
+    arrange(number) %>%
+    rename(first_number = number)
+    
+# 3. Union the numbers_df data 5 times and keep the ordering as is
+second_number_df <- bind_rows(numbers_df, numbers_df, numbers_df, numbers_df, numbers_df) %>%
+    rename(second_number = number)
+
+# 4. Combine the columns of first_number and second_number DataFrames
+result_df <- bind_cols(first_number_df, second_number_df) %>%
+    mutate(
+        maximum = case_when(
+        # 5. Find the maximum of two numbers using a case statement,
+        #    if first_number > second_number then first_number, else second_number
+            first_number > second_number ~ first_number,
+            TRUE ~ second_number
+        )
+    )
+
+## Result:
+result_df
+
+Notes:
+- My initial thought for solving the problem was duplicating the dataset a number of times and then using
+  a series of joins to try to shift the dataset up and down on rows in each column. It seemed to be more
+  work so I pictured an approach where a UNION could be performed instead and have all the possible outcomes
+  and deal with filtering out the same permutations later. 
+- Since there are only 5 rows in the original dataset I used bind_row() function which is similar to UNION in
+  SQL to duplicate the data 5 times which is the maximum permutations for each row. Then I rearranged all the
+  number values in ASC order and labeled the column accordingly. For the second column, I made sure that I
+  arranged the starting dataframe in ASC order and again performed bind_row() 5 times for the maximum number
+  of permutations for each row but this time I didn't perform a rearrangement again in this operation. 
+- Once the two columns of number permutation pairs were established, I used the bind_cols() function to
+  horizontally union the two DataFrames first_number and second_number together. From there I created a case 
+  statement to find the maximum value of both values in each row.
+
+Suggestions and Final Thoughts:
+- The aggregate function max() can be used to find the maximum of two particular columns in a single a row
+  using the rowwise() group operation beforehand.
+  ex. 
+      rowwise() %>% # Apply the operation row by row
+      mutate(
+          maximum_of_the_two = max(first_number, second_number)
+      ) %>%
+      ungroup() # Return to a standard data frame
+- A full cartesian join with dummy variables can be used to generate permutations
+  ex. 
+      result_table <- deloitte_numbers %>%
+           # Create a temporary column 'dummy' with a constant value to facilitate a
+           # full join (Cartesian product) with itself.
+           mutate(dummy = 1) %>% 
+           # Perform a full join to get all pairs (x, y) where x comes from the left
+           # table and y from the right table. This generates the permutations.
+           full_join(
+               deloitte_numbers %>% 
+                    # Rename the column for the second number in the pair
+                    rename(second_number = number) %>% 
+                    mutate(dummy = 1),
+               by = "dummy" # Join condition to get the Cartesian product
+            )
+- Most efficient and robust approach is a Cartesian Product Cross Join with expand_grid() and pmax() functions
+  ex.
+      # 1. Use expand_grid (or full_join/cross_join) for the Cartesian Product
+      result_df <- expand_grid(
+          first_number = deloitte_numbers$number, 
+          second_number = deloitte_numbers$number
+      ) %>%
+      # 2. Calculate the maximum efficiently
+      # pmax() is vectorized and faster than rowwise() + max() for this purpose
+      dplyr::mutate(
+          maximum = pmax(first_number, second_number) 
+      )
+- My interpretation of filtering out the same permutations in "consider all permutations of two numbers with
+  replacement, assuming that pairs of numbers (x,y) and (y,x) are two different permutations" was incorrect.
+  The rest of the approach came out the way I envisioned it, permutations = (number of samples) ^ 2
+- My initial thought of using JOINs was more spot on but did not recall completely how to use a FULL cartesian
+  join in R compared to SQL. Using an alternative like UNION was still helpful in understanding another way
+  of solving the problem.
+
+Solve Duration:
+32 minutes
+
+Notes Duration:
+8 minutes
+
+Suggestions and Final Thoughts Duration:
+22 minutes
+
+############################
+
+Website:
+StrataScratch - ID 2137
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Lyft - Most Profitable City of 2021
+It's the end-of-year review, and you've been tasked with identifying the city with the most profitable month in 2021.
+The output should provide the city, the most profitable month, and the profit.
+
+Data Dictionary:
+Table name = 'lyft_orders'
+order_id: int64 (int)
+customer_id: object (str)
+driver_id: object (str)
+country: object (str)
+city: object (str)
+Table name = 'lyft_payment_details'
+order_id: int64 (int)
+order_date: datetime64 (dt)
+promo_code: bool (bool)
+order_fare: float64 (flt)
+
+Code:
+Solution #1
+## Question:
+# It's the end-of-year review, and you've been tasked with identifying the city
+# with the most profitable month in 2021.
+# The output should provide the city, the most profitable month, and the profit.
+
+## Output:
+# city, month, profit
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#lyft_orders = pd.read_csv('lyft_orders.csv')
+#lyft_payment_details = pd.read_csv('lyft_payment_details')
+orders_df = pd.DataFrame(lyft_orders)
+payments_df = pd.DataFrame(lyft_payment_details)
+orders_df.head(5)
+payments_df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - orders: 0
+#       - payments: 0
+# Rows - orders: 21
+#      - payments: 21
+#orders_df.info()
+#orders_df.isna().sum()
+#payments_df.info()
+#payments_df.isna().sum()
+
+## Iteration:
+# 1. Inner join the orders and payments DataFrames by order_id
+merged_df = pd.merge(orders_df, payments_df, on="order_id", how="inner")
+
+# 2. Create a month column by extracting month from order_date
+merged_df["month"] = merged_df["order_date"].dt.month
+
+# 3. Filter for 2021 dates
+# 4. Calculate the total profits for each city per month 
+result_df = merged_df[
+    merged_df["order_date"].dt.year == 2021
+].copy().groupby(["city", "month"])["order_fare"].sum().reset_index(name="profit")
+
+# 5. Filter for cities with most profitable month in 2021 using max function which includes ties, sort ASC
+result_df = result_df[
+    result_df["profit"] == result_df["profit"].max()    
+].sort_values(by=["city", "month"], ascending=True)
+
+## Result:
+print("Cities with the most profitable month in 2021:")
+result_df
+
+Notes:
+- To combine the datasets, I used an inner join because the initial data quality checks showed that both
+  datasets contained the same number of rows and had matching IDs. From there, I extracted the month from
+  the order_date column, filtered out for 2021 dates, performed grouped aggregation functions, filtered again
+  for the maximum, then sorted the final results.
+
+Suggestions and Final Thoughts:
+- When extracting the month, can also extract the year to make the final output more clear
+  ex. 
+      # Use YYYY-MM format for clearer output
+      merged_df["month"] = merged_df["order_date"].dt.strftime('%Y-%m')
+
+Solve Duration:
+15 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+3 minutes
+
+############################
+
+Website:
+StrataScratch - ID 9919
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+LinkedIn - Unique Highest Salary
+Find the highest salary among salaries that appears only once.
+
+Data Dictionary:
+Table name = 'employee'
+address: text (str)
+age: bigint (int)
+bonus: bigint (int)
+city: text (str)
+department: text (str)
+email: text (str)
+employee_title: text (str)
+first_name: text (str)
+id: bigint (int)
+last_name: text (str)
+manager_id: bigint (int)
+salary: bigint (int)
+sex: text (str)
+target: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Find the highest salary among salaries that appears only once.
+
+-- Output:
+-- highest_salary_appearing_once
+
+-- Preview data:
+SELECT * FROM employee LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - address(9)
+-- Rows - 30
+SELECT
+    SUM(CASE WHEN address IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN age IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN bonus IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN city IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN department IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN email IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN employee_title IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN first_name IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN last_name IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN manager_id IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN salary IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN sex IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN target IS NULL THEN 1 ELSE 0 END) AS col14,
+    COUNT(*) AS total_rows
+FROM employee;
+
+-- Iteration:
+-- 1. Count number of times salary appears in dataset for each salary
+-- 2. Filter for salaries that appear only once
+-- 3. Aggregate for maximum salary amongst single counts
+WITH SalarySingleCounts AS (
+    SELECT 
+        salary,
+        COUNT(salary) as salary_count
+    FROM employee 
+    GROUP BY salary
+    HAVING COUNT(salary) = 1
+)
+SELECT
+    MAX(salary) AS highest_salary_appearing_once
+FROM SalarySingleCounts;
+
+-- Result:
+WITH SalarySingleCounts AS (
+    SELECT 
+        salary,
+        COUNT(salary) as salary_count -- 1. Count number of times salary appears in dataset for each salary
+    FROM 
+        employee 
+    GROUP BY 
+        salary
+    HAVING 
+        COUNT(salary) = 1 -- 2. Filter for salaries that appear only once
+)
+SELECT
+    MAX(salary) AS highest_salary_appearing_once -- 3. Aggregate for maximum salary amongst single counts
+FROM 
+    SalarySingleCounts;
+    
+Notes:
+- Fairly straightfoward problem that involves using aggregations and CTEs to perform the necessary query.
+  Using the COUNT() aggregation with correct groupings and filtering with HAVING to only have single instances
+  then placing that step into a CTE then querying from that CTE to find the highest salary using MAX() 
+  aggregation.
+  
+Suggestions and Final Thoughts:
+- The entire query can be done without using a CTE or subquery since it is looking for a single value. However
+  I chose to use the CTE for readability and clarity in showing how I would approach the solution step by step.
+  ex.
+      SELECT
+          MAX(salary) AS highest_unique_salary
+      FROM
+          employee
+      GROUP BY
+          salary
+      HAVING
+          COUNT(salary) = 1;
+          
+Solve Duration:
+11 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+2 minutes
+
+############################
