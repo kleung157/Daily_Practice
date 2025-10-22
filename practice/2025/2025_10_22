@@ -1,0 +1,392 @@
+Date: 10/22/2025
+
+############################
+
+Website:
+StrataScratch - ID 2104
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Google - User with Most Approved Flags
+Which user flagged the most distinct videos that ended up approved by YouTube? Output, in one column, their full name or names in case of a tie. 
+In the user's full name, include a space between the first and the last name.
+
+Data Dictionary:
+Table name = 'user_flags'
+user_firstname: character (str)
+user_lastname: character (str)
+video_id: character (str)
+flag_id: character (str)
+Table name = 'flag_review'
+flag_id: character (str)
+reviewed_by_yt: logical (bool)
+reviewed_date: POSIXct, POSIXt (dt)
+reviewed_outcome: character (str)
+
+Code:
+Solution #1
+## Question:
+# Which user flagged the most distinct videos that ended up approved by Youtube?
+# Output in one column their full name or names in case of a tie.
+# In the user's full name, include a space between the first and last name.
+
+## Output:
+# name
+
+## Import libraries:
+# install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#user_flags <- read_csv('user_flags.csv')
+#flag_review <- read_csv('flag_reviews.csv')
+users_df <- data.frame(user_flags)
+review_df <- data.frame(flag_review)
+
+## Check datatypes, nulls, and rows:
+# Nulls - users: user_firstname(3), user_lastname(3), video_id(1), flag_id(4)
+#       - review: reviewed_date(9), reviewed_outcome(9)
+# Rows - users: 29
+#      - review: 27
+data.frame(lapply(users_df, class))
+data.frame(lapply(review_df, class))
+colSums(is.na(users_df))
+colSums(is.na(review_df))
+nrow(users_df)
+nrow(review_df)
+
+## Iteration:
+result_df <- users_df %>%
+    inner_join(
+        # 1. Join users and review DataFrames by flag_id
+        review_df, by="flag_id"
+    ) %>%
+    filter(
+        # 2. Filter for reviewed_by_yt is 'TRUE', reviewed_outcome is 'APPROVED', 
+        #    flag_id and video_id not null
+        reviewed_by_yt == TRUE &
+        reviewed_outcome == 'APPROVED' &
+        !is.na(flag_id) &
+        !is.na(video_id)
+    ) %>%
+    mutate(
+        # 3. For null user_firstname or user_lastname, fill with empty strings '', else keep name
+        user_firstname_cleaned = case_when(
+            is.na(user_firstname) ~ '',
+            TRUE ~ user_firstname
+        ),
+        user_lastname_cleaned = case_when(
+            is.na(user_lastname) ~ '',
+            TRUE ~ user_lastname
+        ),
+        # 4. Concatenate first and last name to create full name with a space in between
+        # 5. Trim any excess leading/lagging white space
+        name = str_trim(str_c(user_firstname_cleaned, ' ', user_lastname_cleaned))
+    ) %>%
+    group_by(name) %>%
+    summarise(
+        # 6. Count distinct videos per name 
+        distinct_video_count = n_distinct(video_id),
+        .groups = "drop"
+    ) %>%
+    slice_max(
+        # 7. Use slice to filter for users with the most distinct videos approved, includes ties
+        distinct_video_count
+    ) %>%
+    select(
+        # 8. Select relevant columns
+        name
+    )
+    
+## Result:
+result_df
+
+Notes:
+- Upon the initial data quality checks, noticed a number of columns that contained null values that were
+  relevant to the question at hand. Made sure to filter for the necessary conditions to obtain the correct
+  data. In certain edge cases, I created a case statement to make string concatenation easier if there were
+  any null rows. These null rows were replaced with empty strings. String trim was used in case there was any
+  excess leading/lagging spaces. From there, a group aggregation, slice_max filter and select functions were 
+  performed to obtain the final solution.
+
+Suggestions and Final Thoughts:
+- To fill null values, replace_na() or coalesece() functions can be used in place of case_when(). I chose
+  case_when() since it was the first thing I thought of to use when solving the problem. If the thought of 
+  the other functions come to mind then I will use them or if performance becomes necessary factor.
+- In this situation I used a dedicated slice_max() function for filtering for top ranks. Normally I would
+  use dense_rank for ties and then filter for that specific rank or use the max() aggregation function to 
+  filter for top rank.
+
+Solve Duration:
+19 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+3 minutes
+
+############################
+
+Website:
+StrataScratch - ID 2139
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+CVS - Average Age of Claims by Gender
+You have been asked to calculate the average age by gender of people who filed more than 1 claim in 2021.
+The output should include the gender and average age rounded to the nearest whole number.
+
+Data Dictionary:
+Table name = 'cvs_claims'
+claim_id: int64 (int)
+account_id: object (str)
+date_submitted: datetime64 (dt)
+date_accepted: datetime64 (dt)
+date_rejected: datetime64 (dt)
+Table name = 'cvs_accounts'
+account_id: object (str)
+age: int64 (int)
+gender: object (str)
+
+Code:
+Solution #1
+## Question:
+# You have been asked to calculate the average age by gender of people who filed more than 1 claim in 2021.
+# The output should include the gender and average age rounded to the nearest whole number.
+
+## Output:
+# gender, average_age
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#cvs_claims = pd.read_csv('cvs_claims.csv')
+#cvs_accounts = pd.read_Csv('cvs_accounts.csv')
+claims_df = pd.DataFrame(cvs_claims)
+accounts_df = pd.DataFrame(cvs_accounts)
+claims_df.head(5)
+accounts_df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - claims: date_accepted(12), date_rejected(11)
+#       - accounts: 0
+# Rows - claims: 16
+#      - accounts: 16
+#claims_df.info()
+#claims_df.isna().sum()
+#accounts_df.info()
+#accounts_df.isna().sum()
+
+## Iteration:
+# 1. Inner join claims and accounts DataFrames by account_id
+merged_df = pd.merge(claims_df, accounts_df, on="account_id", how="inner")
+
+# 2. Filter for 2021 claims
+filtered_df = merged_df[
+    merged_df["date_submitted"].dt.year == 2021
+].copy()
+
+# 3. Filter for accounts who filed more than 1 claim
+filtered_df = filtered_df[
+    filtered_df.groupby("account_id")["claim_id"].transform("count") > 1
+]
+
+# 4. Calculate the average age by gender, round to nearest whole number
+result_df = filtered_df.groupby("gender")["age"].mean().round().reset_index(name="average_age")
+
+## Result:
+print("Average age by gender of people who filed more than 1 claim in 2021:")
+result_df
+
+Notes:
+- The number of rows was the same for both DataFrames in the initial data quality checks. None of the null
+  values were relevant to the problem. Was trying to have all filters within one chain but had to separate
+  the filter for 2021 claims and accounts who filed more than 1 claim. The counts were not reflective of
+  the number of claims in 2021 and instead aggregated counts for all claims in or out of 2021. Once the
+  filters were established, the final aggregation for finding the average was performed to obtain the solution.
+
+Suggestions and Final Thoughts:
+- The filter for accounts who filed more than 1 claim could have been performed on claims_df before the
+  merge using inner join with claims_df and account_df. In this situation, I did a step by step approach and
+  preserved the original DataFrames and used new variables to define multiple intermediate DataFrames. While
+  this may be less efficient, it is easier to understand and debug.
+
+Solve Duration:
+20 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+3 minutes
+
+############################
+
+Website:
+StrataScratch - ID 9953
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+ESPN - Olympics Gender Ratio
+
+Data Dictionary:
+Table name = 'olympics_athletes_events'
+age: double precision (dbl)
+city: text (str)
+event: text (str)
+games: text (str)
+height: double precision (dbl)
+id: bigint (int)
+medal: text (str)
+name: text (str)
+noc: text (str)
+season: text (str)
+sex: text (str)
+sport: text (str)
+team: text (str)
+weight: double precision (dbl)
+year: bigint (int)
+
+Code:
+-- Question:
+-- Find the gender ratio between the number of men and women who participated in each Olympics.
+-- Output the Olympics name along with the corresponding number of men, women, and the gender ratio.
+-- If there are Olympics with no women, output a NULL instead of a ratio.
+
+-- Output:
+-- games, number_of_men, number_of_women, gender_ratio
+
+-- Preview data:
+SELECT * FROM olympics_athletes_events LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - age(65), height(226), medal(232), weight(249)
+-- Rows - 352
+SELECT
+    SUM(CASE WHEN age IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN city IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN event IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN games IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN height IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN medal IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN name IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN noc IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN season IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN sex IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN sport IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN team IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN weight IS NULL THEN 1 ELSE 0 END) AS col14,
+    SUM(CASE WHEN year IS NULL THEN 1 ELSE 0 END) AS col15,
+    COUNT(*) AS total_rows
+FROM olympics_athletes_events;
+
+-- Iteration:
+-- Find the gender ratio between the number of men and women who participated in each Olympics.
+-- Output the Olympics name along with the corresponding number of men, women, and the gender ratio.
+-- If there are Olympics with no women, output a NULL instead of a ratio.
+-- games, number_of_men, number_of_women, gender_ratio
+-- 1. Sum the number of instances for gender for each Olympic games, output NULL for Olympics with no women
+-- 2. Calculate the gender ratio for number of men to women, convert to numeric and round acccordingly
+WITH OlympicGamesGenderNumbers AS (
+    SELECT 
+        games,
+        SUM(CASE WHEN sex = 'M' THEN 1 ELSE 0 END) AS number_of_men,
+        SUM(CASE WHEN sex = 'F' THEN 1 ELSE NULL END) AS number_of_women
+    FROM olympics_athletes_events
+    GROUP BY games
+)
+SELECT
+    games,
+    number_of_men,
+    number_of_women,
+    ROUND(
+        1.0 * number_of_men / number_of_women
+    , 2) AS gender_ratio
+FROM OlympicGamesGenderNumbers
+ORDER BY games;
+
+-- Result:
+WITH OlympicGamesGenderNumbers AS (
+    SELECT 
+        games,
+        SUM( -- 1. Sum the number of instances for gender for each Olympic games,
+             --    output NULL for Olympics with no women
+            CASE 
+                WHEN sex = 'M' 
+                THEN 1 
+                ELSE 0 
+            END
+        ) AS number_of_men,
+        SUM(
+            CASE 
+                WHEN sex = 'F' 
+                THEN 1 
+                ELSE NULL 
+            END
+        ) AS number_of_women
+    FROM 
+        olympics_athletes_events
+    GROUP BY 
+        games
+)
+SELECT
+    games,
+    number_of_men,
+    number_of_women,
+    ROUND( -- 2. Calculate the gender ratio for number of men to women,
+           --    convert to numeric and round acccordingly
+        1.0 * number_of_men / number_of_women
+    , 2) AS gender_ratio
+FROM 
+    OlympicGamesGenderNumbers
+ORDER BY 
+    games;
+
+Notes:
+- None of the null values in the data quality check were needed for the problem at hand. Case statements
+  were used to tally up instances where 'M' or 'F' occurred in the sex column. The specific ELSE clause for
+  females was that "if there are Olympics with no women, output a NULL instead of a ratio", this was used
+  to make sure any 0 counts were replaced with NULL so that a divison by zero calculation would not occur.
+  While I could have done all the calculations in one query, I felt it best to separate the initial table
+  into a CTE for clarity and then perform the ratio calculation in the next step. Whenever performing 
+  division it is best to convert the numerator to a numeric datatype using 1.0 * or numeric:: casting.
+
+Suggestions and Final Thoughts:
+- Make sure the final output matches the output that is necessary in the problem. Forgot to include the
+  number_of_men and number_of_women columns in the final output.
+- If I were to perform the ratio calculation in a single query then here is an example of how to do so
+  using CAST(), NULLIF(), SUM() and CASE WHEN statements.
+  ex.
+      CAST(SUM(CASE WHEN sex = 'M' THEN 1 ELSE 0 END) AS NUMERIC) /
+      NULLIF(SUM(CASE WHEN sex = 'F' THEN 1 ELSE 0 END), 0) AS "Gender Ratio (M/F)"
+- NULLIF() is a function that checks if denominator is 0, this will change it to NULL to avoid division by 0
+
+Solve Duration:
+19 minutes
+
+Notes Duration:
+4 minutes
+
+Suggestions and Final Thoughts Duration:
+4 minutes
+
+############################
