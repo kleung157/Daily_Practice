@@ -1,0 +1,419 @@
+Date: 10/23/2025
+
+############################
+
+Website:
+StrataScratch - ID 2106
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Google - Rows With Missing Values
+The data engineering team at YouTube want to clean the dataset user_flags. 
+In particular, they want to examine rows that have missing values in more than one column. 
+List these rows.
+
+Data Dictionary:
+Table name = 'user_flags'
+user_firstname: character (str)
+user_lastname: character (str)
+video_id: character (str)
+flag_id: character (str)
+
+Code:
+Solution #1
+## Question:
+# The data engineering team at YouTube want to clean the dataset user_flags. 
+# In particular, they want to examine rows that have missing values in more than one column.
+# List these rows.
+
+## Output:
+# rows_with_more_than_one_null
+
+## Import libraries:
+# install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#user_flags <- read_csv('user_flags.csv')
+users_df <- data.frame(user_flags)
+head(users_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - user_firstname(3), user_lastname(3), video_id(1), flag_id(4)
+# Rows - 29
+data.frame(lapply(users_df, class))
+colSums(is.na(users_df))
+nrow(users_df)
+
+## Iteration:
+result_df <- users_df %>%
+    mutate(
+        # 1. Count the number of nulls within each row
+        null_count = rowSums(is.na(users_df))
+    ) %>%
+    filter(
+        # 2. Filter for rows with more than one null
+        null_count > 1
+    ) %>%
+    select(
+        # 3. Select relevant columns
+        user_firstname, user_lastname, video_id, flag_id
+    )
+
+## Result:
+result_df
+
+Notes:
+- Before approaching this problem, I normally do data quality checks using the function colSums(is.na()) to
+  find all the null values in each column. When I thought of how the problem asked for the number of missing 
+  values in each row in more than one column, it was simply adjusting the function to be rowSums(is.na()).
+  From there, I had to remember that I was making a new column so combining it with mutate() made sense to 
+  count the number of nulls in a separate column. Then I simply filtered the final result for the necessary
+  list of values. I did not convert to a list datatype because the presentation isn't as clear as a DataFrame.
+  However, a simple as.list() after the last function would be the way to do so.
+  
+Suggestions and Final Thoughts:
+- Remember to select only the relevant columns, remove the helper column null_count in this case.
+- Instead of calling the users_df DataFrame again in the rowSums(is.na()) function, it's best to use 
+  cur_data() or pick(everything()) to ensure the size of the data has not changed.
+  ex. 
+      null_count = rowSums(is.na(cur_data()))
+      null_count = rowSums(is.na(pick(everything())))
+- Another method would be to use rowwise() grouping in conjunction with sum(is.na(c_across(everything())))
+  in mutate(). It is a safer method of grouping and counting nulls.
+  ex.
+    result_df <- users_df %>%
+        # 1. Use rowwise() to set the context for row-level operations
+        rowwise() %>%
+        mutate(
+            # Count the NAs for the current row (c_across(everything()))
+            null_count = sum(is.na(c_across(everything())))
+        ) %>%
+        ungroup() %>%
+        filter(
+            # 2. Filter for rows with more than one null
+            null_count > 1
+        )
+- The method that I chose works but good to consider the alternatives and potential downfalls that may occur
+  with the R environment if not using the correct syntax and functions.
+
+Solve Duration:
+10 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################
+
+Website:
+StrataScratch - ID 2140
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+American Express - Third Highest Total Transaction
+American Express is reviewing their customers' transactions, and you have been tasked with locating the customer who has the third highest total transaction amount.
+The output should include the customer's id, as well as their first name and last name. 
+For ranking the customers, use type of ranking with no gaps between subsequent ranks.
+
+Data Dictionary:
+Table name = 'customers'
+id: int64 (int)
+first_name: object (str)
+last_name: object (str)
+city: object (str)
+address: object (str)
+phone_number: object (str)
+Table name = 'card_orders'
+order_id: int64 (int)
+cust_id: int64 (int)
+order_date: object (str)
+order_details: object (str)
+total_order_cost: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# American Express is reviewing their customers' transactions, 
+# and you have been tasked with locating the customer who has the third highest total transaction amount.
+# Output should include the customer's id, as well as their first name and last name.
+# For ranking the customers, use type of ranking with no gaps between subsequent ranks.
+
+## Output:
+# cust_id, first_name, last_name
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#customers = pd.read_csv("customers.csv")
+#card_orders = pd.read_csv("card_orders.csv")
+customers_df = pd.DataFrame(customers)
+orders_df = pd.DataFrame(card_orders)
+customers_df.head(5)
+orders_df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - customers: address(7)
+#       - orders: 0
+# Rows - customers: 15
+#      - orders: 30
+#customers_df.info()
+#customers_df.isna().sum().reset_index()
+#orders_df.info()
+#orders_df.isna().sum().reset_index()
+
+## Iteration:
+# American Express is reviewing their customers' transactions, 
+# and you have been tasked with locating the customer who has the third highest total transaction amount.
+# Output should include the customer's id, as well as their first name and last name.
+# For ranking the customers, use type of ranking with no gaps between subsequent ranks.
+# id, first_name, last_name
+# 1. Join customers and orders DataFrames by id and cust_id respectively
+merged_df = pd.merge(customers_df, orders_df, left_on="id", right_on="cust_id", how="inner")
+
+# 2. Calculate the total transaction amount for each customer
+result_df = merged_df.groupby(["cust_id", "first_name", "last_name"])["total_order_cost"].sum().reset_index(name="total_transaction_amount")
+
+# 3. Rank the total transaction amount in DESC order, include ties but no gaps
+result_df["rank"] = result_df["total_transaction_amount"].rank(method="dense", ascending=False)
+
+# 4. Filter for the customer with the third highest total transaction amount 
+result_df = result_df[
+    result_df["rank"] == 3
+]
+
+# 5. Select relevant columns
+result_df = result_df[["cust_id", "first_name", "last_name"]]
+
+## Result:
+print("Customer who has the third highest total transaction amount:")
+result_df
+
+Notes:
+- Have been using reset_index() function a lot in the main iteration of solving problems but didn't realize
+  until now that I could use it for the data quality checks specifically for is.na().sum().reset_index(). None
+  of the nulls the appeared in the checks were needed to be considered for solving the problem. This question
+  was a matter of inner joining DataFrames on different id names, sum aggregation for total amount, ranking with
+  no gaps, filtering for a specific ranking and selecting the correct output columns. I chose dense rank since
+  it includes ties and no gaps.
+
+Suggestions and Final Thoughts:
+- Couldn't decide whether to use id or cust_id for customer id in the final output. Used the already created
+  cust_id as the closest naming description. However, id would be more clean and consistent with the original
+  DataFrame customers.
+
+Solve Duration:
+12 minutes
+
+Notes Duration:
+4 minutes
+
+Suggestions and Final Thoughts Duration:
+2 minutes
+
+############################
+
+Website:
+StrataScratch - ID 9955
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+ESPN - Norwegian Alpine Skiers
+Find all Norwegian alpine skiers who participated in 1992 but didn't participate in 1994. 
+Output unique athlete names.
+
+Data Dictionary:
+Table name = 'olympics_athletes_events'
+age: double precision (dbl)
+city: text (str)
+event: text (str)
+games: text (str)
+height: double precision (dbl)
+id: bigint (int)
+medal: text (str)
+name: text (str)
+noc: text (str)
+season: text (str)
+sex: text (str)
+sport: text (str)
+team: text (str)
+weight: double precision (dbl)
+year: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Find all Norweigian alpine skiers who participated in 1992 but didn't participate in 1994.
+-- Output unique athlete names.
+
+-- Output:
+-- name
+
+-- Preview data:
+SELECT * FROM olympics_athletes_events LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - age(65), height(226), medal(232), weight(249)
+-- Rows - 352
+SELECT
+    SUM(CASE WHEN age IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN city IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN event IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN games IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN height IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN medal IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN name IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN noc IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN season IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN sex IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN sport IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN team IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN weight IS NULL THEN 1 ELSE 0 END) AS col14,
+    SUM(CASE WHEN year IS NULL THEN 1 ELSE 0 END) AS col15,
+    COUNT(*) AS total_rows
+FROM olympics_athletes_events;
+
+-- Iteration:
+-- 1. Filter for 1992 Norweigian alpine skiers
+-- 2. Filter for 1996 Norweigian alpine skiers
+-- 3. Left join using 1992 skiers and 1994 skiers
+-- 4. filter for not matching names from 1992 to 1994
+WITH skiers_1992 AS (
+    SELECT DISTINCT
+        name
+    FROM olympics_athletes_events
+    WHERE noc = 'NOR'
+        AND sport = 'Alpine Skiing'
+        AND year = '1992'
+),
+skiers_1994 AS (
+    SELECT DISTINCT
+        name
+    FROM olympics_athletes_events
+    WHERE noc = 'NOR'
+        AND sport = 'Alpine Skiing'
+        AND year = '1994'
+)
+SELECT DISTINCT
+    s1.name
+FROM skiers_1992 AS s1
+LEFT JOIN skiers_1994 AS s2
+    ON s1.name = s2.name
+WHERE 
+    s2.name IS NULL
+ORDER BY
+    s1.name;
+
+-- Result:
+WITH skiers_1992 AS (
+    SELECT DISTINCT
+        name
+    FROM 
+        olympics_athletes_events
+    WHERE 
+        noc = 'NOR' -- 1. Filter for 1992 Norweigian alpine skiers
+        AND sport = 'Alpine Skiing'
+        AND year = '1992'
+),
+skiers_1994 AS (
+    SELECT DISTINCT
+        name
+    FROM 
+        olympics_athletes_events
+    WHERE 
+        noc = 'NOR' -- 2. Filter for 1996 Norweigian alpine skiers
+        AND sport = 'Alpine Skiing'
+        AND year = '1994'
+)
+SELECT DISTINCT
+    s1.name
+FROM 
+    skiers_1992 AS s1
+LEFT JOIN -- 3. Left join using 1992 skiers and 1994 skiers
+    skiers_1994 AS s2
+    ON s1.name = s2.name
+WHERE 
+    s2.name IS NULL -- 4. filter for not matching names from 1992 to 1994
+ORDER BY
+    s1.name;
+
+Notes:
+- None of the null values found in the data quality check were needed for the problem. When scanning through
+  the data, the data inputs for examples Norweigian = "NOR", alpine skiers = "Alpine Skiing" and year = "1992"
+  had no inconsistencies on the casing of the letter, misspellings or additional characters. There was no need
+  to use ILIKE in the WHERE clause, simply had to use an equal to the correct filter. I split the 1992 and 1994
+  skiers into two separate CTES for ease of understanding. DISTINCT was performed to not have any duplicate
+  names in the final query and only contain the unique ones. I used a LEFT JOIN To keep 1992 skiers that were
+  competing but not competing in 1994. So if no match occured it was returned. I also added the filter where
+  there could not be a match either in the names between 1992 and 1994.
+
+Suggestions and Final Thoughts:
+- The EXCEPT function is available for PostgreSQL, SQL Server, Oracle and SQLite. It can be used to find
+  set difference where rows are in set A but not in set B. Fastest performant method and is an anti-join.
+  ex. 
+      SELECT DISTINCT name FROM olympics_athletes_events
+      WHERE team = 'Norway' AND sport = 'Alpine Skiing' AND year = 1992
+      
+      EXCEPT
+
+      SELECT DISTINCT name FROM olympics_athletes_events
+      WHERE team = 'Norway' AND sport = 'Alpine Skiing' AND year = 1994;
+- The NOT IN function can also perform a similar operation to the EXCEPT function and is more accessible
+  in most if not all sql dialects. Often slowest performance and not consistent.
+  ex.
+      SELECT DISTINCT
+          t1.name
+      FROM
+         olympics_athletes_events AS t1
+      WHERE
+         -- 1. Filter for the target group: Norwegian Alpine Skiers in 1992
+         t1.team = 'Norway' 
+         AND t1.sport = 'Alpine Skiing' 
+         AND t1.year = 1992
+         -- 2. Exclude athletes whose names are found in the 1994 event set
+         AND t1.name NOT IN (
+             SELECT
+                 name
+             FROM
+                 olympics_athletes_events
+             WHERE
+                 team = 'Norway' 
+                 AND sport = 'Alpine Skiing' 
+                 AND year = 1994
+    );
+- The filter I performed in the final part of the query "AND s1.name != s2.name" was not correct and should
+  have been performed in the WHERE clause as "WHERE s2.name IS NULL" instead when using a LEFT JOIN.
+- Could have used the team for filtering for "Norway" instead of the noc column for filtering for "NOR"
+- Kept the DISTINCT in the SELECT statement for every part of the query to remove duplicates and consider any possible
+  edge cases that might occur in the final output.
+
+Solve Duration:
+19 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+8 minutes
+
+############################
