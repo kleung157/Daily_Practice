@@ -1,0 +1,408 @@
+Date: 10/24/2025
+
+############################
+
+Website:
+StrataScratch - ID 2108
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Asana - Responsible for Most Customers
+Each Employee is assigned one territory and is responsible for the Customers from this territory. 
+There may be multiple employees assigned to the same territory.
+Write a query to get the Employees who are responsible for the maximum number of Customers. 
+Output the Employee ID and the number of Customers.
+
+Data Dictionary:
+Table name = 'map_employee_territory'
+empl_id: character (str)
+territory_id: character (str)
+Table name = 'map_customer_territory'
+cust_id: character (str)
+territory_id: character (str)
+
+Code:
+Solution #1
+## Question:
+# Each employee is assigned one territory and is responsible for the customers for this territory.
+# There may be multiple employees assigned to the same territory.
+# Write a query to get the employees who are responsible for the maximum number of customers.
+# Output the employee id and the number of customers.
+
+## Output:
+# empl_id, customer_count
+
+## Import libraries:
+# install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#map_employee_territory <- read_csv('map_employee_territory')
+#map_customer_territory <- read_csv('map_customer_territory')
+employees_df <- data.frame(map_employee_territory)
+customers_df <- data.frame(map_customer_territory)
+head(employees_df, 5)
+head(customers_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - employees: 0
+#       - customers: 0
+# Rows - employees: 9
+#      - customers: 15
+data.frame(lapply(employees_df, class))
+data.frame(lapply(customers_df, class))
+colSums(is.na(employees_df))
+colSums(is.na(customers_df))
+nrow(employees_df)
+nrow(customers_df)
+
+## Iteration:
+result_df <- employees_df %>%
+    inner_join(
+        # 1. Inner join employees and customers DataFrames by territory_id
+        customers_df, by="territory_id"
+    ) %>%
+    group_by(empl_id) %>%
+    summarise(
+        # 2. Count the number of unique customers per empl_id
+        customer_count = n_distinct(cust_id),
+        .groups = "drop"
+    ) %>%
+    slice_max(
+        # 3. Slice rows for employees that have the maximum number of customers
+        customer_count
+    ) %>%
+    arrange(empl_id)
+    
+## Result:
+result_df
+
+Notes:
+- The data quality checks did not show any nulls in any of the DataFrames. The number of rows were not the
+  same but the identifier "territory_id" was used to match and inner join the two DataFrames together. Once
+  the DataFrames were joined, a groupby aggregation count was performed, a filter using the slice_max()
+  function was used to find the maximum, and lastly sort for the output was done with the arrange() function.
+
+Suggestions and Final Thoughts:
+- The built in R function slice_max() for finding the maximum and including ties is handy but if that was not
+  available then I would use dense_rank() and then filter for the top rank instead. The aggregation function
+  max() could be used too. 
+
+Solve Duration:
+9 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+2 minutes
+
+############################
+
+Website:
+StrataScratch - ID 2143
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Chase - Invalid Bank Transactions
+Bank of Ireland has requested that you detect invalid transactions in December 2022.
+An invalid transaction is one that occurs outside of the bank's normal business hours.
+The following are the hours of operation for all branches:
+Monday - Friday 09:00 - 16:00
+Saturday & Sunday Closed
+Irish Public Holidays 25th and 26th December
+Determine the transaction ids of all invalid transactions.
+
+Data Dictionary:
+Table name = 'boi_transactions'
+transaction_id: int64 (int)
+time_stamp: datetime64 (dt)
+
+Code:
+Solution #1
+## Question:
+# Bank of Ireland has requested that you detect invalid transactions in December 2022.
+# An invalid transaction is one that occurs outside of the bank's normal business hours.
+# The following are the hours of operation for all branches.
+# Monday-Friday 09:00-16:00, Saturday & Sunday Closed, Irish Public Holidays 25th/26th of December.
+# Determine the transaction ids of all invalid transactions.
+
+## Output:
+# transaction_id
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#boi_transactions = pd.read_csv("boi_transactions.csv")
+transactions_df = pd.DataFrame(boi_transactions)
+transactions_df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 251
+#transactions_df.info()
+#transactions_df.isna().sum().reset_index()
+
+## Iteration:
+holidays = pd.to_datetime(["2022-12-25", "2022-12-26"]).normalize()
+start_time = pd.to_datetime("09:00:00", format="%H:%M:%S").time()
+end_time = pd.to_datetime("16:00:00", format="%H:%M:%S").time()
+
+result_df = transactions_df[
+    # 1. Filter for December 2022 dates
+    (transactions_df["time_stamp"].dt.year == 2022) &
+    (transactions_df["time_stamp"].dt.month == 12)
+    &
+    (   # 2. Filter for invalid transactions on Saturday (5) and Sunday (6)
+        transactions_df["time_stamp"].dt.dayofweek.isin([5, 6]) 
+        |
+        # 3. Filter for invalid transactions on December 25th/26th
+        transactions_df["time_stamp"].dt.date.isin(holidays)
+        |
+        # 4. Filter for invalid transactions on Monday (0) to Friday (4) AND < 09:00 OR > 16:00
+        (
+            (transactions_df["time_stamp"].dt.dayofweek <= 4) &
+            (
+                (transactions_df["time_stamp"].dt.time < start_time) | 
+                (transactions_df["time_stamp"].dt.time > end_time)
+            )
+        )
+    )
+].copy()
+
+# 5. Select relevant columsn and sort by tranaction_id in ASC order
+result_df = result_df[["transaction_id"]].sort_values(by="transaction_id", ascending=True)
+
+## Result:
+print("Invalid transactions in December 2022:")
+result_df
+
+Notes:
+- This question was fairly complex in the sense of making sure the filters had the correct parantheses and
+  conversions between the timestamp to specifically only year, month, day of week, date, or time were correct.
+  Had to look up documentation for using pd_to_datetime() and converting a datetime to just time with the 
+  hour format. The additional arguments I needed to add were format="%H-%M-%S" and the function .time() in
+  pandas extracts the time out directly. The first three filters were not complicated in terms of getting 
+  datetimes in December 2022, invalid transactions on Saturday and Sunday, and invalid transactions on the
+  holidays of Dec 25/26th. The one that took the longest was the combination of day of the week and the time.
+  Once the filters were properly established, it was simply selecting the transactions and sorting for output.
+
+Suggestions and Final Thoughts:
+- Still had to mess with the parantheses a little more to make sure the filters were correct. It was better
+  to have the filters as A & (B | C | D). A for December 2022 dates, B for invalid transactions on weekends,
+  C for invalid transactions on holidays, and D for invalid transactions on weekdays. Honestly may have been
+  better to create helper columns to see everything in real time and then categorize each filter correctly
+  rather than trying to put everything into one single chain.
+  ex.
+      in_dec_2022 = (transactions_df["time_stamp"].dt.year == 2022) & \
+                  (transactions_df["time_stamp"].dt.month == 12)
+
+      df = transactions_df[in_dec_2022].copy()
+      if df.empty:
+        return pd.Series(dtype='int64')
+
+      # Condition A: Weekend (Sat=5, Sun=6)
+      is_weekend = df["time_stamp"].dt.dayofweek.isin([5, 6])
+
+      # Condition B: Holiday (Dec 25 or 26). Use normalize to strip the time part.
+      is_holiday = df["time_stamp"].dt.normalize().isin(holidays)
+
+      # Condition C: Weekday AND Off-Hours
+      is_weekday = df["time_stamp"].dt.dayofweek.isin(range(5)) # Mon (0) through Fri (4)
+
+      # Off-Hours logic: Time is before 9:00 OR Time is after 16:00
+      is_off_hours = (df["time_stamp"].dt.time < start_time_obj) | \
+                   (df["time_stamp"].dt.time > end_time_obj)
+
+      is_weekday_off_hours = is_weekday & is_off_hours
+
+      # An invalid transaction satisfies Condition A OR Condition B OR Condition C
+      invalid_filter = is_weekend | is_holiday | is_weekday_off_hours
+- To extract the date from a datetime column, the most efficient way is dt.normalize(), alternatively the 
+  slower but clearer way to understand is dt.date. .normalize() is also another function to use when trying
+  to convert a string to a datetime then extracting the date.
+  ex.
+      transactions_df["time_stamp"].dt.date.isin(holidays)
+      transactions_df["time_stamp"].dt.normalize().isin(holidays)
+  ex. 
+      holidays = pd.to_datetime(["2022-12-25", "2022-12-26"]).normalize()
+- I had tried to use pd_to_timedelta to extract just the time but it seemed a lot more complicated than
+  using pd_to_datetime and the documentation for pd_to_timedelta was somewhat less informative and deprecated
+- Almost hard coded the start_time, end_time and holidays. Instead, I made sure to assign variables for them.
+
+Solve Duration:
+50 minutes
+
+Notes Duration:
+4 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################
+
+Website:
+StrataScratch - ID 9957
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+ESPN - Find how the average male height changed between each Olympics from 1896 to 2016
+Find how the average male height changed between each Olympics from 1896 to 2016.
+Output the Olympics year, average height, previous average height, and the corresponding average height difference.
+Order records by the year in ascending order.
+If avg height for some year is not found, assume that the average height of athletes for that year  is 172.73.
+
+Data Dictionary:
+Table name = 'olympics_athletes_events'
+age: double precision (dbl)
+city: text (str)
+event: text (str)
+games: text (str)
+height; double precision (dbl)
+id: bigint (int)
+medal: text (str)
+name: text (str)
+noc: text (str)
+season: text (str)
+sex: text (str)
+sport: text (str)
+team: text (str)
+weight: double precision (dbl)
+year: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Find how the average male height changed between each Olympics from 1896 to 2016.
+-- Output the Olympics year, average height, previous average height, and the corresponding height difference.
+-- Order records by the year in ascending order.
+-- If avg height  for some year is not found, 
+-- assume that the average height of athletes for that year is 172.73
+
+-- Output:
+-- year, average_height, previous_average_height, height_difference
+
+-- Preview data:
+SELECT * FROM olympics_athletes_events LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - age(65), height(226), medal(232), weight(249)
+-- Rows - 352
+SELECT
+    SUM(CASE WHEN age IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN city IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN event IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN games IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN height IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN medal IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN name IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN noc IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN season IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN sex IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN sport IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN team IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN weight IS NULL THEN 1 ELSE 0 END) AS col14,
+    SUM(CASE WHEN year IS NULL THEN 1 ELSE 0 END) AS col15,
+    COUNT(*) AS total_rows
+FROM olympics_athletes_events;
+
+-- Iteration:
+-- 1. Filter for male athletes
+-- 2. Calculate the average male height for each year, fill 172.73 for nulls
+-- 3. Use LAG to find the previous average height, fill 172.73 for the first row since NULL
+-- 4. Calculate height difference, height_difference = average_height - previous_average_height
+WITH OlympicsMaleAvgHeights AS (
+    SELECT 
+        year,
+        COALESCE(AVG(height), 172.73) AS average_height
+    FROM olympics_athletes_events
+    WHERE sex = 'M'
+    GROUP BY year
+)
+SELECT 
+    year,
+    average_height,
+    LAG(average_height, 1, 172.73) OVER(ORDER BY year) AS previous_average_height,
+    average_height - LAG(average_height, 1, 172.73) OVER(ORDER BY year) AS height_difference
+FROM OlympicsMaleAvgHeights
+ORDER BY year;
+
+-- Result:
+WITH OlympicsMaleAvgHeights AS (
+    SELECT 
+        year,
+        COALESCE( -- 2. Calculate the average male height for each year, fill 172.73 for nulls
+            AVG(height)
+        , 172.73) AS average_height
+    FROM 
+        olympics_athletes_events
+    WHERE 
+        sex = 'M' -- 1. Filter for male athletes
+    GROUP BY 
+        year
+)
+SELECT 
+    year,
+    average_height,
+    -- 3. Use LAG to find the previous average height, fill 172.73 for the first row since NULL
+    LAG(average_height, 1, 172.73) OVER( 
+        ORDER BY year
+    ) AS previous_average_height,
+    -- 4. Calculate height difference, height_difference = average_height - previous_average_height
+    average_height - LAG(average_height, 1, 172.73) OVER(
+        ORDER BY year
+    ) AS height_difference
+FROM 
+    OlympicsMaleAvgHeights
+ORDER BY
+    year;
+
+Notes:
+- Data quality checks showed a significant amount of null values in the height column which was necessary for
+  solving the problem. I filtered first for the sex of male athletes. Then I calculated the average for each 
+  Olympic year's male athletes and filled any nulls with 172.73 average height using COALESCE. This was placed
+  in a CTE and used as a table to create the previous averege height column using LAG and the calculation
+  between height differences for current average height and previous average height was straightforward.
+- What took a little longer was trying to understand whether I should have olympics that occur every 4 years
+  from 1896 to 2016. Some years did not have any data in the dataset, but null values were already accounted
+  for existing years in the dataset. When I thought about it more, I decided that it was best to just stick
+  with what years were in the dataset and not assume every 4 years had an Olympics.
+
+Suggestions and Final Thoughts:
+- An additional filter could have been placed in the WHERE clause for the year column. Even the dataset
+  doesn't contain any dates outside of 1896 to 2016, it would be better to use "WHERE year BETWEEN 1896 AND 
+  2016" to establish the correct range.
+- Initially had thought of just filling all null values in each row with 172.73 but that wouldn't make sense
+  compared to using COALESCE with the aggregation function AVG which actually generates the average and fills
+  nulls with the specified value.
+- Surprisingly still remember the LAG window function arguments pretty fill. The first argument is the column,
+  second is how much to go back, and the last is filling in the first row.
+  
+Solve Duration:
+29 minutes
+
+Notes Duration:
+6 minutes
+
+Suggestions and Final Thoughts Duration:
+4 minutes
+
+############################
