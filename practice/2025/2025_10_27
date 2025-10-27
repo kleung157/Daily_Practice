@@ -1,0 +1,451 @@
+Date: 10/27/2025
+
+############################
+
+Website:
+StrataScratch - ID 2110
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Walmart - Salary Less Than Twice The Average
+Write a query to get the list of managers whose salary is less than twice the average salary of employees reporting to them. 
+For these managers, output their ID, salary and the average salary of employees reporting to them.
+
+Data Dictionary:
+Table name = 'map_employee_hierarchy'
+empl_id: character (str)
+manager_empl_id: character (str)
+Table name = 'dim_employee
+empl_pin: numeric (num)
+salary: numeric (num)
+empl_id: character (str)
+empl_name: character (str)
+empl_city: character (str)
+empl_dob: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1
+## Question:
+# Write a query to get the list of managers whose salary is less than twice the average salary of employees
+# reporting to them.
+# For these managers, output their ID, salary, and average salary of employees reporting to them.
+
+## Output:
+# manager_empl_id, salary, average_salary
+
+## Import libraries:
+# install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#map_employee_hierarchy <- read_csv("map_employee_hierarchy.csv")
+#dim_employee <- read_csv("dim_employee.csv")
+hierarchy_df <- data.frame(map_employee_hierarchy)
+employee_df <- data.frame(dim_employee)
+head(hierarchy_df, 5)
+head(employee_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - hierarchy: manager_empl_id(1)
+#       - employee: 0
+# Rows - hierarchy: 9
+#      - employee: 9
+data.frame(lapply(hierarchy_df, class))
+data.frame(lapply(employee_df, class))
+colSums(is.na(hierarchy_df))
+colSums(is.na(employee_df))
+nrow(hierarchy_df)
+nrow(employee_df)
+
+## Iteration:
+result_df <- hierarchy_df %>%
+    inner_join(
+        # 1. Inner join hierarchy and employee DataFrames by empl_id
+        employee_df, by="empl_id"
+    ) %>%
+    group_by(manager_empl_id) %>%
+    summarise(
+        # 2. Calculate the average salary for employees reporting to a manager
+        average_salary = mean(salary),
+        .groups = "drop"
+    ) %>%
+    inner_join(
+        # 3. Inner join back to employee DataFrame where manager_empl_id = empl_id for managers
+        employee_df, by=c("manager_empl_id"="empl_id")
+    ) %>%
+    filter(
+        # 4. Filter for managers whose salary is less than twice the average salary of employees
+        salary < 2*average_salary
+    ) %>%
+    select(
+        # 5. Select relevant columns
+        manager_empl_id, salary, average_salary
+    ) %>%
+    arrange(manager_empl_id)
+    
+## Result:
+result_df
+
+Notes:
+- When going through the initial data quality checks for nulls, there were was 1 null value for manager_empl_id.
+  This meant that this particular empl_id row did not have a manager or was a manager themselves. I started off
+  performing an inner join on the given hierarchy and employee DataFrames. This allowed me to see the entire
+  data and perform a group average aggregation on empl_id rows that had a specific manager_empl_id that they
+  reported to. From there, I performed another inner join to join the original employee DataFrame back to the
+  current working aggregated DataFrame to match for manager_empl_id = empl_id to bring their salaries into the
+  DataFrame. Once that was done, I filtered for managers whose salary is less than twice the average salary of
+  employees, selected the relevant output columns and sorted the final results.
+
+Suggestions and Final Thoughts:
+- The null value was filtered out by the second inner_join which connected group aggregation employee salaries 
+  with the original employee DataFrame to find the manager salary through a matching manager_empl_id.
+- Seems to be unnecessary to use data.frame() in R since most data is already in a tibble format. However, it
+  is more intuitive to me to use data.frame() since all other langauges that I have been practicing in use 
+  DataFrames and I would like to stick with the continuity for now.
+
+Solve Duration:
+17 minutes
+
+Notes Duration:
+4 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################
+
+Website:
+StrataScratch - ID 2144
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Tata Consultancy - Flight Satisfaction Query
+A major airline has enlisted Tata Consultancy's help to improve customer satisfaction on its flights. 
+Their goal is to increase customer satisfaction among people between the ages of 30 and 40.
+You've been tasked with calculating the customer satisfaction average for this age group across all three flight classes.
+Return the class with the average of satisfaction rounded to the nearest whole number.
+
+Data Dictionary:
+Table name = 'survey_results'
+cust_id: int64 (int)
+satisfaction: int64 (int)
+type_of_travel: object (str)
+class: object (str)
+flight_distance: int64 (int)
+departure_delay_min: int64 (int)
+arrival_delay_min: int64 (int)
+Table name = 'loyalty_customers'
+cust_id: int64 (int)
+age: int64 (int)
+gender: object (str)
+
+Code:
+Solution #1
+## Question:
+# A major airline has enlisted Tata Consultancy's help to improve customer satisfaction on its flights.
+# Their is to increase customer satisfaction among people between the ages of 30 and 40.
+# You've been tasked with calculating the customer satisfaction average for this age group across all three
+# flight classes.
+# Return the class with the average of satisfaction rounded to the nearest whole number.
+
+## Output:
+# class, average_satisfaction
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#survey_results = pd.read_csv("survey_results.csv")
+#loyalty_customers = pd.read_csv("loyalty_customers.csv")
+survey_df = pd.DataFrame(survey_results)
+customers_df = pd.DataFrame(loyalty_customers)
+survey_df.head(5)
+customers_df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - survey: 0
+#       - customers: 0
+# Rows - survey: 200
+#      - customers: 95
+#survey_df.info()
+#survey_df.isna().sum().reset_index()
+#customers_df.info()
+#customers_df.isna().sum().reset_index()
+
+## Iteration:
+# 1. Inner join survey and customers DataFrames by cust_id
+merged_df = pd.merge(survey_df, customers_df, on="cust_id", how="inner")
+
+# 2. Filter for ages between 30 and 40
+filtered_df = merged_df[
+    (merged_df["age"] >= 30) &
+    (merged_df["age"] <= 40)
+].copy()
+
+# 3. Calculate the average satisfaction for each class, round to nearest whole number, and sort by class.
+result_df = (
+    filtered_df.groupby("class")["satisfaction"].mean()
+    .round()
+    .reset_index(name="average_satisfaction")
+    .sort_values(by="class", ascending=True)
+)
+
+## Result:
+print("Customer satisfaction average for ages 30 to 40 across all three flight classes:")
+result_df
+
+Notes:
+- There were no missing values in the data quality checks on the given DataFrames. Approaching this problem
+  involved starting with an inner join to bring the survey and customer DataFrames together by matching
+  cust_id. Once a merged DataFrame was established, a filter was performed to find rows where the ages of
+  customers were between 30 and 40. Afterwards, a group mean aggregation was used to calculate the average
+  satisfaction for each class category, results were rounded to the nearest whole number, and sorted by class.
+
+Suggestions and Final Thoughts:
+- The questions asks for "customer satisfaction average for the age group of 30 to 40 across three flight classes"
+  but the prompt also says "return the class with the average of satisfaction". When calculating the customer
+  satisfaction average for this age group across all three classes, the average satisfaction was the same
+  value. I decided to go by the initial "task" that the prompt asked for rather than the obscure last part
+  of the prompt that says "return the class with the average of satisfaction". May have been a typo where
+  it should have been "return the classes with the averages of satisfaction".
+
+Solve Duration:
+12 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+3 minutes
+
+############################
+
+Website:
+StrataScrathc - ID 9959
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+ESPN - Olympic Medals By Chinese Athletes
+Find the number of medals earned in each category by Chinese athletes from the 2000 to 2016 summer Olympics.
+For each medal category, calculate the number of medals for each olympic games along with the total number of medals across all years. 
+Sort records by total medals in descending order.
+
+Data Dictionary:
+Table name = 'olympics_athletes_events'
+age: double precision (dbl)
+city: text (str)
+event: text (str)
+games: text (str)
+height: double precision (dbl)
+id: bigint (int)
+medal: text (str)
+name: text (str)
+noc: text (str)
+season: text (str)
+sex: text (str)
+sport: text (str)
+team: text (str)
+weight: double precision (dbl)
+year: bigint (int)
+
+Code:
+Attempt #1
+SELECT
+    games,
+    SUM( -- 3. Count the number of medals for each olympic games for each medal category
+         --    no_medal, gold_medal, silver_medal, bronze_medal
+        CASE 
+            WHEN medal IS NULL 
+            THEN 1 
+            ELSE 0 
+        END
+    ) AS no_medals_count,
+    SUM(
+        CASE 
+            WHEN medal = 'Gold' 
+            THEN 1 
+            ELSE 0 
+        END
+    ) AS gold_medals_count,
+    SUM(
+        CASE 
+            WHEN medal = 'Silver' 
+            THEN 1 
+            ELSE 0 
+            END
+    ) AS silver_medals_count,
+    SUM(
+        CASE 
+            WHEN medal = 'Bronze' 
+            THEN 1 
+            ELSE 0 
+        END
+    ) AS bronze_medals_count,
+    SUM( -- 4. Calculate the total number of medals where medal = 'Gold', 'Silver', or 'Bronze'
+        CASE 
+            WHEN medal = 'Gold' OR medal = 'Silver' OR medal = 'Bronze' 
+            THEN 1 
+            ELSE 0 
+            END
+    ) AS total_medals
+FROM 
+    olympics_athletes_events
+WHERE 
+    team = 'China' -- 1. Filter for team 'China'
+    AND year BETWEEN 2000 and 2016 -- 2. Filter for years between 2000 to 2016
+GROUP BY 
+    games
+ORDER BY 
+    total_medals DESC; -- 2. Filter for years between 2000 to 2016
+
+Solution #1
+-- Question:
+-- Find the number of medals earned in each category by Chinese athletes from the 2000-2016 summer olympics.
+-- For each medal category, calculate the number of medals for each olympic games
+-- along with the total number of medals across all years
+-- Sort records by total medals in descending order.
+
+-- Output:
+-- games, no_medal_count, gold_medal_count, silver_medal_count, bronze_medal_count, total_medals
+
+-- Preview data:
+SELECT * FROM olympics_athletes_events LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - age(65), height(226), medal(232), weight(249)
+-- Rows - 352
+SELECT
+    SUM(CASE WHEN age IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN city IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN event IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN games IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN height IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN medal IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN name IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN noc IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN season IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN sex IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN sport IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN team IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN weight IS NULL THEN 1 ELSE 0 END) AS col14,
+    SUM(CASE WHEN year IS NULL THEN 1 ELSE 0 END) AS col15,
+    COUNT(*) AS total_rows
+FROM olympics_athletes_events;
+
+-- Iteration:
+-- 1. Filter for team 'China'
+-- 2. Filter for season 'Summer'
+-- 3. Filter for years between 2000 to 2016
+-- 4. Filter for rows where medal is NOT NULL
+-- 4. Count the number of medals for each olympic games for each medal category
+-- 5. Count the total number of medals for each olympic games
+-- 6. Sort records by total medals in descending order
+SELECT
+    medal,
+    COUNT(CASE WHEN year = 2000 THEN 1 END) AS medals_2000,
+    COUNT(CASE WHEN year = 2004 THEN 1 END) AS medals_2004,
+    COUNT(CASE WHEN year = 2008 THEN 1 END) AS medals_2008,
+    COUNT(CASE WHEN year = 2012 THEN 1 END) AS medals_2012,
+    COUNT(CASE WHEN year = 2016 THEN 1 END) AS medals_2016,
+    COUNT(*) AS total_medals
+FROM olympics_athletes_events
+WHERE team = 'China'
+    AND season = 'Summer'
+    AND year BETWEEN 2000 and 2016
+    AND medal IS NOT NULL
+GROUP BY medal
+ORDER BY total_medals DESC;
+
+-- Result:
+SELECT
+    medal,
+    COUNT( -- 4. Count the number of medals for each olympic games for each medal category
+        CASE
+            WHEN year = 2000
+            THEN 1 
+        END
+    ) AS medals_2000,
+    COUNT(
+        CASE 
+            WHEN year = 2004 
+            THEN 1 
+            END
+        ) AS medals_2004,
+    COUNT(
+        CASE 
+            WHEN year = 2008 
+            THEN 1 
+        END
+    ) AS medals_2008,
+    COUNT(
+        CASE 
+            WHEN year = 2012 
+            THEN 1 
+        END
+    ) AS medals_2012,
+    COUNT(
+        CASE 
+            WHEN year = 2016 
+            THEN 1 
+        END
+    ) AS medals_2016,
+    COUNT(*) AS total_medals -- 5. Count the total number of medals for each olympic games
+FROM 
+    olympics_athletes_events
+WHERE 
+    team = 'China' -- 1. Filter for team 'China'
+    AND season = 'Summer' -- 2. Filter for season 'Summer'
+    AND year BETWEEN 2000 and 2016 -- 3. Filter for years between 2000 to 2016
+    AND medal IS NOT NULL -- 4. Filter for rows where medal is NOT NULL
+GROUP BY 
+    medal
+ORDER BY 
+    total_medals DESC; -- 6. Sort records by total medals in descending order
+
+Notes:
+- Upon the initial data quality checks, there were 232 null values for the medal column. Null rows for this
+  particular problem were classified under a no_medal_counts column. The wording of the question was bit 
+  obscure, I decided to go with a Pivot Table like display using SUM AND CASE WHEN functions to count and
+  aggregate the medal categories and total medal count. This was all done after filtering for the team 'China',
+  the years between '2000' and '2016', and grouping by the column games. Once all the SELECT statements were
+  done, it was simply a matter of sorting using ORDER BY and making sure the format of the SQL query was spaced
+  out enough to understand and debug with the appropriate documentation.
+
+Suggestions and Final Thoughts:
+- Didn't need to hard code the medal category, keep existing columns and rows and use that to calculate the
+  number of medals for each olympic games along with the total number of medals across all years. The years
+  needed to be hard coded between 2000 to 2016 to fulfill the prompt. Missed filters for season = 'Summer'
+  and medal 'IS NOT NULL'. COUNT(CASE WHEN) is a better alternative to SUM(CASE WHEN) for this particular
+  problem.
+- Even though I tried to have my own interpretation of the prompt, it's probably best to stick to what the
+  prompt says exactly rather than trying to display something completely different. My solution still came
+  out with similar aggregations that were needed for the final desired output but in a different formed
+  PivotTable. Will go by the exact wording and given data rather than trying to hard code more than I need to.
+
+Solve Duration:
+22 minutes
+
+Notes Duration:
+4 minutes
+
+Suggestions and Final Thoughts Duration:
+12 minutes
+
+############################
