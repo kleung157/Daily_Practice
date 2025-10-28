@@ -1,0 +1,396 @@
+Date: 10/28/2025
+
+############################
+
+Website:
+StrataScratch - ID 2113
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Yelp - Extremely Late Delivery
+To remain competitive, the company you work with must reduce the number of extremely late deliveries.
+A delivery is flagged as extremely late if the actual delivery time is more than 20 minutes (not inclusive) after the predicted delivery time.
+You have been asked to calculate the percentage of orders that arrive extremely late each month.
+Your output should include the month in the format 'YYYY-MM' and the percentage of extremely late orders as a percentage of all orders placed in that month.
+
+Data Dictionary:
+Table name = 'delivery_orders'
+delivery_id: character (str)
+order_placed_time: POSIXct, POSIXt (dt)
+predicted_delivery_time: POSIXct, POSIXt (dt)
+actual_delivery_time: POSIXct, POSIXt (d)
+delivery_rating: numeric (num)
+driver_id: character (str)
+restaurant_id: character (str)
+consumer_id: character (str)
+
+Code:
+Solution #1
+## Question:
+# To remain competitive, the company you work with must reduce the number of extremely late deliveries.
+# A delivery is flagged as extremely late if the actual delivery time is more than 20 minutes (not inclusive)
+# after the predicted delivery time.
+# You have been asked to calculate the percentage of orders that arrive extremely late each month.
+# Output should include the month in the format 'YYYY-MM' and the percentage of extremely late orders as a
+# percentage of all orders placed in that month.
+
+## Output:
+# month, percentage_extremely_late_orders
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#delivery_orders <- read_csv("delivery_orders.csv")
+orders_df <- data.frame(delivery_orders)
+head(orders_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - actual_delivery_time(3), delivery_rating(3)
+# Rows - 50
+data.frame(lapply(orders_df, class))
+colSums(is.na(orders_df))
+nrow(orders_df)
+
+## Iteration:
+result_df <- orders_df %>%
+    mutate(
+        # 1. Calculate the time_difference between actual_delivery_time and predicted_delivery_time, 
+        #    convert to minutes using division by 60.0
+        time_difference = (actual_delivery_time - predicted_delivery_time) / 60.0,
+        # 2. Extract the year and month from order_placed_time column, format 'YYYY-MM'
+        month = strftime(order_placed_time, format="%Y-%m"),
+        # 3. Create conditional statement for extremely late orders using time_difference column,
+        #    if > 20 then 1, else 0
+        extremely_late = case_when(
+            time_difference > 20 ~ 1,
+            TRUE ~ 0
+        )
+    ) %>%
+    group_by(month) %>%
+    summarise(
+        # 4. Count the total number of orders for each month and sum the total extremely late orders
+        total_orders = n(),
+        extremely_late_orders = sum(extremely_late),
+        .groups = "drop"
+    ) %>%
+    mutate(
+        # 5. Calculate percentage of extremely late orders, 
+        #    percentage = (extremely_late_orders / total_orders) * 100.0
+        percentage_extremely_late_orders = round(extremely_late_orders / total_orders, digits = 4) * 100.0
+    ) %>%
+    select(
+        # 6. Select relevant columns
+        month,
+        percentage_extremely_late_orders
+    ) %>%
+    arrange(month)
+
+## Result:
+result_df
+
+Notes:
+- In the initial data quality checks, there were 3 relevant null values for the problem at hand. These were in
+  the actual_delivery_time column. To account for these nulls, a calculation was performed on this column to
+  find the time difference between actual_delivery_time and predicted_delivery_time. If the actual_delivery_time
+  was null then it would produce simply the output of the predicted_delivery_time. 
+  Once the nulls were accounted for, the year and month was extracted from the order_placed_time column and a 
+  conditional statement was created for categorizing extremely later orders based on if the newly created 
+  time_difference column had a value of > 20. From there, it was a matter of counting the total number of rows
+  for each month and summing up the number of extremely late orders then performing the percentage calculation
+  with these new aggregated columns. The calculation values were rounded, converted to percentages, relevant
+  columns were selected and arranged by month in ascending order.
+
+Suggestions and Final Thoughts:
+- R has a dedicated difftime() function that can be used to calculate POSIXct time differences. This function
+  has to be converted to as.numeric() data type and the units must be specified for the time. More efficient
+  alternative than calculating the time difference and converting to minutes as seen in Solution #1.
+  ex. 
+      time_difference = as.numeric(difftime(actual_delivery_time, predicted_delivery_time, units = "mins"))
+- I used the order_placed_time to extract the year and month but to stay on track with the problem, it would
+  be better to use actual_delivery_time to obtain the year and month. In this case both still had the same
+  output.
+  ex.
+      month = strftime(actual_delivery_time, format="%Y-%m"),
+
+Solve Duration:
+19 minutes
+
+Notes Duration:
+4 minutes
+
+Suggestions and Final Thoughts Duration:
+3 minutes
+
+############################
+
+Website:
+StrataScratch - ID 2145
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+TikTok - Date of Highest User Activity
+Tiktok want to find out what were the top two most active user days during an advertising campaign they ran in the first week of August 2022 (between the 1st to the 7th).
+Identify the two days with the highest user activity during the advertising campaign.
+They've also specified that user activity must be measured in terms of unique users.
+Output the day, date, and number of users.
+Be careful that some function can add a padding (whitespaces) around the string, for a solution to be correct you should trim the extra padding.
+
+Data Dictionary:
+Table name = 'user_streaks'
+user_id: object (str)
+date_visited: datetime64 (dt)
+
+Code:
+Solution #1
+## Question:
+# Tiktok wants to find out what were the top two most active user days during an advertising campaign they
+# ran in the first week of August 2022 (between the 1st to the 7th).
+# Identify the two days with the highest user activity during the advertising campaign.
+# They've also specified that user activity must be measured in terms of unique users.
+# Output the day, date, and number of users.
+# Be careful that some functions can add a padding (whitespace) around the string, for a solution to be
+# correct you should trim the extra padding.
+
+## Output:
+# day, date, distinct_user_count
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#user_streaks = pd.read_csv("user_streaks.csv")
+users_df = pd.DataFrame(user_streaks)
+users_df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - 0
+# Rows - 65
+#users_df.info()
+#users_df.isna().sum().reset_index()
+
+## Iteration:
+# 1. Extract the weekday from date_visited column and trim white space
+users_df["day"] = users_df["date_visited"].dt.strftime("%A").str.strip()
+
+# 2. Trim any excess leading or lagging white space around string columns
+users_df["user_id"] = users_df["user_id"].str.strip()
+
+# 2. Filter for dates in the first week of August 2022 between 1st to 7th days
+start_date = pd.to_datetime("2022-08-01").normalize()
+end_date = pd.to_datetime("2022-08-07").normalize()
+
+filtered_df = users_df[
+    (users_df["date_visited"] >= start_date) &
+    (users_df["date_visited"] <= end_date)
+].copy()
+
+# 3. Count the number of unique users per day and date
+result_df = filtered_df.groupby(["day", "date_visited"])["user_id"].nunique().reset_index(name="distinct_user_count")
+
+# 4. Rank the distinct_user_count for each day and date_visited in DESC order, include ties
+result_df["rank"] = result_df["distinct_user_count"].rank(method="dense", ascending=False)
+
+# 4. Filter for the top two days with the highest user activity during advertising campaign
+result_df = result_df[
+    result_df["rank"] <= 2
+]
+
+# 5. Select relevant columns and sort by day, date_visited in ASC order
+result_df = result_df[["day", "date_visited", "distinct_user_count"]].sort_values(by=["date_visited"], ascending=True)
+
+## Result:
+print("Top two days with the highest user activity during the advertising campaign:")
+result_df
+
+Notes:
+- Had forgotten the function for trim in Python so had to look at documentation to discover it's str.strip()
+- There were no null values present in the data quality check. The problem specifies that some string columns
+  may have extra whitespaces that may produce an incorrect solution and should be trimmed accordingly. My
+  approach to the problem involved trimming these whitespaces from the "user_id" column, extracting the day
+  from the "date_visited" column and then filtering for dates in the first week of August 2022. I assigned
+  a variable for each start_date and end_date to be used in the filter.
+- When the appropriate data was filtered correctly, I counted the nubmer of unique users per day and date,
+  dense ranked the distinct_user_counts in descending order and included ties, filtered for the top two
+  rankings, selected the relevant columns, then sorted in ASC order by day and date. 
+- I did not notice any functions that I used that would add padding or whitespace to the string columns.
+- Also wasn't sure whether the problem asking for day, meant the literal day of the month or the weekday
+  of the month so I decided to just go with the day of the month.
+
+Suggestions and Final Thoughts:
+- Instead of using the rank() function and filtering with the newly produced ranking column, the function
+  nlargest() could have been utilized to extract the rows with the top two "distinct_user_count"
+  ex. 
+      result_df.nlargest(2, 'distinct_user_count')
+- For extracting the weekday from a datetime column, .dt.strftime("%A") and strip any white space .str.strip()
+  ex.
+      users_df["day"] = users_df["date_visited"].dt.strftime("%A").str.strip()
+      
+Solve Duration:
+19 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+6 minutes
+
+############################
+
+Website:
+StrataScratch - ID 9966
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+ESPN - Quarterback With The Longest Throw
+Find the quarterback who threw the longest throw in 2016. 
+Output the quarterback name along with their corresponding longest throw.
+The lg column shows the quarterback’s longest completion. 
+If the value has a trailing t, ignore the t and use the numeric part when determining the longest throw.
+
+Data Dictionary:
+Table name = 'qbstats_2015_2016'
+att: bigint (int)
+cmp: bigint (int)
+game_points: bigint (int)
+home_away: text (str)
+int: bigint (int)
+lg: text (str)
+loss: bigint(int)
+qb: text (str)
+rate: double precision (dbl)
+sack: bigint (int)
+td: bigint (int)
+yds: bigint (int)
+year: bigint (int)
+ypa: double precision (dbl)
+
+Code:
+Solution #1
+-- Question:
+-- Find the quarterback who threw the longest throw in 2016.
+-- Output the quarterback name along with their corresponding longest throw.
+-- The lg column shows the quarterback's longest completion. 
+-- If the value has a trailing t, ignore the t and use the numeric part when determining the longest throw.
+
+-- Output:
+-- qb, longest_throw
+
+-- Preview data:
+SELECT * FROM qbstats_2015_2016 LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - 0
+-- Rows - 334
+SELECT 
+    SUM(CASE WHEN att IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN cmp IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN game_points IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN home_away IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN int IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN lg IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN loss IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN qb IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN rate IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN sack IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN td IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN yds IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN year IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN ypa IS NULL THEN 1 ELSE 0 END) AS col14,
+    COUNT(*) AS total_rows
+FROM qbstats_2015_2016;
+
+-- Iteration:
+-- 1. Filter for year 2016
+-- 2. For qb name the format is ex. "Matt RyanM. Ryan" 
+--    Find position of '.' then remove two to find the length of the full name with SUBSTRING
+--    Trim any excess white space.
+-- 3. Trim and remove 't' from lg column 
+-- 4. Rank the cleaned lg column in DESC order and include ties, cast as an integer
+-- 5. Filter for top ranking longest throw
+WITH QbLgCleanedRank AS (
+    SELECT 
+        TRIM(SUBSTRING(qb, 1, STRPOS(qb, '.') - 2)) AS qb_cleaned,
+        TRIM(REPLACE(lg, 't', '')) AS lg_cleaned,
+        DENSE_RANK() OVER(ORDER BY CAST(TRIM(REPLACE(lg, 't', '')) AS INTEGER) DESC) AS dense_rank
+    FROM qbstats_2015_2016 
+    WHERE year = '2016'
+)
+SELECT
+    qb_cleaned AS qb,
+    lg_cleaned AS lg
+FROM QbLgCleanedRank
+WHERE dense_rank = 1;
+
+-- Result:
+WITH QbLgCleanedRank AS (
+    SELECT 
+        -- 2. For qb name the format is ex. "Matt RyanM. Ryan" 
+        --    Find position of '.' then remove two to find the length of the full name with SUBSTRING
+        --    Trim any excess white space.
+        TRIM(
+            SUBSTRING(qb, 1, STRPOS(qb, '.') - 2)
+        ) AS qb_cleaned,
+        -- 3. Trim and remove 't' from lg column 
+        TRIM(
+            REPLACE(lg, 't', '')
+        ) AS lg_cleaned,
+        -- 4. Rank the cleaned lg column in DESC order and include ties, cast as an integer
+        DENSE_RANK() OVER(
+            ORDER BY CAST(TRIM(REPLACE(lg, 't', '')) AS INTEGER) DESC
+        ) AS dense_rank
+    FROM 
+        qbstats_2015_2016 
+    WHERE 
+        year = '2016' -- 1. Filter for year 2016
+)
+SELECT
+    qb_cleaned AS qb,
+    lg_cleaned AS lg
+FROM 
+    QbLgCleanedRank
+WHERE 
+    dense_rank = 1; -- 5. Filter for top ranking longest throw
+
+Notes:
+- No null values were present in this dataset. Most of the problem involved text manipulation using SUBSTRING,
+  STRPOS, TRIM, and REPLACE functions. The relevant columns were cleaned and ranked within a common table
+  expression (CTE) and filtered for the year = 2016. The CTE was queried to produce the final output using
+  a filter for the top ranking quarterback with the longest throw.
+- The problem didn't state whether to clean the qb column but I did it for the final output and practice.
+
+Suggestions and Final Thoughts:
+- If a text column involves text manipulation to remove any characters and produce an output of only numbers
+  then it should be casted as an integer datatype. It can still be recognized by sql even though the number is 
+  a character but to be safe it is better to change the datatype. 
+  ex. 
+      DENSE_RANK() OVER(ORDER BY CAST(TRIM(REPLACE(lg, 't', '')) AS INTEGER) DESC)
+
+Solve Duration:
+23 minutes
+
+Notes Duration:
+4 minutes
+
+Suggestions and Final Thoughts Duration:
+6 minutes
+
+############################
+
