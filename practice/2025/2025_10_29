@@ -1,0 +1,487 @@
+Date: 10/29/2025
+
+############################
+
+Website:
+StrataScratch - ID 2114
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+DoorDash - First Ever Ratings
+The company you work for is looking at their delivery drivers' first-ever delivery with the company.
+You have been tasked with finding what percentage of drivers' first-ever completed orders have a rating of 0.
+Note: Please remember that if an order has a blank value for actual_delivery_time, it has been canceled and therefore does not count as a completed delivery.
+
+Data Dictionary:
+Table name = 'delivery_orders'
+delivery_id: character (str)
+order_placed_time: POSIXct, POSIXt (dt)
+predicted_delivery_time: POSIXct, POSIXt (dt)
+actual_delivery_time: POSIXct, POSIXt (dt)
+delivery_rating: numeric (num)
+driver_id: character (str)
+restaurant_id: character (str)
+consumer_id: character (str)
+
+Code:
+Solution #1
+## Question:
+# The company you work for is looking at their delivery drivers' first-ever delivery with the company.
+# You have been tasked with finding what percentage of drivers first-ever completed orders have a rating of 0.
+# Remember that if an order has a blank value for actual_delivery_time, it has been canceled and therefore
+# does not count as a completed delivery.
+
+## Output:
+# percentage_driver_first_completed_orders_rating_0
+
+## Import libraries:
+# install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#delivery_orders <- read_csv("delivery_orders.csv")
+orders_df <- data.frame(delivery_orders)
+head(orders_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - actual_delivery_time(3), delivery_rating(3)
+# Rows - 50
+data.frame(lapply(orders_df, class))
+colSums(is.na(orders_df))
+nrow(orders_df)
+
+## Iteration:
+result_df <- orders_df %>%
+    filter(
+        # 1. Filter for actual_delivery_times that are complete
+        !is.na(actual_delivery_time) 
+    ) %>%
+    arrange(
+        # 2. Sort drivers_id and order_placed_time in ASC order
+        driver_id, order_placed_time
+    ) %>%
+    group_by(driver_id) %>%
+    filter(
+        # 3. Filter for first-ever completed orders for each driver_id
+        order_placed_time == first(order_placed_time)
+    ) %>%
+    mutate(
+        # 4. Categorize rows with a case statement where if delivery_ratings have 0 then 1, else 0
+        rating_with_0 = case_when(
+            delivery_rating == 0 ~ 1,
+            TRUE ~ 0
+        )
+    ) %>%
+    ungroup() %>%
+    summarise(
+        # 5. Count total number of first completed orders, count total orders with 0 rating
+        total_orders = n(),
+        orders_with_0 = sum(rating_with_0)
+    ) %>%
+    mutate(
+        # 6. Calculate the percentage of completed orders with rating of 0
+        #    percentage = 100.0 * (orders_with_0 / total_orders)
+        percentage = 100.0 * round(orders_with_0 / total_orders, digits=4)
+    ) %>%
+    select(
+        # 7. Select relevant columns and rename to prompt
+        percentage_driver_first_completed_orders_rating_0 = percentage
+    )
+    
+## Result:
+result_df
+
+Notes:
+- The initial data quality checks showed 3 null values for the actual_delivery_time column and 3 null values
+  for the delivery_rating column. These were both relevant columns for the problem at hand. For the nulls in
+  actual_delivery_time, they were filtered out because they meant that orders were not complete and did not
+  meet the criteria of the question. The delivery_ratings with null were ignored since only rows that had a
+  numeric value between 0-5 were considered. This was further considered in the case_when() statement to 
+  categorize rows that had delivery_ratings of 0 were categorized as 1 and everything else as 0.
+- After the nulls were taken into consideration, the approach was a matter of arranging the data in ascending
+  order then grouping and filtering for the first ever completed orders using the first() function. The 
+  remaining rows were aggregated for counts for total orders and counts for orders with a rating of 0. Finally,
+  the percentage was calculated using these aggregated columns and the full output was selected and renamed.
+
+Suggestions and Final Thoughts:
+- A more efficient and concise approach for the first order selection would be to use group_by(), arrange(),
+  and then slice(1) instead of having to use the first() function.
+  ex.
+      group_by(driver_id) %>%
+      arrange(order_placed_time) %>% # Sorting must happen within the group
+      slice(1) %>% # Selects the first row (the earliest order) within each driver group
+- An alternative to using the case statement for categorizing or filtering for delivery_rating == 0 is to use
+  the summarise() function and in the sum() aggregation include the filter and na.rm = TRUE to consider nulls.
+  ex.
+      summarise(
+          total_orders = n(),
+          orders_with_0 = sum(delivery_rating == 0, na.rm = TRUE) # Directly sums TRUE/FALSE values
+      )
+- While I could have opted for a more efficient and concise approach, I think my approach is a mixture between
+  thinking in similar Python functions and mostly a SQL manner of solving where I would take a longer step by
+  step process to clearly understand my logic thoroughly. Finding a solution in my own manner is important
+  and the dedicated functions for efficiency and conciseness can always be added in later in revisions.
+
+Solve Duration:
+23 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+6 minutes
+
+############################
+
+Website:
+StrataScratch - ID 2148
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Amazon - Monthly Sales Rolling Average
+You have been asked to calculate the rolling average for book sales in 2022.
+A rolling average continuously updates a data set's average to include all data in the set up to that point. 
+For example, the rolling average for February would be calculated by adding the book sales from January and February and dividing by two; 
+the rolling average for March would be calculated by adding the book sales from January, February, and March and dividing by three; and so on.
+Output the month, the sales for that month, and an extra column containing the rolling average rounded to the nearest whole number.
+
+Data Dictionary:
+Table name = 'amazon_books'
+book_id: object (str)
+book_title: object (str)
+unit_price: int64 (int)
+Table name = 'book_orders'
+order_id: int64 (int)
+order_date: datetime64 (dt)
+book_id: object (str)
+quantity: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# You have been asked to calculate the rolling average for book sales in 2022.
+# A rolling average continuously updates a data set's average to include all data in the setup to that point.
+# For example, the rolling average for February would be calculated by adding the book sales from January and
+# February and dividing by two.
+# The rolling average for March would be calculated by adding the book sales from January, February, and March
+# and dividing by three, and so on.
+# Output the month, the sales for that month, and an extra column containing the rolling average rounded to
+# the nearest whole number.
+
+## Output:
+# month, sales, rolling_average
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#amazon_books = pd.read_csv("amazon_books.csv")
+#book_orders = pd.read_csv("book_orders.csv")
+books_df = pd.DataFrame(amazon_books)
+orders_df = pd.DataFrame(book_orders)
+books_df.head(5)
+orders_df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - books: 0
+#       - orders: 0
+# Rows - books: 20
+#      - orders: 74
+#books_df.info()
+#books_df.isna().sum().reset_index()
+#orders_df.info()
+#orders_df.isna().sum().reset_index()
+
+## Iteration:
+# 1. Inner join the books and orders DataFrames by book_id
+merged_df = pd.merge(books_df, orders_df, on="book_id", how="inner")
+
+# 2. Extract the month from order_date column in integer and string form
+merged_df["month"] = merged_df["order_date"].dt.month
+merged_df["full_month"] = merged_df["order_date"].dt.strftime("%B")
+
+# 3. Calculate the sales for each row using unit_price * quantity
+merged_df["sales"] = merged_df["unit_price"] * merged_df["quantity"]
+
+# 3. Filter for year 2022
+result_df = merged_df[
+    merged_df["order_date"].dt.year == 2022
+].copy()
+
+# 4. Calculate the sales for each month
+result_df = result_df.groupby(["month", "full_month"])["sales"].sum().reset_index(name="total_sales").sort_values(by="month", ascending=True)
+
+# 5. Calculate the cumulative sum for each month
+result_df["rolling_sales"] = result_df["total_sales"].cumsum(axis=0)
+
+# 6. Calculate the rolling average using rolling_sales and the integer of the month
+#    Round to the nearest whole number
+result_df["rolling_average"] = round(result_df["rolling_sales"] / result_df["month"])
+
+# 7. Select relevant columns
+result_df = result_df[["full_month", "total_sales", "rolling_average"]]
+
+## Result:
+print("Rolling average for book sales in 2022:")
+result_df
+
+Notes:
+- The rolling() function creates a rolling window object of a specified window size in a Series. An aggregation
+  function can be used to follow.
+  ex. 
+      data = pd.Series([23, 25, 12, 28, 33, 31, 35])    # Create a sample Series
+      rolling_avg = data.rolling(window=3).mean()       # Calculate the rolling mean with a window size of 3
+- The cumsum(axis="") function performs a cumulative sum on rows or columns of a tabular dataset in pandas
+  ex.
+      result_df["rolling_sales"] = result_df["total_sales"].cumsum(axis=0)
+- To extract the full name of the month, the .dt.strftime("%B") can be used
+  ex.
+      merged_df["full_month"] = merged_df["order_date"].dt.strftime("%B")
+- There were no null values to consider in the data quality check. The books and orders DataFrames were inner
+  joined to obtain the full set of data needed for the problem. I extracted the month in an integer and full
+  string format for presentation and calculation purposes. From there, I calculated the sales for each row
+  by multiplying the unit price and quantiy columns. Before performing the aggregation, a filter was used
+  for finding rows that were in the year 2022. The aggregation calculated the sum of sales for each month
+  and sorted in ascending order. 
+- Once the necessary columns were created after aggregation, it was a matter of looking at documentation for
+  ways to calculate the rolling average. I considered using the rolling() function but I couldn't create the
+  right parameters so I looked for an alternative where I used helper columns to calculate the rolling average.
+  One of these columns took the cumulative sum of each row. After I had the rolling sales for each row, I simply
+  used the month in integer form to divide the sum to find the rolling average and rounded to the nearest whole
+  number. After that, I selected the relevant columns and printed the final ouput.
+
+Suggestions and Final Thoughts:
+- The cumulative count of months can be done using np.arange() and len() functions
+  ex. 
+      monthly_sales['month_count'] = np.arange(1, len(monthly_sales) + 1)
+- To ensure all 12 months are present for a continuous rolling average even if sale are 0, use the functions
+  pd.PeriodIndex(), .set_index() and .reindex()
+  ex.
+      full_months = pd.PeriodIndex(start='2022-01', end='2022-12', freq='M', name='month')
+      monthly_sales = monthly_sales.set_index('month').reindex(full_months, fill_value=0).reset_index()
+      monthly_sales.columns = ['month', 'monthly_sales']
+- Datatypes can be converted using .astype() for columns
+  ex.
+      monthly_sales['rolling_average'] = monthly_sales['rolling_average'].round().astype(int)
+      monthly_sales['month'] = monthly_sales['month'].astype(str)
+- The given dataset contains no missing months so the rolling average was able to be reflected correctly. If
+  there were no values for certain months then creating an index with all 12 months is necessary and filling
+  any null values would be better to ensure any possible edge cases.
+
+Solve Duration:
+28 minutes
+
+Notes Duration:
+8 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################
+
+Website:
+StrataScratch - ID 9977
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+City of San Francisco - Find the number of police officers, firefighters, and medical staff employees
+Find the number of police officers (job title contains substring police), firefighters (job title contains substring fire), and medical staff employees (job title contains substring medical) based on the employee name.
+Output each job title along with the corresponding number of employees.
+
+Data Dictionary:
+Table name = 'sf_public_salaries'
+agency: text (str)
+basepay: double precision (dbl)
+benefits: double preicison (Dbl)
+employeename: text (str)
+id: bigint (int)
+jobtitle: text (str)
+notes: double precision (dbl)
+otherpay: double precision (dbl)
+overtimepay: double precision (dbl)
+status: text (str)
+totalpay: double precision (dbl)
+totalpaybenefits: double precision (dbl)
+year: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Find the number of police officers (job title containing substring police), firefighters (job title
+-- contains substring fire), and medical staff employees (job title contains substring medical) based on the
+-- employee name.
+-- Output each job title along with the corresponding number of employees.
+
+-- Output:
+-- jobtitle, employee_count
+
+-- Preview data:
+SELECT * FROM sf_public_salaries LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - basepay(8), benefits(9), notes(200), status(131)
+-- Rows - 200
+SELECT 
+    SUM(CASE WHEN agency IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN basepay IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN benefits IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN employeename IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN jobtitle IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN notes IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN otherpay IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN overtimepay IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN status IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN totalpay IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN totalpaybenefits IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN year IS NULL THEN 1 ELSE 0 END) AS col13,
+    COUNT(*) AS total_rows
+FROM sf_public_salaries;
+
+-- Iteration:
+-- 1. Filter for jobtitles where contains 'police', 'sheriff', or 'sergeant' for police officers
+-- 2. Filter for jobtitles where contains 'fire'
+-- 3. Filter for jobtitles where contains 'medic', 'physician', 'nurse'
+-- 4. Append filtered jobtitles together into a single query
+SELECT 
+    'police_officers' AS jobtitle,
+    COUNT(jobtitle) AS employee_count 
+FROM sf_public_salaries
+WHERE jobtitle ILIKE '%police%'
+    OR jobtitle ILIKE '%sheriff%'
+    OR jobtitle ILIKE '%sergeant%'
+
+UNION
+
+SELECT 
+    'firefighters' AS jobtitle,
+    COUNT(jobtitle) AS employee_count
+FROM sf_public_salaries
+WHERE jobtitle ILIKE '%fire%'
+
+UNION 
+
+SELECT 
+    'medical_staff' AS jobtitle,
+    COUNT(jobtitle) AS employee_count
+FROM sf_public_salaries
+WHERE jobtitle ILIKE '%medic%'
+    OR jobtitle ILIKE '%physician%'
+    OR jobtitle ILIKE '%nurse%'
+ORDER BY jobtitle;
+
+-- Result:
+SELECT 
+    'police_officers' AS jobtitle,
+    COUNT(jobtitle) AS employee_count 
+FROM 
+    sf_public_salaries
+WHERE -- 1. Filter for jobtitles where contains 'police', 'sheriff', or 'sergeant' for police officers
+    jobtitle ILIKE '%police%'
+    OR jobtitle ILIKE '%sheriff%'
+    OR jobtitle ILIKE '%sergeant%'
+
+UNION -- 4. Append filtered jobtitles together into a single query
+
+SELECT 
+    'firefighters' AS jobtitle,
+    COUNT(jobtitle) AS employee_count
+FROM 
+    sf_public_salaries
+WHERE -- 2. Filter for jobtitles where contains 'fire'
+    jobtitle ILIKE '%fire%'
+
+UNION 
+
+SELECT 
+    'medical_staff' AS jobtitle,
+    COUNT(jobtitle) AS employee_count
+FROM 
+    sf_public_salaries
+WHERE -- 3. Filter for jobtitles where contains 'medic', 'physician', 'nurse'
+    jobtitle ILIKE '%medic%'
+    OR jobtitle ILIKE '%physician%'
+    OR jobtitle ILIKE '%nurse%'
+ORDER BY 
+    jobtitle;
+
+
+Solution #2
+WITH JobTitleCategories AS (
+    SELECT 
+        jobtitle,
+        CASE 
+            -- 1. Filter for jobtitles where contains 'police', 'sheriff', or 'sergeant', 
+            --    categorize as 'police_officer'
+            WHEN jobtitle ILIKE '%police%' OR jobtitle ILIKE '%sheriff%' OR jobtitle ILIKE '%sergeant%'
+                THEN 'police_officer'
+            -- 2. Filter for jobtitles where contains 'fire', categorize as firefighter'
+            WHEN jobtitle ILIKE '%fire%' 
+                THEN 'firefighter'
+            -- 3. Filter for jobtitles where contains 'medic', 'physician', 'nurse', 
+            --    categorize as 'medical_staff'
+            WHEN jobtitle ILIKE '%medic%' OR jobtitle ILIKE '%physician%' OR jobtitle ILIKE '%nurse%'
+                THEN 'medical_staff'
+            ELSE 'Other'
+        END AS job_category
+    FROM 
+        sf_public_salaries
+)
+SELECT
+    job_category,
+    COUNT(jobtitle) AS employee_count -- 5. Count number of employees per job_category 
+FROM 
+    JobTitleCategories
+WHERE -- 4. Filter for job categories 'police_officer', 'firefighter', 'medical_staff'
+    job_category IN ('police_officer', 'firefighter', 'medical_staff')
+GROUP BY 
+    job_category
+ORDER BY 
+    job_category;
+
+Notes:
+- None of the null values in the data quality check were pressing for this particular problem. The prompt
+  had said to use the jobtitle column with a specific substring for each profession but most of those substrings
+  do not return the actual criteria of police officers, firefighters, and medical staff employees. I looked
+  through the entire dataset and made sure to filter for specific professions related to these categories to
+  get an accurate count. Once I established the filters for each jobtitle role, I created a more general
+  unified job title for each row along with the employee counts. These were created in separate queries and 
+  appended together to get the necessary job titles and counts for each.
+
+Suggestions and Final Thoughts:
+- For SQL dialects that do not have the ILIKE function, it is best to use LOWER() then LIKE() for filtering
+  ex.
+      WHERE LOWER(column) LIKE '%example%'
+- To prevent cross-category overlap counts between jobtitles, it's better to use a CASE statement to filter
+  and sort in a single query the dataset. This method is also more efficient in terms of performance. See
+  Solution #2 for this particular approach. 
+- Recently I have been practicing append/UNION and merge/JOINs in Excel, it may have made me think of this
+  approach intuitively. The CASE approach in Solution #2 would be more suitable for this task and I will try
+  to remember to consider all methods and edge cases when possible.
+
+Solve Duration:
+24 minutes
+
+Notes Duration:
+4 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################
