@@ -1,0 +1,416 @@
+Date: 10/30/2025
+
+############################
+
+Website:
+StrataScratch - ID 2117
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Shopify - Employee with Most Orders
+What is the last name of the employee or employees who are responsible for the most orders?
+
+Data Dictionary:
+Table name = 'shopify_orders'
+order_id: numeric (num)
+shop_id: numeric (num)
+user_id: numeric (num)
+order_amount: numeric (num)
+total_items: numeric (num)
+resp_employee_id: numeric (num)
+payment_method: character (str)
+created_at: POSIXct, POSIXt (dt)
+carrier_id: numeric (num)
+Table name = 'shopify_employees'
+id: numeric (num)
+first_name: character (str)
+last_name: character (str)
+department: character (str)
+
+Code:
+Solution #1
+## Question: 
+# What is the last name of the employee or employees who are responsible for the most orders?
+
+## Output:
+# last_name
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#shopify_orders <- read_csv("shopify_orders.csv")
+#shopify_employees <- read_csv("shopify_employees.csv")
+orders_df <- data.frame(shopify_orders)
+employees_df <- data.frame(shopify_employees)
+head(orders_df, 5)
+head(employees_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - orders: carrier_id(5)
+#       - employees: 0
+# Rows - 30
+#      - 12
+data.frame(lapply(orders_df, class))
+data.frame(lapply(employees_df, class))
+colSums(is.na(orders_df))
+colSums(is.na(employees_df))
+nrow(orders_df)
+nrow(employees_df)
+
+## Iteration:
+result_df <- orders_df %>%
+    inner_join(
+        # 1. Inner join orders and employees DataFrames by "resp_employee_id" = "id" respectively
+        employees_df, by=c("resp_employee_id"="id")
+    ) %>%
+    group_by(first_name, last_name) %>%
+    summarise(
+        # 2. Count number of orders for each first_name and last_name
+        order_count = n(),
+        .groups = "drop"
+    ) %>%
+    slice_max(
+        # 3. Filter for employees with most orders, include ties
+        order_count
+    ) %>%
+    select(
+        # 4. Select relevant columns
+        last_name
+    ) %>%
+    arrange(last_name)
+    
+## Result: 
+result_df
+
+Notes:
+- None of the null values in the data quality checks were relevant for solving the problem. My approach began
+  with inner joining the orders and employees DataFrames by resp_employee_id = id. The merged dataset was then
+  grouped by first_name and last_name and aggregated to count the number of orders. Afterwards, the resulting
+  rows were filtered using slice_max() function to obtain the employees with most orders which includes ties.
+  Then the final output was selected by necessary columns and arranged in a presentable manner.
+
+Suggestions and Final Thoughts:
+- Another way to group the employees would have been to use the resp_employee_id and last_name instead of
+  first_name and last_name.
+  ex.
+      group_by(resp_employee_id, last_name)
+- For a vector output and slightly more optimal result, use pull() to obtain the required output column
+  ex.
+      pull(last_name)
+- Something I noticed was a column called order_amount in the shopify_orders DataFrame, if the problem had
+  specifically asked to use that for determining the most orders then that would be a different story. I went
+  by using the order_id column as that make sense with the given schema.
+
+Solve Duration:
+10 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+2 minutes
+
+############################
+
+Website:
+StrataScratch - ID 2149
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Meta - Customer Consumable Sales Percentages
+Following a recent advertising campaign, you have been asked to compare the sales of consumable products across all brands.
+A consumable product is defined as any product where product_family = 'CONSUMABLE'.
+Do the comparison of the brands by finding the percentage of unique customers (among all customers in the dataset) who purchased consumable products of some brand and then do the calculation for each brand.
+Your output should contain the brand_name and percentage_of_customers rounded to the nearest whole number and ordered in descending order.
+
+Data Dictionary:
+Table name = 'online_orders'
+product_id: int64 (int)
+promotion_id: int64 (int)
+cost_in_dollars: int64 (int)
+customer_id: int64 (int)
+date_sold: datetime64 (dt)
+units_sold: int64 (int)
+Table name = 'online_products'
+product_id: int64 (int)
+product_class: object (str)
+brand_name: object (str)
+is_low_fat: object (str)
+is_recyclable: object (str)
+product_category: int64 (int)
+product_family: object (str)
+
+Code:
+Solution #1
+## Question:
+# Following a recent advertising campaign, you have been asked to compare the sales of consumable products
+# across all brands.
+# A consumable product is defined as any product where product_family = 'CONSUMABLE'.
+# Do the comparison of the brands by finding the percentage of unique customers (among all customers in the
+# dataset) who purchased consumable products of some brand and then do the calculation for each brand.
+# Output should contain the brand_name and percentage_of_customers rounded to the nearest whole number and
+# ordered in descending order.
+
+## Output:
+# brand_name, percentage_of_customers
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#online_orders = pd.read_csv("online_orders.csv")
+#online_products = pd.read_csv("online_products.csv")
+orders_df = pd.DataFrame(online_orders)
+products_df = pd.DataFrame(online_products)
+orders_df.head(5)
+products_df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - orders: 0
+#       - products: 0
+# Rows - orders: 34
+#      - products: 12
+#orders_df.info()
+#orders_df.isna().sum().reset_index()
+#products_df.info()
+#products_df.isna().sum().reset_index()
+
+## Iteration:
+# 1. Inner join orders and products DataFrames by product_id
+merged_df = pd.merge(orders_df, products_df, on="product_id", how="inner")
+
+# 2. Filter for 'CONSUMABLE' products 
+filtered_df = merged_df[
+    merged_df["product_family"] == "CONSUMABLE"
+].copy()
+
+# 3. Count the number of unique customers for each brand name
+result_df = filtered_df.groupby("brand_name")["customer_id"].nunique().reset_index(name="unique_customer_count")
+
+# 4. Calculate the percentage of customers for each brand and round to nearest whole number
+#    percentage = 100.0 * (unique_customer_count) / (total_unique_customer_count)
+result_df["percentage_of_customers"] = round(
+    100.0 * (result_df["unique_customer_count"] / orders_df["customer_id"].nunique())
+)
+
+# 5. Select relevant columns and sort by percentage_of_customers in DESC order
+result_df = result_df[["brand_name", "percentage_of_customers"]].sort_values(by="percentage_of_customers", ascending=False)
+
+## Result:
+print("Percentage of unique customers who purchased consumable products of some brand:")
+result_df
+
+Notes:
+- There were no null values present in the data quality checks for the given DataFrames. I began my approach
+  with inner joining the orders and products DataFrames by product_id. The resulting dataset was filtered
+  using the column product_family and searching for rows with "CONSUMABLE" values. The filtered DataFrame was 
+  then grouped and aggregated to count the unique customers for each brand_name. Percentage of customers was 
+  calculated using the newly created unique_customer_count column rows and dividng by the sum of that column.
+  Lastly, the required columns were selected and sorted by percentage of customers in descending order.
+
+Suggestions and Final Thoughts:
+- To avoid overlapping unique customers from the initial group by aggregation unique customer counts, it is
+  better to use the original orders DataFrame and it's column of customer_id to find the total number of 
+  unique customers. This would provide a more accurate percentage calculation.
+  ex. 
+      result_df["percentage_of_customers"] = round(
+          100.0 * (result_df["unique_customer_count"] / orders_df["customer_id"].nunique())
+      )
+- The filter for "CONSUMABLE" in product_family column could have been performed on the products DataFrame
+  before the merging of the two DataFrames. This would have been slightly more efficient in having less rows
+  to combine.
+- For unique id questions, make sure to read carefully for what the question is asking for in terms of which
+  are the unique ids that are necessary and how to avoid potential overlaps.
+      
+Solve Duration:
+16 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################
+
+Website:
+StrataScratch - ID 9979
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+City of San Francisco - Find the top 5 highest paid and top 5 least paid employees in 2012
+Find the top 5 highest paid and top 5 least paid employees in 2012.
+Output the employee name along with the corresponding total pay with benefits.
+Sort records based on the total payment with benefits in ascending order.
+
+Data Dictionary:
+Table name = 'sf_public_salaries'
+agency: text (str)
+basepay: double precision (dbl)
+benefits: double precision (dbl)
+employeename: text (str)
+id: bigint (int)
+jobtitle: text (str)
+notes: double precision (dbl)
+otherpay: double precision (dbl)
+overtimepay: double precision (dbl)
+status: text (str)
+totalpay: double precision (dbl)
+totalpaybenefits: double precision (dbl)
+year: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Find the top 5 highest paid and top 5 least paid employees in 2012.
+-- Output the employee name along with the corresponding total pay with benefits.
+-- Sort records based on the total payment with benefits in ascending order.
+
+-- Output:
+-- employeename, totalpaybenefits
+
+-- Preview data:
+SELECT * FROM sf_public_salaries LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - basepay(8), benefits(9), notes(200), status(131) 
+-- Rows - 200
+SELECT 
+    SUM(CASE WHEN agency IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN basepay IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN benefits IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN employeename IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN jobtitle IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN notes IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN otherpay IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN overtimepay IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN status IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN totalpay IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN totalpaybenefits IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN year IS NULL THEN 1 ELSE 0 END) AS col13,
+    COUNT(*) AS total_rows
+FROM sf_public_salaries;
+
+-- Iteration:
+-- 1. Filter for year = 2012 
+-- 2. Rank the employees by totalpaybenefits in DESC and ASC order, include ties
+-- 3. Filter for top 5 highest paid and top 5 least paid employees
+-- 4. Sort records by totalpaybenefits in ASC order
+WITH EmployeePayRanked AS (
+    SELECT 
+        employeename,
+        totalpaybenefits,
+        DENSE_RANK() OVER(ORDER BY totalpaybenefits DESC) AS dense_rank_desc,
+        DENSE_RANK() OVER(ORDER BY totalpaybenefits ASC) AS dense_rank_asc
+    FROM sf_public_salaries 
+    WHERE year = 2012
+)
+SELECT
+    employeename,
+    totalpaybenefits
+FROM EmployeePayRanked
+WHERE dense_rank_desc <= 5
+    OR dense_rank_asc <= 5
+ORDER BY totalpaybenefits ASC;
+
+-- Result:
+WITH EmployeePayRanked AS (
+    SELECT 
+        employeename,
+        totalpaybenefits,
+        DENSE_RANK() OVER( -- 2. Rank the employees by totalpaybenefits in DESC and ASC order, include ties
+            ORDER BY totalpaybenefits DESC
+        ) AS dense_rank_desc,
+        DENSE_RANK() OVER(
+            ORDER BY totalpaybenefits ASC
+        ) AS dense_rank_asc
+    FROM 
+        sf_public_salaries 
+    WHERE 
+        year = 2012 -- 1. Filter for year = 2012 
+)
+SELECT
+    employeename,
+    totalpaybenefits
+FROM 
+    EmployeePayRanked
+WHERE
+    dense_rank_desc <= 5 -- 3. Filter for top 5 highest paid and top 5 least paid employees
+    OR dense_rank_asc <= 5
+ORDER BY 
+    totalpaybenefits ASC; -- 4. Sort records by totalpaybenefits in ASC order
+
+Notes:
+- When performing the data quality checks on the dataset, none of the null values were part of the criteria
+  for the problem at hand. My approach for this problem was filtering for employees in the year 2012 and
+  dense ranking each row by totalpaybenefits in ascending and descending order to get the top 5 highest and
+  lowest paid employees. I used dense rank in case any ties did end up being an issue. Once I established
+  the employee pay ranks in a common table expression (CTE), I queried that CTE in a subsequent step to
+  obtain the employeename and totalpaybenefits by filtering for top 5 highest and lowest ranks in pay. For
+  prompt output purposes I also ordered the reuslts by totalpaybenefits in ascending order.
+
+Suggestions and Final Thoughts:
+- An alternative solution but not as efficient and optimal would be to have two separate queries for the
+  top 5 highest and top 5 lowest paid employees and use the ORDER BY and LIMIT functions. After the queries
+  are created, the use of UNION ALL would combine the results of both queries int oa single query.
+  ex.
+      (
+       SELECT        -- Select the TOP 5 HIGHEST paid employees in 2012
+           employeename,
+           totalpaybenefits
+       FROM
+           sf_public_salaries
+       WHERE
+           year = 2012
+       ORDER BY
+           totalpaybenefits DESC
+       LIMIT 5
+      )
+
+      UNION ALL
+
+      (
+       SELECT        -- Select the TOP 5 LEAST paid employees in 2012
+           employeename,
+           totalpaybenefits
+       FROM
+           sf_public_salaries
+       WHERE
+           year = 2012
+       ORDER BY
+           totalpaybenefits ASC
+       LIMIT 5        -- The LIMIT 5 combined with ORDER BY ASC gives the 5 lowest paid
+      )
+
+      ORDER BY       -- Finally, sort the combined result set in ascending order by totalpaybenefits
+          totalpaybenefits ASC;
+
+Solve Duration:
+11 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################
