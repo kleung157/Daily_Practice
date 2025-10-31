@@ -1,0 +1,435 @@
+Date: 10/31/2025
+
+############################
+
+Website:
+StrataScratch - ID 2118
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Shopify - Most Sold in Germany
+Find the product with the most orders from users in Germany. 
+Output the market name of the product or products in case of a tie.
+
+Data Dictionary:
+Table name = 'shopify_orders'
+order_id: numeric (num)
+shop_id: numeric (num)
+user_id: numeric (num)
+order_amount: numeric (num)
+total_items: numeric (num)
+resp_employee_id: numeric (num)
+payment_method: character (str)
+created_at: POSIXct, POSIXt (dt)
+carrier_id: numeric (num)
+
+Table name = 'shopify_users'
+id: numeric (num)
+username: character (str)
+first_name: character (str)
+last_name: character (str)
+country: character (str)
+city: character (str)
+
+Table name = 'dim_product'
+prod_sku_id: character (str)
+prod_sku_name: character (str)
+prod_brand: character (str)
+market_name: character (str)
+
+Table name = 'map_product_order'
+order_id: numeric (num)
+product_id: character (str)
+
+Code:
+Solution #1
+## Question:
+# Find the product with the most orders from user in Germany.
+# Output the market name of the product or products in case of a tie.
+
+## Output:
+# market_name
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#shopify_orders <- read_csv("shopify_orders.csv")
+#shopify_users <- read_csv("shopify_users.csv")
+#dim_product <- read_csv("dim_product.csv")
+#map_product_order <- read_csv("map_product_order.csv")
+orders_df <- data.frame(shopify_orders)
+users_df <- data.frame(shopify_users)
+products_df <- data.frame(dim_product)
+products_order_df <- data.frame(map_product_order)
+head(orders_df, 5)
+head(users_df, 5)
+head(products_df, 5)
+head(products_order_df, 5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - orders: carrier_id(5)
+#       - users: 0
+#       - products: 0
+#       - products_order: 0
+# Rows - orders: 30
+#      - users: 27
+#      - products: 18
+#      - products_order: 52
+data.frame(lapply(orders_df, class))
+data.frame(lapply(users_df, class))
+data.frame(lapply(products_df, class))
+data.frame(lapply(products_order_df, class))
+colSums(is.na(orders_df))
+colSums(is.na(users_df))
+colSums(is.na(products_df))
+colSums(is.na(products_order_df))
+nrow(orders_df)
+nrow(users_df)
+nrow(products_df)
+nrow(products_order_df)
+
+## Iteration:
+result_df <- orders_df %>%
+    inner_join(
+        # 1. Inner join orders and user DataFrames by user_id = id 
+        users_df, by=c("user_id"="id")
+    ) %>%
+    inner_join(
+        # 2. Inner join orders/users with products_orders DataFrames by order_id
+        products_order_df, by="order_id"
+    ) %>%
+    inner_join(
+        # 3. Inner join orders/users/products_orders with products DataFrames by product_id = prod_sku_id
+        products_df, by=c("product_id"="prod_sku_id")
+    ) %>%
+    filter(
+        # 4. Filter for orders with users in country "Germany"
+        country == "Germany"
+    ) %>%
+    group_by(market_name) %>%
+    summarise(
+        # 5. Count the number of orders for each market_name product
+        order_count = n_distinct(order_id),
+        .groups = "drop"
+    ) %>%
+    slice_max(
+        # 6. Filter for highest order_count for market_name, include ties
+        order_count
+    ) %>%
+    select(
+        # 7. Select relevant columns
+        market_name
+    ) %>%
+    arrange(market_name)
+
+## Result:
+result_df
+
+Notes:
+- There were a total of 5 null values in the data quality check for all the provided DataFrames. None of them
+  were needed to solve the problem. My approach began with inner joining all 4 DataFrames by identical or
+  similar ids to create a single cohesive dataset. Once the dataset was merged, it was filtered for orders
+  with users in the country "Germany". Then I performed a group by aggregation count for market_name products
+  and filtered for the highest order_count using slice_max() function. Lastly, the necessary output columns
+  were selected and arranged in ascending order.
+
+Suggestions and Final Thoughts:
+- The filter for users in Germany could have been done before the inner join to avoid merging unneeded rows.
+- Alternatives to the built-in slice_max() function for finding highest values and including ties could be
+  to use the max() function or dense_rank() function and filter for the top ranking.
+- Even though there is an id for orders in the orders DataFrame, it is best to use n_distinct() function for
+  aggregating counts to prevent any potential repeated counts of order_ids.
+- There is a column in the original orders DataFrame called order_amount that could be interpretted as the
+  number of orders for a product. I went by order_id in the order DataFrame to follow the relationship and
+  overall schema.
+
+Solve Duration:
+20 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################
+
+Website:
+StrataScratch - ID 2150
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Meta - Customers Who Purchased the Same Product
+In order to improve customer segmentation efforts for users interested in purchasing furniture, you have been asked to find customers who have purchased the same items of furniture.
+Output the product_id, brand_name, unique customer ID's who purchased that product, and the count of unique customer ID's who purchased that product. 
+Arrange the output in descending order with the highest count at the top.
+
+Data Dictionary:
+Table name = 'online_orders'
+product_id: int64 (int)
+promotion_id: int64 (int)
+cost_in_dollars: int64 (int)
+customer_id: int64 (int)
+date_sold: datetime64 (dt)
+units_sold: int64 (int)
+
+Table name = 'online_products'
+product_id: int64 (int)
+product_class: object (str)
+brand_name: object (str)
+is_low_fat: object (str)
+is_recyclable: object (str)
+product_category: int64 Int)
+product_family: object (str)
+
+Code:
+Solution #1
+## Question:
+# In order to improve customer segmentation efforts for users interested in purchasing furniture,
+# you have been asked to find customers who have purchased the same items of furniture.
+# Output the product_id, brand_name, unique customer ID's who purchased that product, and the count of unique
+# customer ID's who purchased that porduct. 
+# Arrange the output in descending order with the highest count at the top.
+
+## Output:
+# product_id, brand_name, unique_customer_id, unique_customer_count_purchased
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#online_orders = pd.read_csv("online_orders.csv")
+#online_products = pd.read_csv("online_products.csv")
+orders_df = pd.DataFrame(online_orders)
+products_df = pd.DataFrame(online_products)
+orders_df.head(5)
+products_df.head(5)
+
+## Check datatypes, nulls, and rows:
+# Nulls - orders: 0
+#       - products: 0
+# Rows - orders: 34
+#      - products: 12
+#orders_df.info()
+#orders_df.isna().sum().reset_index()
+#products_df.info()
+#products_df.isna().sum().reset_index()
+
+## Iteration:
+# 1. Inner join orders and products DataFrames by "product_id"
+merged_df = pd.merge(orders_df, products_df, on="product_id", how="inner")
+
+# 2. Filter for product_class 'FURNITURE'
+filtered_df = merged_df[
+    merged_df["product_class"] == "FURNITURE"    
+].copy()
+
+# 3. List the unique customers for each product product brand
+#    and count the number of unique customers for each product brand
+# 4. Sort by unique_customer_count in descending order
+result_df = (
+    filtered_df.groupby(["product_id", "brand_name"])
+    .agg(
+        unique_customer_id = ("customer_id", "unique"),
+        unique_customer_count = ("customer_id", "nunique")
+    )
+    .reset_index()
+    .sort_values(by="unique_customer_count", ascending=False)
+)
+
+## Result:
+print("Customers who have purchased the same items of furniture:")
+result_df
+
+Notes:
+- No null values were found in the initial data quality checks. I started off inner joining the provided
+  orders and products DataFrames by matching "product_id". The merged dataset was then filtered by the
+  column product_class for "FURNITURE" values. The filtered dataset was grouped by "product_id" and 
+  "brand_name" to perform an aggregation of unique "customer_id" rows and an aggregation of number of
+  unique "customer_id" rows. This same step was chained and sorted by "unique_customer_count" in descending
+  order to fulfill the requirements of the prompt.
+
+Suggestions and Final Thoughts:
+- For my approach, the "unique_customer_id" was placed in a numpy array using the unique() function in the
+  aggregation step. For preparing data for universal compatibility, it is better to find the unique values
+  and convert them to a Python list rather than keeping as an array.
+  ex.
+      unique_customer_id = ("customer_id", "unique"),
+      unique_customer_id = ("customer_id", lambda x: list(x.unique()))
+      
+      Code Used	                  Output Value	             Data Type
+      ('customer_id', 'unique')	  array([1001, 1002, 1003])	 NumPy Array
+      lambda x: list(x.unique())	[1001, 1002, 1003]	       Python List
+- To convert the numpy array in the subsequent step, use .apply(), lambda x:, and .tolist()
+  ex.
+      result_df['unique_customer_id'] = result_df['unique_customer_id'].apply(lambda x: x.tolist())
+
+Solve Duration:
+16 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################
+
+Website:
+StrataScratch - ID 9981
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+City of San Francisco - Employees Without Benefits
+Find the ratio between the number of employees without benefits to total employees. 
+Output the job title, number of employees without benefits, total employees relevant to that job title, and the corresponding ratio. 
+Order records based on the ratio in ascending order.
+
+Data Dictionary:
+Table name = 'sf_public_salaries'
+agency: text (str)
+basepay: double precision (dbl)
+benefits: double precision (dbl)
+employeename: text (str)
+id: bigint (int)
+jobtitle: text (str)
+notes: double precision (dbl)
+otherpay: double precision (dbl)
+overtimepay: double precision (dbl)
+status: text (str)
+totalpay: double precision (dbl)
+totalpaybenefits: double precision (dbl)
+year: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Find the ratio between the number of employees without benefits to total employees.
+-- Output the job title, number of employees without benefits, total employees relevant to that job title,
+-- and the corresponding ratio.
+-- Order records based on the ratio in ascending order.
+
+-- Output:
+-- jobtitle, employees_without_benefits_count, total_employees, ratio
+
+-- Preview data:
+SELECT * FROM sf_public_salaries LIMIT 5;
+
+-- Check nulls and rows:
+-- Nulls - basepay(8), benefits(9), notes(200), status(131)
+-- Rows - 200
+SELECT 
+    SUM(CASE WHEN agency IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN basepay IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN benefits IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN employeename IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN jobtitle IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN notes IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN otherpay IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN overtimepay IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN status IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN totalpay IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN totalpaybenefits IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN year IS NULL THEN 1 ELSE 0 END) AS col13,
+    COUNT(*) AS total_rows
+FROM sf_public_salaries;
+
+-- Iteration:
+-- 1. Count employees without benefits using a case for benefits IS NULL or benefits = 0
+-- 2. Count the total number of employees for each jobtitle
+-- 3. Calculate the ratio between employees without benefits to total employees
+--    ratio = employees_without_benefits_count / total_employees_count
+-- 4. Order by ratio in ASC order
+SELECT 
+    jobtitle,
+    COUNT(CASE WHEN benefits IS NULL OR benefits = 0 THEN 1 END) AS employees_without_benefits_count,
+    COUNT(id) AS total_employees_count,
+    ROUND(
+        1.0 * COUNT(CASE WHEN benefits IS NULL OR benefits = 0 THEN 1 END) / COUNT(id)
+    , 2) AS ratio
+FROM sf_public_salaries
+GROUP BY jobtitle
+ORDER BY ratio ASC;
+
+-- Result:
+SELECT 
+    jobtitle,
+    COUNT( -- 1. Count employees without benefits using a case for benefits IS NULL or benefits = 0
+        CASE 
+            WHEN benefits IS NULL OR benefits = 0
+            THEN 1 
+            END
+        ) AS employees_without_benefits_count,
+    COUNT(id) AS total_employees_count, -- 2. Count the total number of employees for each jobtitle
+    ROUND( -- 3. Calculate the ratio between employees without benefits to total employees
+           --    ratio = employees_without_benefits_count / total_employees_count
+        1.0 * COUNT(CASE WHEN benefits IS NULL OR benefits = 0 THEN 1 END) / COUNT(id)
+    , 2) AS ratio
+FROM 
+    sf_public_salaries
+GROUP BY 
+    jobtitle
+ORDER BY -- 4. Order by ratio in ASC order
+    ratio ASC;
+
+Notes:
+- There were 9 null values in the benefits column that were found in the initial data quality checks. These
+  values were filtered and counted for calculating the ratio between employees without benefits to total
+  employees. I used the aggregation function COUNT() to count the number of employees without benefits
+  and to count the total employees for each jobtitle grouping. For the final step to calculate ratio, the
+  counts that were aggregated were converted to numeric values then the calculation was performed and rounded.
+  To fulfill the prompt requirements, the output was ordered by ratio in ascending order.
+- This dataset conveniently had the same number of employees_without_benefits_count and total_employees_count
+  for jobtitles that had null values. The resulting ratio was found to be 1 for these rows and every non-null
+  was 0. Would have been better to see a disporportionate amount of employees_Without_benefits_count to 
+  total_employees_count to get values between 0 and 1 for the ratio.
+
+Suggestions and Final Thoughts:
+- Have to remember to consider edge cases for certain scenarios. In my previous notes I noticed that there
+  were perfect ratios of 1 and no values between 0 to 1. This was because I didn't account for the "benefits"
+  column having 0. I only considered values that were null in that particular column. The correct way to 
+  approach it was to have "benefits" IS NULL OR "benefits" = 0. 
+  ex. 
+      COUNT(CASE WHEN benefits IS NULL OR benefits = 0 THEN 1 END)
+- I had missed the last part of the prompt that said to order records based on the ratio in ascending order.
+  Spent more time wondering why a SQL "Hard" question was so direct but missed the smaller details when trying
+  to solve the mystery of this dataset being so perfect in terms of ratios and values.
+  ex. 
+      ORDER BY ratio ASC;
+- The "employees_without_benefits" column could have also aggregated using a SUM function combined with a
+  CASE WHEN statement instead of COUNT and CASE WHEN. SUM() is easier to interpret and safer because COUNT()
+  only counts non-null values.
+  ex. 
+      SUM(CASE WHEN benefits IS NULL OR benefits = 0 THEN 1 ELSE 0 END) AS employees_without_benefits
+- For ratios, it can be better to round to 4 decimal places ROUND(,4) to show percentage accuracy
+  such as in 0.00575 vs 0.06 which would be 5.75% to 6%.
+  
+Solve Duration:
+17 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+6 minutes
+
+############################
