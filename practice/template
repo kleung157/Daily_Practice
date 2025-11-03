@@ -1,7 +1,8 @@
 **Template**
+
 Date:
 
-############################
+############################################################################################################
 
 Website:
 
@@ -26,7 +27,7 @@ Notes Duration:
 
 Suggestions and Final Thoughts Duration:
 
-############################
+############################################################################################################
 
 SQL - Code Format:
 -- Question:
@@ -35,16 +36,40 @@ SQL - Code Format:
 
 -- Preview data:
 
--- Check duplicates, nulls and rows:
+-- Check dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions -
 -- Duplicates -
 -- Nulls -
--- Rows -
+-- Value counts -
+
+-- Dimensions and nulls
+SELECT
+    SUM(CASE WHEN col1 is NULL THEN 1 ELSE 0 END) AS col1_null_count,
+    SUM(CASE WHEN col2 is NULL THEN 1 ELSE 0 END) AS col2_null_count,
+    COUNT(*) AS total_rows
+FROM table;
+
+-- Duplicates
+SELECT
+    col1, col2,
+    COUNT(*) AS duplicate_count
+FROM table
+GROUP BY col1, col2
+HAVING COUNT(*) > 1;
+
+-- Value counts
+SELECT
+    col1,
+    COUNT(*) AS frequency
+FROM table
+GROUP BY col1
+ORDER BY frequency DESC;
 
 -- Iteration:
 
 -- Result:
 
-############################
+############################################################################################################
 
 R & Python - Code Format:
 ## Question:
@@ -55,14 +80,28 @@ R & Python - Code Format:
 
 ## Load and preview data:
 
-## Check datatypes, duplicates, nulls, rows:
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions -
 # Duplicates -
 # Nulls -
-# Rows - 
+# Value counts -
+
+# R
+data.frame(lapply(df, class))
+dim(df)
+sum(duplicated(df))
+enframe(colSums(is.na(df)), name="index", value="null_count")
+enframe(table(df$col), name="index", value="value_count")
+
+# Python
+df.info()
+df.shape
+df.duplicated().sum()
+df.isna().sum().reset_index()
+df['col'].value_counts().reset_index()
 
 ## Iteration:
-#
 
 ## Result:
 
-############################
+############################################################################################################
