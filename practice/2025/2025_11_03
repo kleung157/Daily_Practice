@@ -1,0 +1,414 @@
+Date: 11/03/2025
+
+############################
+
+Website:
+StrataScratch - ID 2119
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Meta - Most Lucrative Products
+You have been asked to find the 5 most lucrative products (including ties) in terms of total revenue for the first half of 2022 (from January to June inclusive).
+Output their IDs and the total revenue. 
+There may be more than 5 rows in the output since you are including ties.
+
+Data Dictionary:
+Table name = 'online_orders'
+product_id: numeric (num)
+promotion_id: numeric (num)
+cost_in_dollars: numeric (num)
+customer_id: numeric (num)
+units_sold: numeric (num)
+date_sold: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1
+## Question:
+# You have been asked to find the 5 most lucrative products (including ties) in terms of total revenue for the
+# first half of 2022 (from January to June inclusive).
+# Output their IDs and the total revenue. 
+# There may be more than 5 rows in the output since you are including ties.
+
+## Output:
+# product_id, total_revenue
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#online_orders <- read_csv("online_orders.csv")
+orders_df <- data.frame(online_orders)
+head(orders_df, 5)
+
+## Check datatypes, duplicates, nulls, and rows:
+# Duplicates - 0
+# Nulls - 0
+# Rows - 34
+data.frame(lapply(orders_df, class))
+sum(duplicated(orders_df))
+enframe(colSums(is.na(orders_df)), name="index", value="na_count")
+nrow(orders_df)
+
+## Iteration:
+result_df <- orders_df %>%
+    filter(
+        # 1. Filter for first half of 2022
+        (year(date_sold) == 2022) &
+        (month(date_sold) <= 6)
+    ) %>%
+    mutate(
+        # 2. Calculate the revenue for each product. Revenue = cost_in_dollars x units_sold
+        revenue = cost_in_dollars * units_sold
+    ) %>%
+    group_by(product_id) %>%
+    summarise(
+        # 3. Calculate the total revenue for each product
+        total_revenue = sum(revenue)
+    ) %>%
+    mutate(
+        # 4. Rank the total revenue in descending order, inclue ties
+        rank = dense_rank(desc(total_revenue))
+    ) %>%
+    ungroup() %>%
+    filter(
+        # 5. Filter for top 5 ranks for most lucrative products
+        rank <= 5
+    ) %>%
+    select(
+        # 6. Select relevant columns
+        product_id, total_revenue
+    ) %>%
+    arrange(desc(total_revenue))
+
+## Result:
+result_df
+
+Notes:
+- There were no duplicates or null values to account for in the initial data quality checks. I started my
+  approach with filtering for rows with dates in the first half of 2022 using the year() and month() functions.
+  Next, I created a new column for calculating revenue for each row with cost_in_dollars * units_sold. Then I
+  calculated the total revenue for each product using group by sum aggegation. The results of the aggregation
+  were ranked in descending order and included ties using the dense_rank() function. After, the data was
+  ungrouped, filtered for top 5 ranks, selected for the releveant output columns, and arranged in descending
+  order by total_revenue. 
+
+Suggestions and Final Thoughts:
+- Have been trying to find a way to show the index for when I perform the null data quality check for R.
+  Came across the enframe() function to turn a vector into a two column DataFrame. It is defaulted to
+  name and value columns but can be renamed to a desired output.
+  ex.
+      enframe(colSums(is.na(orders_df)), name="index", value="na_count")
+- For duplicates, I added a data quality check using sum() and duplicated() functions.
+  ex.
+      sum(duplicated(orders_df))
+- When filtering for the first half 2022, I could have assigned variables for the start date and end date
+  for January 1st, 2022 and June 30, 2022 respectively but I went with year and month to make it simpler
+  and similar to a SQL approach.
+  ex.
+      start_date = as.POSIXct("2022-01-01")
+      end_date = as.POSIXct("2022-06-30")
+
+      result_df <- orders_df %>%
+      filter(
+           (date_sold >= start_date) & 
+           (date_sold <= end_date)
+      )
+      
+Solve Duration:
+11 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################
+
+Website:
+StrataScratch - ID 2152
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Amazon - Successful Customer Sign Up Responses
+It's time to find out who is the top employee. 
+You've been tasked with finding the employee (or employees, in the case of a tie) who have received the most votes.
+A vote is recorded when a customer leaves their 10-digit phone number in the free text customer_response column of their sign up response (occurrence of any number sequence with exactly 10 digits is considered as a phone number)
+Output the top employee and the number of customer responses that left a number.
+
+Data Dictionary:
+Table name = 'customer_responses'
+response_date: datetime64 (dt)
+employee_id: int64 (int)
+customer_response: object (str)
+
+Code:
+Solution #1
+## Question:
+# It's time to find out who is the top employee.
+# You've been tasked with finding the employee (or employees, in the case of a tie) who have received
+# the most votes.
+# A vote is recorded when a customer leaves their 10-digit phone number in the free text customer_response
+# column of their sign up response (occurence of any number sequence with exactly 10 digits is considered as
+# a phone number)
+# Output the top employee and the number of customer responses that left a number.
+
+## Output:
+# employee_id, customer_response_count
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#customer_responses = pd.read_csv("customer_responses.csv")
+responses_df = pd.DataFrame(customer_responses)
+responses_df.head(5)
+
+## Check datatypes, duplicates, nulls, and rows:
+# Duplicates - 0
+# Nulls - 0
+# Rows - 16
+responses_df.duplicated().sum()
+responses_df.isna().sum().reset_index()
+#responses_df.info()
+
+## Iteration:
+# 1. Determine if there are exactly 10 digits in the customer_response rows using regular expressions
+responses_df["vote"] = responses_df["customer_response"].str.contains(r'\b\d{10}\b', regex=True)
+
+# 2. Count the number of votes from customer responses for each employee id
+result_df = responses_df.groupby("employee_id")["vote"].sum().reset_index(name="customer_response_count")
+
+# 3. Rank the customer response count in DESC order and include ties.
+result_df["rank"] = result_df["customer_response_count"].rank(method="dense", ascending=False)
+
+# 4. Filter for employees with most votes using top rank
+result_df = result_df[
+    result_df["rank"] == 1   
+]
+
+# 5. Select relevant columns and sort by employee_id in ascending order
+result_df = result_df[["employee_id", "customer_response_count"]].sort_values(by="employee_id", ascending=True)
+
+## Result:
+print("Top employee with the most customer sign up responses:")
+result_df
+
+Notes:
+- No duplicates or nulls were found in the data quality checks. I initially had thought of using np.where() to
+  create a CASE statement but pandas has a number of functions that already converts conditions to boolean 
+  values. I remembered the str.contains() function but wasn't sure how to use it to find the criteria of 
+  exactly 10 digits within a string. 
+- I referred to the documentation to see what the parameters meant and how to implement regular expressions to 
+  categorize rows as TRUE or FALSE values. The necessary regular expression was (r'\b\d{10}\b', regex=True), 
+  the r'' starts the regular expression in strings and each \ denotes a process where b = boundary and 
+  d = decimal. The {10} was for exactly 10 digits. Put all together, the regular expression finds exactly the
+  10 digits anywhere within the string. 
+- Once the rows were correclty categorized as TRUE(1)/FALSE(0) values based on the regular expression, I used a
+  group by sum aggregation function to count the number of votes from customer responses for each employee.
+  The resulting aggregation values were ranked in descending orders and filtered for the top rank. Finally,
+  the relevent output columns were selected and sorted in ascending order by employee_id
+
+Suggestions and Final Thoughts:
+- The problem asks for the top or maximum of votes for employees. The ranking process could have been removed
+  and the filter could have used the max() function to find the rows with the highest customer response counts
+  and include ties. Ranking came to me more intuitively since I normally look at these problems in a SQL manner.
+  ex.
+      result_df = result{
+          result_df["customer_response_count"] == result_df["customer_response_count"].max()
+      ]
+
+Solve Duration:
+24 minutes
+
+Notes Duration:
+8 minutes
+
+Suggestions and Final Thoughts Duration:
+3 minutes
+
+############################
+
+Website:
+StrataScratch - ID 9983
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+City of San Francisco - Median Job Salaries
+Find the median total pay for each job. 
+Output the job title and the corresponding total pay, and sort the results from highest total pay to lowest.
+
+Data Dictionary:
+Table name = 'sf_public_salaries'
+agency: text (str)
+basepay: double precision (dbl)
+benefits: double precision (dbl)
+employeename: text (str)
+id: bigint (int)
+jobtitle: text (str)
+notes: double precision (dbl)
+otherpay: double precision (dbl)
+overtimepay: double precision (dbl)
+status: text (str)
+totalpay: double precision (dbl)
+totalpaybenefits: double precision (dbl)
+year: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Find the median total pay for each job.
+-- Output the jobtitle and the corresponding total pay, and sort the results from highest total pay to lowest.
+
+-- Output:
+-- jobtitle, median_totalpay
+
+-- Preview data:
+SELECT * FROM sf_public_salaries LIMIT 5;
+
+-- Check duplicates, nulls, and rows:
+-- Duplicates - 0
+-- Nulls - basepay(8), benefits(9), notes(200), status(131)
+-- Rows - 200
+SELECT 
+    agency, basepay, benefits, employeename, id, jobtitle, notes, otherpay, overtimepay, status, totalpay, totalpaybenefits, year,
+    COUNT(*) AS duplicate_count
+FROM sf_public_salaries
+GROUP BY 
+    agency, basepay, benefits, employeename, id, jobtitle, notes, otherpay, overtimepay, status, totalpay, totalpaybenefits, year
+HAVING COUNT(*) > 1;
+
+SELECT
+    SUM(CASE WHEN agency IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN basepay IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN benefits IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN employeename IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN jobtitle IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN notes IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN otherpay IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN overtimepay IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN status IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN totalpay IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN totalpaybenefits IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN year IS NULL THEN 1 ELSE 0 END) AS col13,
+    COUNT(*) AS total_rows
+FROM sf_public_salaries;
+
+-- Iteration:
+-- 1. Assign a row number for each totalpay row in each jobtitle group in ASC and DESC order
+-- 2. Filter for median values, if asc=desc then single value, if asc+1=desc or asc=desc+1 then multiple.
+-- 3. Calculate the mean for single and multiple totalpay rows for each jobtitle to find median
+-- 4. Sort by median_totalpay in descending order
+WITH JobPayRows AS (
+    SELECT 
+        jobtitle,
+        totalpay,
+        ROW_NUMBER() OVER(PARTITION BY jobtitle ORDER BY totalpay ASC) AS row_asc,
+        ROW_NUMBER() OVER(PARTITION BY jobtitle ORDER BY totalpay DESC) AS row_desc
+    FROM sf_public_salaries
+)
+SELECT
+    jobtitle,
+    AVG(totalpay) AS median_totalpay
+FROM JobPayRows
+WHERE row_asc = row_desc OR
+    row_asc + 1 = row_desc OR
+    row_asc = row_desc + 1
+GROUP BY jobtitle
+ORDER BY median_totalpay DESC;
+
+-- Results:
+WITH JobPayRows AS (
+    SELECT 
+        jobtitle,
+        totalpay,
+        -- 1. Assign a row number for each totalpay row in each jobtitle group in ASC and DESC order
+        ROW_NUMBER() OVER( 
+            PARTITION BY 
+                jobtitle 
+            ORDER BY 
+                totalpay ASC
+        ) AS row_asc,
+        ROW_NUMBER() OVER(
+            PARTITION BY 
+                jobtitle
+            ORDER BY 
+                totalpay DESC
+        ) AS row_desc
+    FROM 
+        sf_public_salaries
+)
+SELECT
+    jobtitle,
+    -- 3. Calculate the mean for single and multiple totalpay rows for each jobtitle to find median
+    AVG(totalpay) AS median_totalpay
+FROM 
+    JobPayRows
+WHERE -- 2. Filter for median values, if asc=desc then single value, if asc+1=desc or asc=desc+1 then multiple
+    row_asc = row_desc OR
+    row_asc + 1 = row_desc OR
+    row_asc = row_desc + 1
+GROUP BY 
+    jobtitle
+ORDER BY -- 4. Sort by median_totalpay in descending order
+    median_totalpay DESC;
+    
+Notes:
+- No duplicates were found but there were several columns with multiple null values. None of the null values
+  were needed to meet the criteria of the problem. I used the ROW_NUMBER() windows function approach to assign
+  rankings in ascending and descending order for each totalpay row and jobtitle group. This process was 
+  enclosed in a common table expression (CTE). The CTE was subsequently queried to filter for single values
+  or multiple values based on the conditions of the ascending or descending rows. A single value was if the
+  row ascending = row descending. Multiple values was if the row ascending + 1 = row descending or the
+  row_ascending = row_descending + 1. Once the filters were established in the WHERE clause, I performed
+  a group by average aggregation to obtain the median total pay for each jobtitle.
+
+Suggestions and Final Thoughts:
+- Make sure to meet all conditions in the prompt. I missed the sort the results by highest median total pay
+  and instead used sort by jobtitle. It's the small details that do add up even if everything else is correct.
+  ex.
+      ORDER BY
+          median_totalpay DESC;
+- For SQL dialects that support median specific functions, it is generally more optimized to use these. Oracle
+  has a MEDIAN() function. PostgreSQL and SQLServer have PERCENTILE_CONT() or PERCENTILE_DISC() functions.
+  PERCENTILE_CONT() takes a weighted average of multiple values while PERCENTILE_DISC() finds a single most
+  approximate value that is rounded.
+  ex. 
+      SELECT
+          jobtitle,
+          PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY totalpay) AS median_total_pay
+      FROM
+          sf_public_salaries
+      GROUP BY
+          jobtitle
+      ORDER BY
+          median_total_pay DESC;
+          
+Solve Duration:
+19 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################
