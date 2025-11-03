@@ -35,7 +35,8 @@ SQL - Code Format:
 
 -- Preview data:
 
--- Check nulls and rows:
+-- Check duplicates, nulls and rows:
+-- Duplicates -
 -- Nulls -
 -- Rows -
 
@@ -54,7 +55,8 @@ R & Python - Code Format:
 
 ## Load and preview data:
 
-## Check datatypes, nulls, rows:
+## Check datatypes, duplicates, nulls, rows:
+# Duplicates -
 # Nulls -
 # Rows - 
 
