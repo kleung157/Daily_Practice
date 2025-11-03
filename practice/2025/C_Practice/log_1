@@ -1,0 +1,876 @@
+C Practice Exercises
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - Write Hello World
+
+Question:
+Write a program to print "Hello world".
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+
+main() {
+    printf("Hello world\n");
+}
+
+Input:
+N/A
+
+Output:
+Hello world
+
+Notes:
+N/A
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - RS-1: Produce output
+
+Question:
+Write a C program to produce the same output as this Python program using the %d and %s features of the printf() function.
+
+Python Code:
+print('Hello world')
+print('Answer', 19)
+print('Name', 'Sarah')
+
+C Code:
+#include <stdio.h>
+
+main() {
+    printf("Hello world\n");
+    printf("Answer %d\n", 19);
+    printf("Name %s\n", "Sarah");
+}
+
+Input:
+N/A
+
+Output:
+Hello world
+Answer 19
+Name Sarah
+
+Notes:
+- Single quotes ‘ ’ are single characters 
+- Double quotes “ ” are character arrays 
+- %d -> corresponds to a number then converts to a string 
+- %s -> corresponds to a string then converts to a string 
+- $.1f -> print floating point number with one precision 
+- \n to break to next line 
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - RS-2: Read Input
+
+Question:
+Write a C program equivalent to this Python program
+
+Python Code:
+print('Enter US Floor')
+usf = int(input())
+euf = usf - 1
+print('EU Floor', euf)
+
+C Code:
+#include <stdio.h>
+
+int main() {
+    int usf, euf;
+
+    printf("Enter US Floor\n");
+    scanf("%d", &usf);
+    euf = usf - 1;
+    printf("EU Floor %d\n", euf);
+}
+
+Input:
+2
+
+Output:
+Enter US Floor
+EU Floor 1
+
+Notes:
+- scanf() is similar to input() 
+- & -> call by reference for integers or floats 
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - RS-3: Input / Output
+
+Question:
+Write a C program equivalent to this Python program
+
+Python Code:
+print('Enter name')
+name = input()
+print('Hello', name)
+
+C Code:
+#include <stdio.h>
+
+int main() {
+    char name[100];
+
+    printf("Enter name\n");
+    scanf("%100s", name);
+    printf("Hello %s\n", name);
+}
+
+Input:
+Sarah
+
+Output:
+Enter name
+Hello Sarah
+
+Notes:
+- Predeclare a character array “char name[100]” and specify how long 
+- scanf() for strings doesn’t require an ampersand &, but requires %s or %d, and can have a limit on it 
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - RS-4: Reading Lines of Input
+
+Question:
+Write a C program equivalent to this Python program
+
+Python Code:
+print('Enter line')
+line = input()
+print('Line:', line)
+
+C Code:
+#include <stdio.h>
+
+int main() {
+    char line[1000];
+
+    printf("Enter line\n");
+    scanf("%[^\n]1000s", line);
+    printf("Line: %s\n", line);
+}
+
+Input:
+Hello world - have a nice day
+
+Output:
+Enter line
+Line: Hello world - have a nice day
+
+Notes:
+- Regular expressions [^\n] match any character thats not a new line  
+- scanf(“%[^\n]1000s”, line) -> read a whole line but stop at 1000 characters 
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - RS-5: Reading Lines of Input with fgets()
+
+Question:
+Write a C program to implement this Python program, using the fgets function instead of scanf.
+
+Python Code:
+print('Enter line')
+line = input()
+print('Line:', line)
+
+C Code:
+#include <stdio.h>
+
+int main() {
+    char line[1000];
+
+    printf("Enter line\n");
+    fgets(line, 1000, stdin);
+    printf("Line: %s\n", line);
+}
+
+Input:
+Hello world - have a nice day
+
+Output:
+Enter line
+Line: Hello world - have a nice day
+
+Notes:
+- fgets(buffer, sizeof(buffer), stdin); 
+- Buffer: point to character array where input will be stored 
+- Sizeof(buffer): maximum number of characters to read including null terminator 
+- Stdin: input stream to read from, stdin represents standard input 
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - RS-6: Write a simple for loop
+
+Question:
+Write a C program to produce the same output as this Python program using a 'for' loop.
+
+Python Code:
+for i in range(5) :
+    print(i)
+
+C Code:
+#include <stdio.h>
+
+int main() {
+    int i;
+
+    for (i=0; i<5; i++) {
+        printf("%d\n", i);
+    }
+}
+
+Input:
+N/A
+
+Output:
+0
+1
+2
+3
+4
+
+Notes:
+- i=0 is the initialization before the loop starts 
+- i<5  test whether or not loop should run or continue to run 
+- i++ post increment operator, keep adding one 
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - RS-7: Compute Minimum and Maximum
+
+Question:
+Write a C program to determine the minimum and maximum of a sequence of integer numbers on input, terminated by the string "done". 
+The patterns for input and output should match the following Python application. 
+Make sure that the input lines can be at least 1000 characters. 
+Use a middle-tested while loop, gets() and atoi() to mimic the Python code below.
+
+Python Code:
+maxval = None
+minval = None
+while True:
+    line = input()
+    line = line.strip()
+    if line == "done" : break
+    ival = int(line)
+    if ( maxval is None or ival > maxval) :
+        maxval = ival
+    if ( minval is None or ival < minval) :
+        minval = ival
+
+print('Maximum', maxval)
+print('Minimum', minval)
+
+C Code:
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int main() {
+    int first = 1;
+    int val, maxval, minval;
+    char line[1000];
+
+    while(gets(line) != NULL ) {
+        if ( strcmp(line, "done") == 0 ) {
+            break;
+        }
+        val = atoi(line);
+        if ( first || val > maxval ) {
+            maxval = val;
+        }
+        if( first || val < minval ) {
+            minval = val;
+        }
+        first = 0;
+    }
+
+      printf("Maximum %d\n", maxval);
+      printf("Minimum %d\n", minval);
+}
+
+Input:
+5
+2
+9
+done
+
+Output:
+Maximum 9
+Minimum 2
+
+Notes:
+- For the first while loop run, the if statements have OR conditions that are both TRUE.
+  Due to the first variable being initialized as 1. This makes the C compiler assume the 
+  IF statement is true and initializes the maxval and minval with val.
+  ex.
+      if( TRUE ) {
+          maxval = val;
+      }
+      if( TRUE ) {
+          minval = val;
+      }
+- <stdlib.h> 
+  atoi() function, converts strings to an integer 
+  Ex. 
+      Int val; Char line[1000]; val = atoi(line);  
+- <string.h> 
+  strcspn() function, find and remove a newline character from a string read by read 
+  Ex. 
+      line[strcspn(line, "\n")] = 0; 
+  strcmp() function, takes two strings as an argument and returns 0 if they are identical,  
+  if the first string is smaller than the second then returns negative value, 
+  if the first string is larger than the second then returns positive value 
+  Ex. 
+      if ( strcmp(line, "done") == 0 ) 
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - RS-8: Write a Guessing Game
+
+Question:
+Write a C program to play a guessing game with the user that is equivalent to the Python program below. 
+Your program should use a while loop and multi-way branch if (i.e. use else if).
+
+Python Code:
+while True:
+    try:
+        line = input()
+    except:  # If we get EOF
+        break
+    line = line.strip()
+    guess = int(line)
+    if guess == 42:
+        print('Nice work!')
+        break
+    elif guess < 42 :
+        print('Too low - guess again')
+    else :
+        print('Too high - guess again')
+
+C Code:
+#include <stdio.h>
+
+int main() {
+    int guess;
+
+    while(scanf("%d", &guess) != EOF) {
+        if ( guess == 42 ) {
+            printf("Nice work!\n");
+            break;
+        }
+        else if ( guess < 42 ) {
+            printf("Too low - guess again\n");
+        }
+        else {
+            printf("Too high - guess again\n");
+        }
+    }
+}    
+
+Input:
+5
+50
+42
+
+Output:
+Too low - guess again
+Too high - guess again
+Nice work!
+
+Notes:
+N/A
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - RS-9: Write a Function
+
+Question:
+Write a C function to implement this Python code
+
+Python Code:
+def mymult(a,b):
+    c = a * b
+    return c
+
+C Code:
+#include <stdio.h>
+
+int main() {
+    int mymult();
+    int retval;
+
+    retval = mymult(6,7);
+    printf("Answer: %d\n",retval);
+}
+
+int mymult(int a, int b) {
+    int c;
+  
+    c = a * b;
+    return c;
+}
+
+Input:
+N/A
+
+Output:
+Answer: 42
+
+Notes:
+N/A
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - 1-1: Write Hello World
+
+Question:
+Write a program to print "Hello world"
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+
+int main() {
+    char x[] = "Hello world";
+
+    printf("%s\n", x);
+ }
+
+Input:
+N/A
+
+Output:
+Hello world
+
+Notes:
+N/A
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - 1-3: Fahrenheit / Celsius with Header
+
+Question:
+Modify the temperature conversion program to print a heading above the table. 
+Check the sample output for the required format of the heading.
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+
+int main() { /* Fahrenheit-Celsius table */
+    int fahr;
+    char x[15] = "FAHR   CELSIUS";
+    char y[15] = "===============";
+
+    printf("%s\n", x);
+    printf("%s\n", y);
+
+    for (fahr = 0; fahr <= 300.0; fahr = fahr + 40.0) {
+        printf("%4d %6.1f\n", fahr, (5.0/9.0)*(fahr-32.0));
+    }
+}
+
+Input:
+N/A
+
+Output:
+FAHR   CELSIUS
+===============
+   0  -17.8
+  40    4.4
+  80   26.7
+ 120   48.9
+ 160   71.1
+ 200   93.3
+ 240  115.6
+ 280  137.8
+
+Notes:
+N/A
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - 1-4: Celsius / Fahrenheit Table
+
+Question:
+Write a program to print the corresponding Celsius to Fahrenheit table. 
+Check the sample output for the required format of the heading.
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+int main() /* Fix this to be Celsius-Fahrenheit table */
+{
+    int cel;
+
+    for (cel = 0; cel <= 100.0; cel = cel + 20.0) {
+        printf("%4d %6.1f\n", cel, 9.0/5.0 * (cel) + 32.0);
+    }
+}
+
+Input:
+N/A
+
+Output:
+   0   32.0
+  20   68.0
+  40  104.0
+  60  140.0
+  80  176.0
+ 100  212.0
+
+Notes:
+N/A
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - 1-5: Reverse Table
+
+Question:
+Modify the temperature conversion program to print the table in reverse order, that is, from 300 degrees to 0.
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+
+int main() /* Fahrenheit-Celsius table */
+{
+    int fahr;
+
+    for (fahr = 300; fahr >= 0; fahr = fahr - 20) {
+        printf("%4d %6.1f\n", fahr, (5.0/9.0)*(fahr-32.0));
+    }
+}
+
+
+Input:
+N/A
+
+Output:
+ 300  148.9
+ 280  137.8
+ 260  126.7
+ 240  115.6
+ 220  104.4
+ 200   93.3
+ 180   82.2
+ 160   71.1
+ 140   60.0
+ 120   48.9
+ 100   37.8
+  80   26.7
+  60   15.6
+  40    4.4
+  20   -6.7
+   0  -17.8
+
+Notes:
+N/A
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - LBS290-04 Fix Syntax Errors
+
+Question:
+Fix the syntax errors in this program.
+/* Assignment 4 LBS 290 - Fall 1991 - syntax errors */
+
+#include "stdio.h"
+
+main () {
+  char c;
+  int 1value;
+  int i;
+  flat x;
+
+  printf("Hello there and welcome to the program\n);
+  i = 10;
+  x = 2.50;
+  x = x + 1.L;
+  1value = 15;
+/* This is a comment
+  printf("This statement should print out, why doesn't it?\n");
+/* And another comment */
+  printf("This statement does print out, yay!\n");
+}
+
+Python Code:
+N/A
+
+C Code:
+/* Assignment 4 LBS 290 - Fall 1991 - syntax errors */
+#include "stdio.h"
+
+int main () {
+    char c;
+    int value;
+    int i;
+    float x;
+
+    printf("Hello there and welcome to the program\n");
+    i = 10;
+    x = 2.50;
+    x = x + 1.L;
+    value = 15;
+/* This is a comment */
+    printf("This statement should print out, why doesn't it?\n");
+/* And another comment */
+    printf("This statement does print out, yay!\n");
+}
+
+Input:
+N/A
+
+Output:
+Hello there and welcome to the program
+This statement should print out, why doesn't it?
+This statement does print out, yay!
+
+Notes:
+- 1.L means the floating point constant is a long double
+- 1L means the integer constant is a long int
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - 1-6: Count spaces and newlines
+
+Question:
+Count blanks and new lines.
+We skip tabs because it is a little tricky.
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+
+int main() /* count new lines in input */
+{
+    int c, nb, nl;
+    nb = 0;
+    nl = 0;
+
+    while ((c = getchar()) != EOF) {
+        if (c == '\n')
+            ++nl;
+        if (c == ' ')
+            ++nb;
+    }
+    printf("%d %d\n", nb, nl);
+}
+
+Input:
+But soft what light through yonder window breaks
+It is the east and Juliet is the sun
+Arise fair sun and kill the envious moon
+Who is already sick and pale with grief
+
+Output:
+29 4
+
+Notes:
+N/A
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - 1-7: Multiple spaces to one
+
+Question:
+Write a program to copy its input to its output, replacing each string of one or more blanks by a single blank.
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+
+int main() {
+    int c, in_space;
+    in_space = 0;
+
+    while ((c = getchar()) != EOF) {
+         if (c == ' ') {
+             if (in_space == 0) {
+                 putchar(c);
+                 in_space = 1;
+             }
+         }
+         else {
+             in_space = 0;
+             putchar(c);
+         }
+    }
+}
+
+Input:
+But soft  what light     through yonder window breaks
+It is    the east and  Juliet is the sun
+Arise fair sun   and kill the envious moon
+Who  is  already  sick  and  pale  with  grief
+
+Output:
+But soft what light through yonder window breaks
+It is the east and Juliet is the sun
+Arise fair sun and kill the envious moon
+Who is already sick and pale with grief
+
+Notes:
+- getchar() function gets the ASCII character number of a character input
+  putchar() function gets the character for an ASCII character number
+  If a user types the character T, the variable c is assigned 84 which is ASCII for 'T'.
+  Then the 84 is converted to it's ASCII reference which is a 'T'
+  ex.
+      c = getchar();
+      putchar(c);
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - 1-10: Print words
+
+Question:
+Write a program which prints the words in its input, one per line. 
+A word is any string separated by a space or newline.
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+
+int main() {
+    int c;
+
+    while ((c = getchar()) != EOF) {
+         if (c == ' ') {
+             printf("\n");
+         }
+         else {
+             putchar(c);
+         }
+    }
+}
+
+Input:
+But soft what light
+through yonder window
+breaks
+
+Output:
+But
+soft
+what
+light
+through
+yonder
+window
+breaks
+
+Notes:
+N/A
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - 1-17: Reverse a String
+
+Question:
+You should write a function called reverse(s) that reverses the characters in a string. 
+Reverse the string in place.
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+#include <string.h>
+
+int main() {
+    char t[1000];
+    char *copy();
+    void reverse();
+  
+    copy("Hello world", t);
+    printf("%s\n", t);
+    reverse(t);
+    printf("%s\n", t);
+    reverse(copy("XY", t));
+    printf("%s\n", t);
+    reverse(copy("Even", t));
+    printf("%s\n", t);
+    reverse(copy("Odd", t));
+    printf("%s\n", t);
+    reverse(copy("civic", t));
+    printf("%s\n", t);
+}
+
+/* copy s1 to s2; assume s2 big enough */
+char *copy(s1, s2)
+char s1[], s2[];
+{
+    int i;
+
+    for(i=0;(s2[i] = s1[i]);i++);
+    return s2;
+}
+
+void reverse(char t[]) {
+    int len = strlen(t);
+    char temp;
+    int start;
+    int end;
+  
+    for (start = 0, end = len - 1; start < end; start++, end--) {
+        temp = t[start];
+        t[start] = t[end];
+        t[end] = temp;
+    }
+    return;
+}
+
+Input:
+N/A
+
+Output:
+Hello world
+dlrow olleH
+YX
+nevE
+ddO
+civic
+
+Notes:
+N/A
+
+############################################################################################################
