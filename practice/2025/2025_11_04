@@ -1,0 +1,529 @@
+Date: 11/04/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2122
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Meta - Products Never Sold
+The VP of Sales feels that some product categories don't sell and can be completely removed from the inventory.
+As a first pass analysis, they want you to find what percentage of product categories have never been sold.
+
+Data Dictionary:
+Table name = 'online_products'
+product_id: numeric (num)
+product_category: numeric (num)
+product_class: character (str)
+brand_name: character (str)
+is_low_fat: character (str)
+is_recyclable: character (str)
+product_family: character (str)
+
+Table name = 'online_orders'
+product_id: numeric (num)
+promotion_id: numeric (num)
+cost_in_dollars: numeric (num)
+customer_id: numeric (num)
+units_sold: numeric (num)
+date_sold: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1
+## Question:
+# The VP of Sales feels that some product categories don't sell and can be completely removed from the
+# inventory.
+# As a first pass analysis, they want you to find what percentage of product categories have never been
+# sold.
+
+## Output:
+# product_category, percentage_of_product_categories_never_sold
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#online_products <- read_csv("online_products.csv")
+#online_orders <- read_csv("online_orders.csv")
+products_df <- data.frame(online_products)
+orders_df <- data.frame(online_orders)
+
+head(products_df, 5)
+head(orders_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, unique value counts:
+# Dimensions - products: 12 x 7 
+#            - orders: 34 x 6 
+# Duplicates - products: 0
+#            - orders: 0
+# Nulls - products: 0
+#       - orders: 0
+# Value Counts - products: none
+#              - orders: none
+data.frame(lapply(products_df, class))
+data.frame(lapply(orders_df, class))
+
+dim(products_df)
+dim(orders_df)
+
+sum(duplicated(products_df))
+sum(duplicated(orders_df))
+
+enframe(colSums(is.na(products_df)), name="index", value="na_count")
+enframe(colSums(is.na(orders_df)), name="index", value="na_count")
+
+enframe(table(products_df$product_id), name="index", value="frequency")
+enframe(table(products_df$product_class), name="index", value="frequency")
+enframe(table(products_df$brand_name), name="index", value="frequency")
+enframe(table(products_df$product_family), name="index", value="frequency")
+enframe(table(products_df$is_low_fat), name="index", value="frequency")
+enframe(table(products_df$is_recyclable), name="index", value="frequency")
+enframe(table(orders_df$promotion_id), name="index", value="frequency")
+enframe(table(orders_df$customer_id), name="index", value="frequency")
+
+## Iteration:
+result_df <- products_df %>%
+    left_join(
+        # 1. Left join products and orders DataFrames by product_id
+        orders_df, by="product_id"
+    ) %>%
+    mutate(
+        # 2. Categorize products that have never been sold, if null then 1, else 0
+        products_never_sold = case_when(
+            is.na(date_sold) ~ 1,
+            TRUE ~ 0
+        ) 
+    ) %>%
+    distinct(
+        # 3. Find distinct products for each product category
+        product_category, product_id, products_never_sold
+    ) %>%
+    group_by(product_category) %>%
+    summarise(
+        # 4. Calculate the total products never sold and total products for each product category
+        total_products_never_sold = sum(products_never_sold), 
+        total_products = n(),
+        .groups = "drop"
+    ) %>%
+    mutate(
+        # 5. Calculate percentage of product categories never sold
+        #    percentage = 100.0 * total_products_never_sold / total_products
+        percentage_of_product_categories_never_sold = round(
+            100.0 * (total_products_never_sold / total_products), digits=2
+        )
+    ) %>%
+    select(
+        # 5. Select relevant output columns
+        product_category,
+        percentage_of_product_categories_never_sold
+    ) %>%
+    arrange(product_category)
+
+## Result:
+result_df
+
+Notes:
+- Incorporated the dimensions and value count checks in the data quality check for today. Seemed a little more
+  tedious to perform all the value_counts but it actually gave me a better sense of the data and if there were
+  any errors in unique categorical values. No duplicates or null values were found in the provided datasets.
+- I began my approach with the left_join() function to combine the products and orders DataFrames by the
+  product_id to find products that never sold. The products that did not have a value for the date_sold
+  column were categorized as 1 and all others were 0 using the case_when() function. Afterwards, a group by
+  aggregation was performed to calculate the total products never sold and the total products for each
+  product category. With the newly aggregated columns, the percentage was calculated using the columns
+  (total_products_never_sold / total_products) * 100.0 and rounded to 2 decimal places. Lastly, the final
+  output columns were selected and arranged in ASC order.
+
+Suggestions and Final Thoughts:
+- The problem can be interpretted as finding a single percentage value for product categories never been
+  sold. However, when actually looking through the dataset, there are no null product categories. The prompt
+  seems to be missing extra details to indicate that what it's asking for are the products that never sold
+  in each product category in a percentage.
+- There were multiple repeated values for each product_id, I needed to account for that using the distinct()
+  function which I had missed in my initial attempt. This brought down the total_products column and created
+  a more accurate percentage. The total_products_never_sold column did not change.
+  ex.
+      distinct(
+          product_category, product_id, products_never_sold
+      )
+
+Solve Duration:
+26 minutes
+
+Notes Duration:
+6 minutes
+
+Suggestions and Final Thoughts Duration:
+20 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2153
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+DoorDash - Average On-Time Order Value
+The ideal time between when a customer places an order and when the order is delivered is below or equal to 45 minutes.
+You have been tasked with evaluating delivery driver performance by calculating the average order value for each delivery driver who has delivered at least once within this 45-minute period.
+Your output should contain the driver ID along with their corresponding average order value.
+
+Data Dictionary:
+Table name = 'delivery_details'
+customer_placed_order_datetime: datetime64 (dt)
+placed_order_with_restaurant_datetime: datetime64 (dt)
+driver_at_restaurant_datetime: datetime64 (dt)
+delivered_to_consumer_datetime: datetime64 (dt)
+driver_id: int64 (int)
+restaurant_id: int64 (int)
+consumer_id: int64 (int)
+is_new: bool (bool)
+delivery_region: object (str)
+is_asap: bool (bool)
+order_total: float64 (flt)
+discount_amount: float64 (flt)
+tip_amount: float64 (flt)
+refunded_amount: float64 (flt)
+
+Code:
+Solution #1
+## Question:
+# The ideal time between when a customer places an order and when the order is delivered is below or equal
+# to 45 minutes.
+# You have been tasked with evauating delivery driver performance by calculating the average order value
+# for each delivery driver who has delivered at least once within this 45-minute period.
+# Your output should contain the driver ID along with their corresponding average order value.
+
+## Output:
+# driver_id, average_order_total
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#delivery_details = pd.read_csv("delivery_details.csv")
+delivery_df = pd.DataFrame(delivery_details)
+delivery_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 998 x 14
+# Duplicates - 0
+# Nulls - placed_order_restaurant_datetime(2), driver_at_restaurant_datetime(244), delivery_region(2)
+# Value Counts - driver_id, restaurant_id, consumer_id, is_new, delivery_region, is_asap
+#delivery_df.info()
+delivery_df.shape
+delivery_df.duplicated().sum()
+delivery_df.isna().sum().reset_index()
+
+delivery_df["driver_id"].value_counts().reset_index().sort_values(by="driver_id", ascending=True)
+delivery_df["restaurant_id"].value_counts().reset_index().sort_values(by="restaurant_id", ascending=True)
+delivery_df["consumer_id"].value_counts().reset_index().sort_values(by="consumer_id", ascending=True)
+delivery_df["is_new"].value_counts().reset_index().sort_values(by="is_new", ascending=True)
+delivery_df["is_asap"].value_counts().reset_index().sort_values(by="is_asap", ascending=True)
+delivery_df["delivery_region"].value_counts().reset_index().sort_values(by="delivery_region", ascending=True)
+
+## Iteration:
+# 1. Calculate delivery time for each customer delivery
+#    delivery_time = (delivered_to_consumer_datetime - customer_placed_order_datetime) / 60
+delivery_df["actual_delivery_time"] = (delivery_df["delivered_to_consumer_datetime"] -  delivery_df["customer_placed_order_datetime"]).dt.total_seconds() / 60
+
+# 2. Create a categorical column for each delivery order. If <= 45 then 1, else 0
+ideal_time = 45
+delivery_df["within_45"] = delivery_df["actual_delivery_time"] <= ideal_time
+
+# 3. Count the number of deliveries within 45 minutes for each driver_id
+drivers_df = delivery_df.groupby("driver_id")["within_45"].sum().reset_index(name="within_45_count")
+
+# 4. Filter for drivers that have at least once delivered within the 45 minute period
+drivers_df = drivers_df[
+    drivers_df["within_45_count"] >= 1 
+]
+
+# 5. Select for driver_id column
+drivers_df = drivers_df[["driver_id"]]
+
+# 6. Match delivery drivers that delivered at least once within 45-minute period
+filtered_df = pd.merge(delivery_df, drivers_df, on="driver_id", how="inner")
+
+# 7. Calculate the order value for each delivery
+#    order_value = order_total - discount_amount + tip_amount - refunded_amount
+filtered_df["order_value"] = (
+    filtered_df["order_total"].fillna(0) - 
+    filtered_df["discount_amount"].fillna(0) + 
+    filtered_df["tip_amount"].fillna(0) - 
+    filtered_df["refunded_amount"].fillna(0)
+)
+
+# 8. Calculate the average order value for each driver_id
+result_df = (
+    filtered_df.groupby("driver_id")["order_value"].mean().round(2)
+    .reset_index(name="average_order_value")
+    .sort_values(by="driver_id", ascending=True)
+)
+ 
+## Result:
+print("Average order value for delivery drivers who have delivered at least once within 45-minute period:")
+result_df
+
+Notes:
+- In the data quality checks, there were no duplicates or nulls that were relevant for solving the problem.
+  The value counts for id and categorical columns didn't have misspellings and most seemed to be unique.
+- The problem involved filtering for drivers who had delievered at least once within the 45 minutes period.
+  I decided to create a number of helper columns so that I show my step by step process and explain the
+  documentation more clearly. First I calculated the delivery time in minutes for each delivery order row
+  using the columns (delivered_to_consumer_datetime - customer_placed_order_datetime) / 60. The next step
+  was categorizing the rows as within the 45 ideal time period, if <=45 then 1, else 0. These rows were then
+  grouped and aggregated to count the number of within 45 ideal time period delivery orders for each driver_id.
+  Afterwards, the aggregated data was filtered for drivers that had at least one delivery within the 45 minute
+  period and selected for driver_id only.
+- From there, I used an inner join to match the driver_id in the original delivery and newly created driver
+  DataFrames. The order_value for each driver_id was calculated using the columns order_total - discount_amount
+  + tip_amount - refunded_amount. The dataset was then grouped and aggregated to calculate the average order
+  value for each driver_id and sorted by driver_id in ascending order.
+
+Suggestions and Final Thoughts:
+- Avoid hardcoding numbers and assign them to variables instead. I had forgotten to assign the 45 minutes
+  to an ideal time variable.
+  ex.
+      ideal_time = 45
+      delivery_df["within_45"] = delivery_df["actual_delivery_time"] <= ideal_time
+- The most important filter was missing an equal sign to make the operator greater than or equal to. This
+  was for the condition that drivers had at least once delivered within the 45 minute period
+  ex.
+      drivers_df = drivers_df[
+          drivers_df["within_45_count"] >= 1 
+      ]
+- If calculating a mean, remember to use the round() function for presentation.
+  ex. 
+      filtered_df.groupby("driver_id")["order_value"].mean().round(2)
+- An alternative to performing an inner join for matches, would be to use the .isin() function in a filter.
+  ex.
+      filtered_df = delivery_df[
+          delivery_df["driver_id"].isin(qualifying_driver_ids)
+        ].copy()
+- To account for potential null values in any calculations, it is best to use fillna(0) for robustness.
+  ex.
+     filtered_df["order_value"] = (
+         filtered_df["order_total"].fillna(0) - 
+         filtered_df["discount_amount"].fillna(0) + 
+         filtered_df["tip_amount"].fillna(0) - 
+         filtered_df["refunded_amount"].fillna(0)
+     )
+
+Solve Duration:
+35 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+11 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9985
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+City of San Francisco - Above Average But Not At The Top
+Find all employees who earned more than the average salary for their job title in 2013 but were not among the top 5 highest earners for their job title. 
+Use the totalpay column to calculate total earnings. 
+Output the employee name(s) as the result.
+
+Data Dictionary:
+Table name = 'sf_public_salaries'
+agency: text (str)
+basepay: double precision (dbl)
+benefits: double precision (dbl)
+employeename: text (str)
+id: bigint (int)
+jobtitle: text (str)
+notes: double precision (dbl)
+otherpay: double precision (dbl)
+overtimepay: double precision (dbl)
+status: text (str)
+totalpay: double precision (dbl)
+totalpaybenefits: double precision (dbl)
+year: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Find all employees who earned more than the average salary for their job title in 2013 but were not
+-- among the top 5 highest earners for their job title.
+-- Use the totalpay column to calculate total earnings.
+-- Output the employee name(s) as the result.
+
+-- Output:
+-- employeename
+
+-- Preview data:
+SELECT * FROM sf_public_salaries LIMIT 5;
+
+-- Check dimensions, duplicates, nulls, unique value counts
+-- Dimensions - 200 x 13
+-- Duplicates - 0
+-- Nulls - basepay(8), benefits(9), notes(200), status(131)
+-- Value Counts - agency, employeename, id, jobtitle, status
+SELECT -- Dimensions / Nulls
+    SUM(CASE WHEN agency IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN basepay IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN benefits IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN employeename IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN jobtitle IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN notes IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN otherpay IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN overtimepay IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN status IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN totalpay IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN totalpaybenefits IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN year IS NULL THEN 1 ELSE 0 END) AS col13,
+    COUNT(*) AS total_rows
+FROM sf_public_salaries;
+
+SELECT -- Duplicates
+    agency, basepay, benefits, employeename, id, jobtitle, otherpay, overtimepay, status, totalpay, totalpaybenefits, year,
+    COUNT(*) AS duplicate_count
+FROM sf_public_salaries
+GROUP BY
+    agency, basepay, benefits, employeename, id, jobtitle, otherpay, overtimepay, status, totalpay, totalpaybenefits, year
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    agency,
+    COUNT(*) AS frequency_count
+FROM sf_public_salaries
+GROUP BY agency
+ORDER BY frequency_count DESC;
+
+SELECT
+    employeename,
+    COUNT(*) AS frequency_count
+FROM sf_public_salaries
+GROUP BY employeename
+ORDER BY frequency_count DESC;
+
+SELECT
+    id,
+    COUNT(*) AS frequency_count
+FROM sf_public_salaries
+GROUP BY id
+ORDER BY frequency_count DESC;
+
+SELECT
+    jobtitle,
+    COUNT(*) AS frequency_count
+FROM sf_public_salaries
+GROUP BY jobtitle
+ORDER BY frequency_count DESC;
+
+SELECT
+    status,
+    COUNT(*) AS frequency_count
+FROM sf_public_salaries
+GROUP BY status
+ORDER BY frequency_count DESC;
+
+-- Iteration:
+-- 1. Filter for year 2013
+-- 2. Calculate the average salary for each job title
+-- 3. Rank the employees by totalpay in DESC order for each job title group and include ties
+-- 4. Filter for employees that earned more than the average salary
+-- 5. Filter for employees that were not among the top 5 highest earners
+WITH EmployeeJobPayAvgRank2013 AS (
+    SELECT
+        employeename,
+        jobtitle,
+        totalpay,
+        AVG(totalpay) OVER(PARTITION BY jobtitle) AS average_salary,
+        DENSE_RANK() OVER(PARTITION By jobtitle ORDER BY totalpay DESC) AS earnings_rank
+    FROM sf_public_salaries
+    WHERE year = 2013
+)
+SELECT
+    employeename
+FROM EmployeeJobPayAvgRank2013
+WHERE totalpay > average_salary
+    AND earnings_rank > 5
+ORDER BY employeename;
+
+-- Result:
+WITH EmployeeJobPayAvgRank2013 AS (
+    SELECT
+        employeename,
+        jobtitle,
+        totalpay,
+        AVG(totalpay) OVER( -- 2. Calculate the average salary for each job title
+            PARTITION BY 
+                jobtitle
+        ) AS average_salary,
+        DENSE_RANK() OVER( -- 3. Rank employees by totalpay in DESC order for each job title, include ties
+            PARTITION By 
+                jobtitle 
+            ORDER BY 
+                totalpay DESC
+        ) AS earnings_rank
+    FROM 
+        sf_public_salaries
+    WHERE 
+        year = 2013 -- 1. Filter for year 2013
+)
+SELECT
+    employeename
+FROM 
+    EmployeeJobPayAvgRank2013
+WHERE 
+    totalpay > average_salary -- 4. Filter for employees that earned more than the average salary
+    AND earnings_rank > 5 -- 5. Filter for employees that were not among the top 5 highest earners
+ORDER BY 
+    employeename;
+
+Notes:
+- In the initial data quality checks, there were no duplicates present but there were nulls present in a few
+  columns and several categorical and id columns seemed to have some inconsistencies in their index names.
+  None of these checks were particularly relevant for solving the problem at hand.
+- My approach to this problem started with filtering for the year 2013. The average salary was calculated
+  using the AVG() function on the totalpay column and windows functions to group by jobtitle. Then a 
+  DENSE_RANK() function was assigned to include ties and rank each employeename in different jobtitles based on
+  totalpay in descending order. These steps were contained in a common table expression and queried in a 
+  subsequent step where employees were filtered for if they earned more than the average salary and if they
+  were not among the top 5 highest earners.
+
+Suggestions and Final Thoughts:
+- While I could have separated the AVG() and DENSE_RANK() functions into separate CTEs, it seemed more
+  efficient and concise to have it all in one CTE then query that in a single pass rather than multiple
+  passes. Since windows functions can't be used in a WHERE or HAVING clause, I couldn't completely do 
+  everything in one query. 
+- Throughout all the problems I worked on today, I noticed that data quality checks took about 10 minutes
+  for each. The rest of the solve duration time was within 15-20 minutes.
+
+Solve Duration:
+26 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
