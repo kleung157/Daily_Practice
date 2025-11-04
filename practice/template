@@ -40,25 +40,22 @@ SQL - Code Format:
 -- Dimensions -
 -- Duplicates -
 -- Nulls -
--- Value counts -
+-- Value Counts -
 
--- Dimensions and nulls
-SELECT
+SELECT -- Dimensions and nulls
     SUM(CASE WHEN col1 is NULL THEN 1 ELSE 0 END) AS col1_null_count,
     SUM(CASE WHEN col2 is NULL THEN 1 ELSE 0 END) AS col2_null_count,
     COUNT(*) AS total_rows
 FROM table;
 
--- Duplicates
-SELECT
-    col1, col2,
+SELECT -- Duplicates
+    col1, col2
     COUNT(*) AS duplicate_count
 FROM table
 GROUP BY col1, col2
 HAVING COUNT(*) > 1;
 
--- Value counts
-SELECT
+SELECT -- Value counts
     col1,
     COUNT(*) AS frequency
 FROM table
@@ -84,7 +81,7 @@ R & Python - Code Format:
 # Dimensions -
 # Duplicates -
 # Nulls -
-# Value counts -
+# Value Counts -
 
 # R
 data.frame(lapply(df, class))
