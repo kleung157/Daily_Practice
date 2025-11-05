@@ -1,0 +1,461 @@
+Date: 11/05/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2121
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+The marketing department is assessing the success of their promotional campaigns.
+You have been asked to find which products sold the most units for each promotion.
+Your output should contain the promotion ID, product ID, and corresponding total sales for the most successful product ID. 
+In the case of a tie, output all results.
+
+Data Dictionary:
+Table name = 'online_orders'
+product_id: numeric (num)
+promotion_id: numeric (num)
+cost_in_dollars: numeric (num)
+customer_id: numeric (num)
+units_sold: numeric (num)
+date_sold: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1
+## Question:
+# The marketing department is assessing the success of their promotional campaigns.
+# You have been asked to find which products sold the most units for each promotion.
+# Your output should contain the promotion ID, product ID, and corresponding total sales for the most
+# successful product ID. 
+# In the case of a tie, output all the results.
+
+## Output:
+# promotion_id, product_id, total_sales
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#online_orders <- read_csv("online_orders.csv")
+orders_df <- data.frame(online_orders)
+head(orders_df, 5)
+
+# Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 29 x 6
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - product_id, promotion_id, customer_id
+data.frame(lapply(orders_df, class))
+
+dim(orders_df)
+
+sum(duplicated(orders_df))
+
+enframe(colSums(is.na(orders_df)), name="index", value="na_count")
+
+enframe(table(orders_df$product_id), name="index", value="frequency")
+enframe(table(orders_df$promotion_id), name="index", value="frequency")
+enframe(table(orders_df$customer_id), name="index", value="frequency")
+
+## Iteration:
+result_df <- orders_df %>%
+    group_by(promotion_id, product_id) %>%
+    summarise(
+        # 1. Calculate total unit sales of each product for each promotion
+        total_unit_sales = sum(units_sold),
+        .groups = "drop_last" # 2. Drop the product_id from grouping
+    ) %>%
+    slice_max(
+        # 3. Filter for promotion and product combination that had the most sales and include ties
+        total_unit_sales
+    ) %>%
+    ungroup() %>%
+    arrange(
+        # 4. Arrange in ASC order by promotion_id, product_id, and then total_unit_sales
+        promotion_id, product_id, total_unit_sales
+    )
+    
+## Result:
+result_df
+
+Notes:
+- The data quality check did not reveal any duplicates, nulls or abnormal value counts. Initially I thought
+  that the corresponding total sales was relating to calculating the sales using the cost_in_dollars and 
+  units_sold columns. However, as I read the problem once again, it says "product sold the most units for each 
+  promotion", so I decided to stick to the prompt and aggregate only the units_sold column for total sales.
+- I began my approach with grouping and sum aggregating the units sold column for each promotion_id and 
+  product_id combination. The results of this aggregation were filtered using the slice_max() function to
+  include ties and the highest sales for each promotion and product combination. After, I ungrouped the
+  columns and arranged in ascending order for presentation.
+
+Suggestions and Final Thoughts:
+- An alternative to using the built-in slice_max() function for obtaining the highest values and including
+  ties would be to use dense_rank() and filtering for the top ranks. Another way would have been to use
+  the max() function and filtering for that aggregation. 
+- When performing a group_by() and subsequent summarise() function, the summarise function should contain
+  a .groups argument either as "drop", "drop_last", "keep", or "rowwise". "Drop" removes the group_by().
+  "Drop_last" removes the right most grouped column. "Keep" keeps all the groupings. "Rowwise" converts a
+  DataFrame to a rowwise structure for row by row calculations.
+  ex.
+      group_by(promotion_id, product_id) %>%
+      summarise(
+          total_unit_sales = sum(units_sold),
+          .groups = "drop_last"
+      ) %>%
+
+Solve Duration:
+16 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+14 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2154
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Tesla - Top 2 Sales Time Combinations
+The company you are working for wants to anticipate their staffing needs by identifying their top two busiest times of the week. 
+To find this, each day should be segmented into differents parts using following criteria:
+Morning: Before 12 p.m. (not inclusive)
+Early afternoon: 12 -15 p.m.
+Late afternoon: after 15 p.m. (not inclusive)
+Your output should include the day and time of day combination for the two busiest times, i.e. the combinations with the most orders, along with the number of orders (e.g. top two results could be Friday Late afternoon with 12 orders and Sunday Morning with 10 orders). 
+The company has also requested that the day be displayed in text format (i.e. Monday).
+Note: In the event of a tie in ranking, all results should be displayed.
+
+Data Dictionary:
+Table name = 'sales_log'
+order_id: int64 (int)
+product_id: int64 (int)
+timestamp: datetime64 (dt)
+
+Code:
+Solution #1
+## Question:
+# The company you are working for wants to anticipate their staffing needs by identifying their top two
+# busiest times of the week.
+# To find this, each day should be segmented into different parts using following criteria:
+# Morning: Before 12 PM (not inclusive), Early afternoon: 12-15PM, Late afternoon: after 15PM (not inclusive)
+# Your output should include the day and time of day combination for the two busiest times,
+# i.e. the combination with the most orders, along with the numer of orders
+# (i.e. top two results could be Friday Late afternoon with 12 orders and Sunday Morning with 10 orders)
+# The company also requested that the day be dispalyed in text format (i.e. Monday).
+# Note, in the event of a tie in ranking, all results should be displayed.
+
+## Output:
+# day, time_of_day, order_count
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#sales_log = pd.read_csv("sales_log.csv")
+sales_df = pd.DataFrame(sales_log)
+sales_df.head(5)
+
+## Check dataypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 15 x 3
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - order_id, product_id
+#sales_df.info()
+
+sales_df.shape
+
+sales_df.duplicated().sum()
+
+sales_df.isna().sum().reset_index(name="na_count")
+
+sales_df["order_id"].value_counts().reset_index(name="frequency")
+sales_df["product_id"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# 1. Extract the day in text format from timestamp column
+sales_df["day"] = sales_df["timestamp"].dt.day_name()
+
+# 2. Categorize time of day into Morning, Early afternoon, and Late afternoon using timestamp column.
+noon = pd.to_datetime("12:00:00").time()
+late_afternoon = pd.to_datetime("15:00:00").time()
+
+conditions = [
+    # Before 12PM (not inclusive) is "Morning"
+    (sales_df["timestamp"].dt.time < noon),
+    # Between 12PM to 15PM is "Early afternoon"
+    (sales_df["timestamp"].dt.time >= noon) & (sales_df["timestamp"].dt.time <= late_afternoon),
+    # After 15PM (not inclusive) is "Late afternoon"
+    (sales_df["timestamp"].dt.time > late_afternoon)
+]
+
+choices = ["Morning", "Early afternoon", "Late afternoon"]
+
+sales_df["time_of_day"] = np.select(conditions, choices, default="uncategorized")
+
+# 3. Count the number of orders for each day and time_of_day combination
+result_df = sales_df.groupby(["day", "time_of_day"])["order_id"].count().reset_index(name="order_count")
+
+# 4. Rank the order count in descending order and include ties
+result_df["rank"] = result_df["order_count"].rank(method="dense", ascending=False)
+
+# 5. Filter for top two busiest day and time_of_day combination
+result_df = result_df[
+    result_df["rank"] <= 2
+]
+
+# 6. Select relevant columns and sort by order_count
+result_df = result_df[["day", "time_of_day", "order_count"]].sort_values(by="order_count", ascending=False)
+
+## Result:
+print("Top two busiest times of the week:")
+result_df
+
+Notes:
+- There were no duplicates, nulls, or anomalies in the unique value counts for this dataset when performing
+  the data quality checks. Had to reference the pandas and numpy documentation for a number of functions to
+  solve this problem. Specifically dt.day_name() and np.select() were the most important ones to use.
+- My approach started with creating helper columns. The first column was extracting the day in text format
+  using the .dt.day_name() function. The second was creating a way to categorize rows based on whether they
+  met specific conditions similar to a CASE WHEN statement in SQL. For this, I used np.select() to define
+  the conditions, choices of categories, and what the default else condition would be. Once the new columns
+  were created, I grouped and aggregated the dataset to count the number of orders for each day and time_of_day
+  combination. The aggregated results were ranked to include ties and filtered for the top two busiest day
+  and time_of_day combinations. Lastly, the relevant output columns were selected and the data was sorted by
+  order_count in descending order.
+
+Suggestions and Final Thoughts:
+- An alternative to using the np.select() function to solve this problem is using pd.cut() to place the
+  defined time ranges into bins and categorize them by name. Bins and labels need to be assigned to a variable
+  with corresponding values. The parameters to specify are input, bins, labels, right, and include_lowest. 
+  The right parameter can be "True" (open,closed] or "False" [closed,open) for value intervals to include.
+  The include_lowest can be "True" for lowest bin to be inclusive non left side, "False" for the previous
+  right parameter applying to the lowest bin.
+  ex.
+      time_bins = [0, 12, 16, 24]
+      time_labels = ["Morning", "Early afternoon", "Late afternoon"]
+
+       sales_df["time_of_day"] = pd.cut(
+           x=sales_df["timestamp"].dt.hour, # Input is the integer hour (0-23)
+           bins=time_bins,
+           labels=time_labels,
+           right=False,                     # Makes the bins [inclusive, exclusive)
+           include_lowest=True
+      )
+- For overall general multiple conditons where a CASE WHEN statement needs to be used, np.select() is best.
+  For single conditions python pandas can normally make a boolean based on a condition or np.where() could
+  be used to be more clearly defined. As for numerical binning with ranges, pd.cut() would be most optimal.
+- I would probably stick to np.where() and np.select() as opposed to using pd.cut() mainly because I am
+  used to using functions that are more similar to SQL CASE WHEN statements.
+
+Solve Duration:
+39 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+15 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9986
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+City of San Francisco - Find the top 5 least paid employees for each job title
+Find the top 5 least paid employees for each job title.
+Output the employee name, job title and total pay with benefits for the first 5 least paid employees. 
+Avoid gaps in ranking.
+
+Data Dictionary:
+Table name = 'sf_public_salaries'
+agency: text (str)
+basepay: double precision (dbl)
+benefits: double precision (dbl)
+employeename: text (str)
+id: bigint (int)
+jobtitle: text (str)
+notes: double precision (dbl)
+otherpay: double precision (dbl)
+overtimepay: double precision (dbl)
+status: text (str)
+totalpay: double precision (dbl)
+totalpaybenefits: double precision (dbl)
+year: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Find the top 5 least paid employees for each job title.
+-- Output the employeename, job title and total pay with benefits for the first 5 least paid employees.
+-- Avoid gaps in ranking.
+
+-- Output:
+-- employeename, jobtitle, totalpaybenefits
+
+-- Preview data:
+SELECT * FROM sf_public_salaries LIMIT 5;
+
+-- Check dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 200 x 13
+-- Duplicates - 0
+-- Nulls - basepay(8), benefits(9), notes(200), status(131)
+-- Value Counts - agency, employeename, id, jobtitle, status
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN agency IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN basepay IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN benefits IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN employeename IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN jobtitle IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN notes IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN otherpay IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN overtimepay IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN status IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN totalpay IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN totalpaybenefits IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN year IS NULL THEN 1 ELSE 0 END) AS col13,
+    COUNT(*) AS total_rows
+FROM sf_public_salaries;
+
+SELECT -- Duplicates
+    agency, basepay, benefits, employeename, id, jobtitle, notes, otherpay, overtimepay, status, totalpay, totalpaybenefits, year,
+    COUNT(*) AS duplicate_count
+FROM sf_public_salaries 
+GROUP BY
+    agency, basepay, benefits, employeename, id, jobtitle, notes, otherpay, overtimepay, status, totalpay, totalpaybenefits, year
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    agency,
+    COUNT(*) AS frequency
+FROM sf_public_salaries 
+GROUP BY agency
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, duplicate employeenames
+    employeename,
+    COUNT(*) AS frequency
+FROM sf_public_salaries 
+GROUP BY employeename
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, inconsistent number of digits
+    id,
+    COUNT(*) AS frequency
+FROM sf_public_salaries 
+GROUP BY id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    jobtitle,
+    COUNT(*) AS frequency
+FROM sf_public_salaries 
+GROUP BY jobtitle
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, null status
+    status,
+    COUNT(*) AS frequency
+FROM sf_public_salaries 
+GROUP BY status
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Rank the employees for each jobtitle by totalpaybenefits in ascending order, avoid gaps in rank
+-- 2. Filter for top 5 least paid employees for each jobtitle
+WITH EmployeeJobPayRank AS (
+    SELECT 
+        employeename,
+        jobtitle,
+        totalpaybenefits,
+        DENSE_RANK() OVER(PARTITION BY jobtitle ORDER BY totalpaybenefits ASC) AS rank_asc
+    FROM sf_public_salaries
+)
+SELECT
+    employeename,
+    jobtitle,
+    totalpaybenefits
+FROM EmployeeJobPayRank
+WHERE rank_asc <= 5
+ORDER BY 
+    jobtitle, 
+    totalpaybenefits;
+    
+-- Result:
+WITH EmployeeJobPayRank AS (
+    SELECT 
+        employeename,
+        jobtitle,
+        totalpaybenefits,
+        -- 1. Rank the employees for each jobtitle by totalpaybenefits in ASC order, avoid gaps in rank
+        DENSE_RANK() OVER(
+            PARTITION BY 
+                jobtitle 
+            ORDER BY 
+                totalpaybenefits ASC
+        ) AS rank_asc
+    FROM 
+        sf_public_salaries
+)
+SELECT
+    employeename,
+    jobtitle,
+    totalpaybenefits
+FROM 
+    EmployeeJobPayRank
+WHERE 
+    rank_asc <= 5 -- 2. Filter for top 5 least paid employees for each jobtitle
+ORDER BY 
+    jobtitle, 
+    totalpaybenefits;
+
+Notes:
+- There were several null values, 0 duplicates, and some abnormal value category counts in the data quality
+  checks but none of them pertain to the problem. The problem was a matter of using the DENSE_RANK() windows
+  function to appropriately rank employees based on their jobtitle grouping and totalpaybenefits in ascending
+  order. The ranking was performed in a common table expression (CTE) and subsequently queried to filter for
+  top 5 least paid employees for each jobtitle. The results were sorted in ascending order by jobtitle and
+  totalpaybeneifts.
+
+Suggestions and Final Thoughts:
+- If any null values were found in the totalpaybenefits column in the initial data quality checks then to
+  safeguard for edge cases, it would be wise to use the WHERE clause to filter for IS NOT NULL rows.
+  ex.
+      WHERE totalpaybenefits IS NOT NULL;
+- Other ranking window functions that could have been applied to avoid gaps in ranking would be using RANK()
+  or ROW_NUMBER(). I find DENSE_RANK() to be more versatile and applicable to a lot more situations.
+
+Solve Duration:
+16 minutes
+
+Notes Duration:
+4 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
