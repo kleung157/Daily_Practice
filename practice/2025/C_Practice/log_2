@@ -1,0 +1,528 @@
+C Practice Exercises
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - Exercise 2-2: Hex to Integer
+
+Question:
+You should write a function (no #include statements are needed) called htoi(str) that converts hexadecimal constant (base-16 0-9 and a-f) to an integer. 
+There will not be a '0x' prefix (like in C) - just assume the input is a hex number.
+You should not use ctype.h and your code can assume the ASCII character set.
+Each time you run the program, the values you need to convert 8bbfa (base-16) to 572410 (base-10) may be different each time you run the code.
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+
+int main() {
+    int htoi();
+    printf("htoi('8bbfa') = %d\n", htoi("8bbfa"));
+    printf("htoi('f') = %d\n", htoi("f"));
+    printf("htoi('F0') = %d\n", htoi("F0"));
+    printf("htoi('12fab') = %d\n", htoi("12fab"));
+}
+
+int htoi(char s[]) /* convert hexadecimal constant to integer */
+{
+    int i;
+    int n = 0;
+    int digit_value;
+  
+     // The condition is that the current character must be a valid hex digit.
+    for (i=0; s[i] != '\0'; ++i) {
+        char c = s[i];
+      
+        // Manually convert character to its numerical value (0-15)
+        if (c >= '0' && c <= '9') {
+            digit_value = c - '0';
+        } 
+      
+        else if (c >= 'a' && c <= 'f') {
+            digit_value = c - 'a' + 10;
+          
+        }
+
+        else if (c >= 'A' && c <= 'F') {
+            digit_value = c - 'A' + 10;
+        }
+      
+        else {
+             // Stop if an invalid hex character is encountered
+            break;
+        }
+      
+        // Accumulate result in base-16: n = n * 16 + digit_value
+        n = 16 * n + digit_value;
+    }
+    return n;
+}
+
+Input:
+N/A
+
+Output:
+htoi('8bbfa') = 572410
+htoi('f') = 15
+htoi('F0') = 240
+htoi('12fab') = 77739
+
+Notes:
+- The atoi() function threw me off a lot, looked at the lower function conversion too which I ended up using
+  in combining that with atoi() and conditional statements 
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - Exercise 2-10: Function lower - conditional expression
+
+Question:
+You should write a function (no #include statements are needed) called lower(c) that converts its input parameter to lower case. 
+If the letter is not an upper case ASCII letter - just return the parameter unchanged. 
+You should not use ctype.h and your code can assume the ASCII character set. 
+You should use the question mark (?) operator and not an if-then-else construct.
+Each time you run the program, the values you need to convert may be different. 
+The main program will be provided.
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+
+int main() {
+    int lower();
+    printf("Lower M is %c\n", lower('M'));
+    printf("Lower x is %c\n", lower('x'));
+    printf("Lower @ is %c\n", lower('@'));
+    printf("Lower q is %c\n", lower('q'));
+}
+
+int lower(int c) /* convert c to lower case; ASCII only */
+{
+    return (c >= 'A' && c <= 'Z') ? (c + 'a' - 'A') : (c);
+}
+
+Input:
+N/A
+
+Output:
+Lower M is m
+Lower x is x
+Lower @ is @
+Lower q is q
+
+Notes:
+- Had the correct syntax for the expression but didn’t know where to put the return statement.  
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - LBS-8: Average numbers
+
+Question:
+This program will prompt for 5 floating point numbers. 
+The program will print out the total of the five numbers and also print out the average.
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+
+int main () {
+    float input;
+    float total = 0.0;
+    float average;
+    int count = 5;
+    int i;
+  
+    for (i=0; i < count; ++i) {
+        scanf("%f", &input);
+        total += input;
+    }
+  
+    average = total / count;
+  
+    printf("The total is: %.1f\n", total);
+    printf("The average is: %.1f\n", average);
+  
+    return 0;
+}
+
+Input:
+10.0
+5.0
+15.0
+20.0
+10.0
+
+Output:
+The total is: 60.0
+The average is: 12.0
+
+Notes:
+- Had the right idea, make sure scanf is in the for loop rather than before the for loop. 
+  Add int before main() and end of a program should have return 0; 
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - Exercise 3-1: Using Switch
+
+Question:
+You should write a function called expand(s, t) that copies the string s to t expanding newlines and tabs to '\n' and '\t' respectively. 
+Use a switch statement (it will be a short switch statement). 
+You can assume that the t variable contains enough space. 
+Make sure to properly terminate t with the end-of-string marker '\0'.
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+
+int main() {
+    char t[1000];
+    void expand();
+    expand("Hello world", t);
+    printf("%s\n", t);
+    expand("Hello world\n", t);
+    printf("%s\n", t);
+    expand("Hello\tworld\n", t);
+    printf("%s\n", t);
+    expand("Hello\tworld\nHave a nice\tday\n", t);
+    printf("%s\n", t);
+}
+
+void expand(char s[], char t[])
+{
+    int i, j;
+  
+    for (i=0, j=0; s[i] != '\0'; i++) {
+       switch (s[i]) {
+          case '\n': // EXPANSION CASE: Write TWO characters to t
+              t[j++] = '\\';
+              t[j++] = 'n';
+              break;
+          case '\t': // EXPANSION CASE: Write TWO characters to t
+              t[j++] = '\\';
+              t[j++] = 't';
+              break;
+          default: // DEFAULT CASE: Write ONE character to t
+              t[j++] = s[i];
+              break;
+       }
+    }
+  
+    t[j] = '\0'; // Terminate the target string
+  
+}
+
+Input:
+N/A
+
+Output:
+Hello world
+Hello world\n
+Hello\tworld\n
+Hello\tworld\nHave a nice\tday\n
+
+Notes:
+- Didn’t know that for switch statements, can use a for loop instead of a while loop. Needed to place a stop
+  condition for s[i] != ‘\0’ for end of line. Was not aware that ‘\n’ and ‘\t’ to be added as characters needs
+  to be separated as ‘\\’ and ‘n’ or ‘\\’ and ‘t’ respectively. Switch can have character values as long as it
+  is indexed like s[i]. Initially was on the right track using case ‘\n’ and case ‘\t’ to denote the if/else 
+  statements and had a default case as well. Will need to add breaks at end of cases and defaults though.
+- Adding ++ to a variable is an increment of adding 1, while adding -- to a variable is a descrement of 1
+  ex. 
+      i++
+      i = i + 1
+- Switch statement is similar to a CASE WHEN statement in SQL, but requires using break; for each case.
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - Exercise 3-4: Hex and Binary Conversions
+
+Question:
+Write a function itob(n, s) which converts the unsigned integer n into a binary (base 2) character representation in s. 
+Write itoh, which converts an integer to hexadecimal representation. 
+You can assume that the s variable contains enough space. 
+Make sure to properly terminate s with the end-of-string marker '\0' before returning.
+You can use reverse(s) to reverse a string - make sure you pass a character array and not a string constant to reverse.
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+#include <string.h>
+
+int main() {
+    char s[1000];
+    void itob(), itoh(), reverse();
+
+    itob(42,s);
+    printf("42 in base-2 is %s\n", s);
+    itoh(42,s);
+    printf("42 in base-16 is %s\n", s);
+    itob(16,s);
+    printf("16 in base-2 is %s\n", s);
+    itoh(16,s);
+    printf("16 in base-16 is %s\n", s);
+    itob(59,s);
+    printf("59 in base-2 is %s\n", s);
+    itoh(59,s);
+    printf("59 in base-16 is %s\n", s);
+    itob(100,s);
+    printf("100 in base-2 is %s\n", s);
+    itoh(100,s);
+    printf("100 in base-16 is %s\n", s);
+    itob(254,s);
+    printf("254 in base-2 is %s\n", s);
+    itoh(254,s);
+    printf("254 in base-16 is %s\n", s);
+}
+
+void reverse(char t[])
+{
+    int i, j, len;
+    char tmp;
+    len = strlen(t);
+
+    for(i=0, j=len-1; ; i++,j--) {
+        if (j<i) break;
+        tmp = t[i];
+        t[i] = t[j];
+        t[j] = tmp;
+    }
+
+    return;
+}
+
+void itob(int n, char s[])
+{ /* unsigned integer to base 2 */
+    void reverse();
+    int i = 0;
+  
+    do {    /* generate digits in reverse order */
+        s[i++] = n % 2 + '0';     /* get next digit */
+    } while ((n /= 2) > 0); /* delete it */
+  
+    s[i] = '\0';
+  
+    reverse(s);
+}
+
+void itoh(int n, char s[])
+{ /* unsigned integer to hexadecimal */
+    void reverse();
+    int i = 0;
+  
+    do {   
+        if (n % 16 < 10) {
+            s[i++] = n % 16 + '0';
+        }
+        else {
+            s[i++] = n % 16 + 'a' - 10; 
+        }
+    } while ((n /= 16) > 0); 
+    
+    s[i] = '\0';
+  
+    reverse(s);
+}
+
+
+Input:
+N/A
+
+Output:
+42 in base-2 is 101010
+42 in base-16 is 2a
+16 in base-2 is 10000
+16 in base-16 is 10
+59 in base-2 is 111011
+59 in base-16 is 3b
+100 in base-2 is 1100100
+100 in base-16 is 64
+254 in base-2 is 11111110
+254 in base-16 is fe
+
+Notes:
+- Initially used the integer to string (itoa) function that was listed in chapter 3. That worked for the 
+  first function itob which converts unsigned integer to base 2. Had to just adjust the numbers from base 10 
+  to base 2 in the modulo for the do and the division for the while loop.  
+- For the itoh function, similarly used to the itoa function and played around with if/else statements in the
+  do/while loop. Needed to assign s[i++] to a character data type since I kept trying to use  s[i++] as a 
+  variable. Could get the first part of the reversal and digit conversion but took some time to figure out 
+  how to do the hexadecimal letters after looking back at Chapter 2 notes for hexadecimal to integer (htoi) 
+  and reverse engineering it. 
+- Do while loops are executed at least once versus a regular while loop because the do statement is performed
+  and the while statement is performed afterwards to check if the condiiton is TRUE/FALSE. 
+- When assigning numbers as integers, dividing calculations get truncated down if they contain any decimals
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - Exercise 3-6: A simple UNIX uniq implementation
+
+Question:
+Write a program which copies its input to its output, except that it prints only one instance from each group of adjacent identical lines. 
+(This is a simple version of the UNIX utility uniq.)
+You can use the strcpy(dest, src) from the string.h to copy one string (character array) to another. 
+You can also use strcmp(s1,s2) to compare two strings (character arrays). strcmp() returns zero if the strings are equal.
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+#include <string.h>
+
+#define MAX 1000
+
+int main() {
+    char line[MAX];
+    char keep[MAX];
+
+    while(gets(line) != NULL ) {
+        if (strcmp(keep, line) != 0) {
+            strcpy(keep, line);
+            printf("%s\n",keep);
+        }
+    }
+  
+    return 0;
+}
+
+Input:
+One line
+Two Line
+Red Line
+Blue line
+Blue line
+Blue line
+Yada
+Yada
+Yada
+Last line
+
+Output:
+One line
+Two Line
+Red Line
+Blue line
+Yada
+Last line
+
+Notes:
+- With the given functions and code, simply had to create an if statement for the string comparison to not 
+  equal 0 and rearrange the existing strcpy() and printf() functions to occur for the if statement. Strcmp()
+  acts like a filter for finding unique and distinct groups or variables. 
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - LBS-16: A Calculator
+
+Question:
+In this program you will write a program which simulates a simple hand calculator which can add, subtract, multiply, and divide floating point numbers. 
+The calculator program has a display where the answer is always displayed after each operation is done. 
+This display is called the "accumulator" (in computerese).
+Command         Action
+= 1.23          Sets the accumulator to 1.23
++ 5.0           Adds 5.0 to the accumulator
+/ 2.0           Divides accumulator by 2.0
+* 6.3           Multiplies the accumulator by 6.3
+- 4.0           Subtracts 4.0 from the accumulator
+S 0.0           Stops the program
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+
+int main()
+{
+    char line[256];
+    char opcode;
+    float value, display = 0.0;
+
+    while (fgets(line, 256, stdin) != NULL) {
+        // Use sscanf to parse data from a string
+        sscanf(line, "%c %f", &opcode, &value);
+      
+        if ( opcode == 'S' ) {
+            break;
+        }
+        else if ( opcode == '=') {
+            display = value;
+        }
+        else if ( opcode == '+') {
+            display += value;
+        }
+        else if ( opcode == '/') {
+            display /= value;
+        }
+        else if ( opcode == '*') {
+            display *= value;
+        }
+        else { 
+            display -= value;
+        }
+      
+        printf("Display: %.2f\n", display);
+    }
+}
+
+Input:
+= 6.0
+* 7.0
+= 1.23
++ 5.0
+/ 2.0
+* 6.3
+- 4.0
+
+Output:
+Display: 6.00
+Display: 42.00
+Display: 1.23
+Display: 6.23
+Display: 3.12
+Display: 19.62
+Display: 15.62
+
+Notes:
+- Actually, really enjoyed this question since it allowed me to practice if, else if and else statements. 
+  A lot of the foundational code was already provided, just needed to add more lines and be comfortable using
+  +=, /=, *= ,-= combination increment/decrement operators. 
+- The fgets() function reads inputs into a fixed buffer and sscanf() function scans through these already
+  read inputs to convert the strings into different data types.
+- float datatypes are 32-bit, double datatypes are 64-bit. Doubles contain more precision and performance
+  but floats can save more space and keep performance. Floats can hold up to 6-7 sigfigs and doubles hold
+  up to 15-17 sigfigs.
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - 
+
+Question:
+
+Python Code:
+
+C Code:
+
+Input:
+
+Output:
+
+Notes:
+
+############################################################################################################
