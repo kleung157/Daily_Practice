@@ -1,0 +1,427 @@
+Date: 11/07/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2124
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Meta - Top Two Media Types
+You have been tasked with finding the top two single-channel media types (ranked in decreasing order) that correspond to the most money the grocery chain had spent on its promotional campaigns.
+Your output should contain the media type and the total amount spent on the advertising campaign. 
+In the event of a tie, output all results and do not skip ranks.
+
+Data Dictionary:
+Table name = 'online_sales_promotions'
+cost: numeric (num)
+end_date: POSIXct, POSIXt (dt)
+media_type: character (str)
+promotion_id: numeric (num)
+start_date: POSIXCt, POSIXt (dt)
+
+Code:
+Solution #1
+## Question:
+# You have been tasked with finding the top two single-channel media types (ranked in decreasing order)
+# that correspond to the most money the grocery chain had spent on its promotional campaigns.
+# Output should contain the media type and the total amount spent on the advertising campaign.
+# In the event of a tie, output all results and do not skip ranks.
+
+## Output:
+# media_type, total_cost
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#online_sales_promotion <- read_csv("online_sales_promotion.csv")
+sales_promotions_df <- data.frame(online_sales_promotions)
+head(sales_promotions_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions: 5 x 5
+# Duplicates: 0
+# Nulls: 0
+# Value Counts: media_type, promotion_id
+data.frame(lapply(sales_promotions_df, class))
+
+dim(sales_promotions_df)
+
+sum(duplicated(sales_promotions_df))
+
+enframe(colSums(is.na(sales_promotions_df)), name="index", value="na_count")
+
+enframe(table(sales_promotions_df$media_type), name="index", value="frequency")
+enframe(table(sales_promotions_df$promotion_id), name="index", value="frequency")
+
+## Iteration:
+result_df <- sales_promotions_df %>%
+    group_by(media_type) %>%
+    summarise(
+        # 1. Calculate the total cost for each media_type
+        total_cost = sum(cost),
+        .groups = "drop"
+    ) %>%
+    mutate(
+        # 2. Rank the total cost in descending order for each media type, include ties
+        rank = dense_rank(desc(total_cost))
+    ) %>%
+    filter(
+        # 3. Filter for top two single-channel media types
+        rank <= 2
+    ) %>%
+    select(
+        # 4. Select relevant columns
+        media_type, total_cost
+    ) %>%
+    arrange(
+        desc(total_cost)
+    )
+
+## Result:
+result_df
+
+Notes:
+- There were no nulls, duplicates, or discrepancies in value counts found in the data quality checks. This 
+  question was a matter of group by and aggregating the total cost spent on promotional campaigns for each 
+  media type. The results of this aggregation were ranked in descending order and included ties. Then a filter
+  was applied to only include the top two media types with highest costs. Lastly, the necessary output columns
+  were selected and arranged in descending order by the total cost.
+
+Suggestions and Final Thoughts:
+- If the media_type column had multiple-channel media types then the str_detect() function could have been
+  used with the filter() function to exclude any media types that contained commas.
+  ex.
+      filter(
+          !str_detect(media_type, ",")
+      )
+- For aggregation functions in summarise(), remember to consider using the argument na.rm, the na.rm if TRUE
+  removes any nulls from the aggregation. If false, then includes the null values.
+  ex.
+      summarise(
+          total_cost = sum(cost, na.rm=TRUE),
+          .groups = "drop"
+      ) 
+
+Solve Duration:
+13 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+4 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2155
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Accenture - Ad Performance Rating
+Following a recent advertising campaign, the marketing department wishes to classify its efforts based on the total number of units sold for each product.
+You have been tasked with calculating the total number of units sold for each product and categorizing ad performance based on the following criteria for items sold:
+Outstanding: 30+
+Satisfactory: 20 - 29
+Unsatisfactory: 10 - 19
+Poor: 1 - 9
+Your output should contain the product ID, total units sold in descending order, and its categorized ad performance.
+
+Data Dictionary:
+Table name = 'marketing_campaign'
+created_at: datetime64 (dt)
+price: int64 (int)
+product_id: int64 (int)
+quantity: int64 (int)
+user_id: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# Following a recent advertising campaign, the marketing department wishes to classify its efforts based on
+# the total number of units sold for each product.
+# You have been tasked with calculating the total number of units sold for each product and categorizing ad
+# performance based on the following criteria for items sold:
+# Outstanding: 30+, Satisfactory: 20-29, Unsatisfactory: 10-19, Poor: 1-9
+# Output should contain the product ID, total units sold in descending order, and categorized ad performance.
+
+## Output:
+# product_id, total_units_sold, performance_category
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#marketing_campaign = pd.read_csv("marketing_campaign.csv")
+campaign_df = pd.DataFrame(marketing_campaign)
+campaign_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 102 x 5
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - product_id, user_id
+#campaign_df.info()
+
+campaign_df.shape
+
+campaign_df.duplicated().sum()
+
+campaign_df.isna().sum().reset_index(name="na_count")
+
+campaign_df["product_id"].value_counts().reset_index(name="frequency")
+campaign_df["user_id"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# 1. Calculate the total number of units sold for each product
+result_df = campaign_df.groupby("product_id")["quantity"].sum().reset_index(name="total_units_sold")
+
+# 2. Categorize ad performance based on total units sold
+conditions = [
+    # Outstanding: > 30
+    (result_df["total_units_sold"] > 30),
+    # Satisfactory: >= 20 AND <= 29
+    (result_df["total_units_sold"] >= 20) & (result_df["total_units_sold"] <= 29),
+    # Unsatisfactory: >= 10 AND <= 19
+    (result_df["total_units_sold"] >= 10) & (result_df["total_units_sold"] <= 19),
+    # Poor: >= 1 and <= 9
+    (result_df["total_units_sold"] >= 1) & (result_df["total_units_sold"] <= 9),
+]
+
+choices = ["Outstanding", "Satisfactory", "Unsatisfactory", "Poor"]
+
+result_df["performance_category"] = np.select(conditions, choices, default="uncategorized")
+
+# 3. Sort by total units sold in descending order
+result_df = result_df.sort_values(by="total_units_sold", ascending=False)
+
+## Result:
+print("Number of units sold for each product and categorized by ad performance:")
+result_df
+
+Notes:
+- No duplicates, nulls, or abnormal value counts were found in the provided dataset. My approach to this 
+  problem began with calculating the total number of units sold for each product using group by and sum
+  aggregation functions. The next step was taking the aggregation results and categorizing them row by row
+  based on different conditions in ad performance using the np.select() function. Afterwards, the output was
+  sorted in descending order by total units sold using the sort_values() function
+
+Suggestions and Final Thoughts:
+- I opted for using the np.select() function because it can be used more generally and most closely resembles
+  the CASE WHEN statement in SQL. The alternative approach was using pd.cut() function to be more concise and 
+  efficient. The values for each category could have been set to different bins and include ranges.
+  ex.
+      bins = [0, 9, 19, 29, np.inf]
+      labels = ["Poor", "Unsatisfactory", "Satisfactory", "Outstanding"]
+
+      result_df["performance_category"] = pd.cut(
+          x=result_df["total_units_sold"],
+          bins=bins
+          labels=labels
+          right=True
+          include_lowest=True
+      )
+
+Solve Duration:
+16 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9989
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+City of San Francisco - Highest Paid City Employees
+Find the top 2 highest paid City employees for each job title. 
+Use totalpaybenefits column for their ranking. 
+Output the job title along with the corresponding highest and second-highest paid employees.
+
+Data Dictionary:
+Table name = 'sf_public_salaries'
+agency: text (str)
+basepay: double precision (dbl)
+benefits: double precision (dbl)
+employeename: text (str)
+id: bigint (int)
+jobtitle: text (str)
+notes: double precision (dbl)
+otherpay: double precision (dbl)
+overtimepay: double precision (dbl)
+status: text (str)
+totalpay: double precision (dbl)
+totalpaybenefits: double precision (dbl)
+year: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Find the top 2 highest paid City employees for each job title.
+-- Use totalpaybenefits column for their ranking.
+-- Output the jobtitle along with the corresponding highest and second-highest paid employees.
+
+-- Output:
+-- jobtitle, employeename
+
+-- Preview data:
+SELECT * FROM sf_public_salaries LIMIT 5;
+
+-- Check dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 200 x 13
+-- Duplicates - 0
+-- Nulls - basepay(8), benefits(9), notes(200), status(131)
+-- Value Counts - agency, employeename, id, jobtitle, status
+SELECT -- Dimensions, nulls
+    SUM(CASE WHEN agency IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN basepay IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN benefits IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN employeename IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN jobtitle IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN notes IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN otherpay IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN overtimepay IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN status IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN totalpay IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN totalpaybenefits IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN year IS NULL THEN 1 ELSE 0 END) AS col13,
+    COUNT(*) AS total_rows
+FROM sf_public_salaries;
+
+SELECT -- Duplicates
+    agency, basepay, benefits, employeename, id, jobtitle, notes, otherpay, overtimepay, status, totalpay, totalpaybenefits, year,
+    COUNT(*) AS duplicate_count
+FROM sf_public_salaries
+GROUP BY
+   agency, basepay, benefits, employeename, id, jobtitle, notes, otherpay, overtimepay, status, totalpay, totalpaybenefits, year
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts, only a single category for all data rows
+    agency, 
+    COUNT(*) AS frequency
+FROM sf_public_salaries
+GROUP BY agency
+ORDER BY agency DESC;
+
+SELECT -- Value Counts, some repeated employeenames
+    employeename, 
+    COUNT(*) AS frequency
+FROM sf_public_salaries
+GROUP BY employeename
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, inconsistent number of digits for id
+    id, 
+    COUNT(*) AS frequency
+FROM sf_public_salaries
+GROUP BY id
+ORDER BY id DESC;
+
+SELECT -- Value Counts
+    jobtitle, 
+    COUNT(*) AS frequency
+FROM sf_public_salaries
+GROUP BY jobtitle
+ORDER BY jobtitle DESC;
+
+SELECT -- Value Counts, lots of rows not categorized with a status
+    status, 
+    COUNT(*) AS frequency
+FROM sf_public_salaries
+GROUP BY status
+ORDER BY status DESC;
+
+-- Iteration:
+-- 1. Rank the employees for each jobtitle by totalpaybenefits in descending order, include ties
+-- 2. Filter for top two highest paid employees for each jobtitle
+WITH JobEmployeePayRank AS (
+    SELECT 
+        jobtitle,
+        employeename,
+        totalpaybenefits,
+        DENSE_RANK() OVER(PARTITION BY jobtitle ORDER BY totalpaybenefits DESC) AS dense_rank
+    FROM sf_public_salaries
+)
+SELECT
+    jobtitle,
+    employeename
+FROM JobEmployeePayRank
+WHERE dense_rank <= 2;
+
+-- Result:
+WITH JobEmployeePayRank AS (
+    SELECT 
+        jobtitle,
+        employeename,
+        totalpaybenefits,
+        -- 1. Rank the employees for each jobtitle by totalpaybenefits in descending order, include ties
+        DENSE_RANK() OVER(
+            PARTITION BY 
+                jobtitle 
+            ORDER BY 
+                totalpaybenefits DESC
+        ) AS dense_rank
+    FROM 
+        sf_public_salaries
+)
+SELECT
+    jobtitle,
+    employeename
+FROM 
+    JobEmployeePayRank
+WHERE 
+    -- 2. Filter for top two highest paid employees for each jobtitle
+    dense_rank <= 2;
+
+Notes:
+- None of the duplicates or nulls found in the data quality checks were needed to solve the problem at hand.
+  Some considerations could have been made in the value counts. For example, the employeenames column does
+  have some repeated names that could skew rankings of pay.
+- For my approach to solving the problem, I ranked the employees for each jobtitle by totalpaybenefits in
+  descendng order and included ties by using the DENSE_RANK() function. This step was placed in a common
+  table expression (CTE) and subsequently queried to filter for top two highest paid employees for each
+  jobtitle.
+
+Suggestions and Final Thoughts:
+- The agency column has a single category called "San Francisco" as a value for all the rows in the dataset.
+  The problem asks for "City" employees for each jobtitle. I wonder if the agency column or another text 
+  column could have been used to categorize employees as "City" employees. The assumption with the current
+  dataset is that all the employees in the sf_public_salaries dataset are "City" employees. 
+- The question seemed a bit too straightforward for a "Hard" SQL problem and I guess I was thinking of ways
+  to make it more nuanced and increase the difficulty.
+
+Solve Duration:
+15 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+3 minutes
+
+############################################################################################################
