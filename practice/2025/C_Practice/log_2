@@ -511,18 +511,334 @@ Notes:
 ############################################################################################################
 
 Source:
-C Programming for Everybody - 
+C Programming for Everybody - Exercise 4-A: Temperature Conversion
 
 Question:
+You should write a function called faren(cel) that takes as input a double Celsius temperature and converts it and returns the equivalent Fahrenheit value.
 
 Python Code:
+N/A
 
 C Code:
+#include <stdio.h>
+
+int main() {
+    double faren();
+
+    printf("faren(42) is %.1f\n", faren(42.0));
+    printf("faren(0) is %.1f\n", faren(0.0));
+    printf("faren(-10) is %.1f\n", faren(-10.0));
+    printf("faren(32) is %.1f\n", faren(32.0));
+    printf("faren(100) is %.1f\n", faren(100.0));
+    printf("faren(212) is %.1f\n", faren(212.0));
+}
+
+double faren(double celsius)
+{
+  return celsius * 9.0/5.0 + 32.0;
+}
 
 Input:
+N/A
 
 Output:
+faren(42) is 107.6
+faren(0) is 32.0
+faren(-10) is 14.0
+faren(32) is 89.6
+faren(100) is 212.0
+faren(212) is 413.6
 
 Notes:
+- Looked up the Fahrenheit to Celsius conversion formula which is F = (C * 9/5) + 32. Needed to use a return
+  statement for this question since it was a function that returns a value rather than having to assign a 
+  variable again for Fahrenheit. Thought that I had to use parentheses between the Celsius and 9/5 but order 
+  of operation works in this case. Since the data type was declared as a double, have to remember to use 
+  decimal places. For modern C also need to declare the type in the function rather than redundantly on the 
+  outside. 
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - Exercise 4-B: Using extern data scope
+
+Question:
+You should write a function called bump() that uses an extern variable so that the first time it is called, it returns int 0, the next time it returns 1 and so on.
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+
+int main() {
+    int bump();
+
+    printf("bump() returns %d\n", bump());
+    printf("bump() returns %d\n", bump());
+    printf("bump() returns %d\n", bump());
+    printf("bump() returns %d\n", bump());
+    printf("bump() returns %d\n", bump());
+}
+
+int counter = 0;
+int bump()
+{
+  extern int counter;
+  return counter++;
+}
+
+Input:
+N/A
+
+Output:
+bump() returns 0
+bump() returns 1
+bump() returns 2
+bump() returns 3
+bump() returns 4
+
+Notes:
+- Using an ‘extern’ declaration pulls a variable from another location or file where the variable was defined
+  and initialized. In this case a counter was initialized to 0 and extern int counter called in that value 
+  into a function called bump and returns a counter that is incremented over time when called by a print 
+  statement. 
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - Exercise 4-C: Using static data scope
+
+Question:
+You should write a function called bump() that uses an static variable so that the first time it is called, it returns int 0, the next time it returns 1 and so on. 
+Also write a function called start() which takes an int as its parameter and restarts the sequence from the specified number.
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+
+int main() {
+    int bump();
+    void start();
+  
+    printf("bump() returns %d\n", bump());
+    printf("bump() returns %d\n", bump());
+    printf("bump() returns %d\n", bump());
+
+    start(42);
+
+    printf("bump() returns %d\n", bump());
+    printf("bump() returns %d\n", bump());
+}
+
+static int counter = 0;
+
+int bump()
+{
+    return counter++;
+}
+
+void start(int i)
+{
+    return counter = i;
+}
+
+Input:
+N/A
+
+Output:
+bump() returns 0
+bump() returns 1
+bump() returns 2
+bump() returns 42
+bump() returns 43
+
+Notes:
+- Defining the static variable outside the functions made it so that the file could use the variable within 
+  the functions. If I had defined the static variable within a single function, then it wouldn't have been 
+  able to be used in another part of the file. The first part of this question was similar to extern 
+  variable in the sense of initializing a counter and then incrementing this counter in a function. From 
+  there, the part where the sequence is restarted is where I needed to think a little more about how to 
+  relate the functions together with the static variable. I came to the conclusion of return counter = i, 
+  turns out for void functions you don’t need the return statement, just the expression counter = i 
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - LBS-18: A Simple Machine
+
+Question:
+You are to implement an interpreter for a simple programming language. 
+Your computer has 256 characters of memory. 
+You are to read a sequence of instructions from input and perform those instructions. 
+At the end of the program you print the memory out as a zero-terminated C character array. 
+Here are the instructions you need to support:
+*           This is a comment, print it out and do no further processing
+X           Exit the program (end-of-input also ends the program)
+5 = 42      Put the number 42 into memory[5]
+10 + 3      Add 3 to the contents of memory[10]
+7 - 1       Suptract 1 from the contents of memory[7]
+All of the numbers should be in the range of 0-255 so they fit into a C char variable.
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+#define MAX 256
+
+int main()
+{
+    char line[MAX];
+    char memory[MAX];
+    char opcode;
+    int count,address,value;
+
+    while (fgets(line, MAX, stdin) != NULL) {
+        if ( line[0] == 'X' ) {
+            break;
+        }
+        if ( line[0] == '*' ) {
+            printf("%s",line);
+            continue;
+        }
+      
+        count = sscanf(line, "%d %c %d", &address, &opcode, &value);
+        if ( count != 3 ) {
+            continue;
+        }
+
+        switch (opcode) {
+            case '=':
+                memory[address] = value;
+                break;
+            case '+':
+                memory[address] += value;
+                break;
+            case '-':
+                memory[address] -= value;
+                break;
+            default:
+                break;
+        }
+    }
+    printf("Memory:\n%s\n", memory);
+}
+
+Input:
+* Beginning
+0 = 72
+1 = 101
+2 = 108
+3 = 108
+4 = 108
+4 + 3
+5 = 10
+6 = 100
+6 + 19
+
+Output:
+* Beginning
+Memory:
+Hello
+world
+
+Notes:
+- There was a previous calculator question in another module where I simply had to create if statements and 
+  say a line was equal to a certain operator and then produce a result. In this problem, I tried to hard code
+  the instruction of “put the number 42 into memory[5]”, “add 3 to the contents of memory[10]”, and 
+  “subtract 1 from the contents of memory[7]”. 
+- In actuality, it was much simpler to use a switch to set up case statements for when an established opcode 
+  was an equal operator ‘=’, plus operator ‘+’, or minus operator ‘-’. For each of those it was using 
+  memory[index] = value but I didn’t realize until later to use the address for the index and the value for 
+  setting the specific hard coded values. 
+- From there, I realized the machine was turning numbers to their character counterparts and incrementing each
+  letter to create the final message in the memory called “Hello World”. The print statements for memory, 
+  line, address, op code, and value needed to be removed and replaced with a single print statement for memory
+  to obtain the matching output. Also remember to add break statements to each case statement in the switch
+  function.
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - Exercise 4-D: Write a recursive function
+
+Question:
+You should write a recursive function called sumseries() that takes as its input a single integer and returns the sum of all the numbers from 1..the provided number. 
+This is very similar to the function described in lecture except for some error checking. 
+First, if the provided number is less than one, return zero as the sum. 
+Also, in order to avoid stack overflow, if the provided number is above 100 return -1. 
+You cannot use a do, for, or integer division to compute the sum since that would not be recursive :).
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+
+int main() {
+    printf("sumseries(0) returns %d\n", sumseries(0));
+    printf("sumseries(1) returns %d\n", sumseries(1));
+    printf("sumseries(5) returns %d\n", sumseries(5));
+    printf("sumseries(42) returns %d\n", sumseries(42));
+    printf("sumseries(-42) returns %d\n", sumseries(-42));
+    printf("sumseries(100) returns %d\n", sumseries(100));
+    printf("sumseries(101) returns %d\n", sumseries(101));
+    printf("sumseries(1000) returns %d\n", sumseries(1000));
+}
+
+int sumseries(int above) /* Define function */
+{
+    int below; /* Declare integer variables */
+    int sum;
+    int ival;
+  
+    if (above < 1) { /* If number is less than one, return 0 */
+        return 0;
+    }
+  
+    if (above > 100) { /* If number is greater than one, return -1 */
+        return -1;
+    }
+  
+    below = above - 1; 
+    sum = sumseries(below); /* Recursion, call back to original function */
+    ival = above + sum;
+  
+    return ival;
+}
+
+Input:
+N/A
+
+Output:
+sumseries(0) returns 0
+sumseries(1) returns 1
+sumseries(5) returns 15
+sumseries(42) returns 903
+sumseries(-42) returns 0
+sumseries(100) returns 5050
+sumseries(101) returns -1
+sumseries(1000) returns -1
+
+Notes:
+- I started off trying to create an output using the ival variable that was provided. I was able to create if
+  statements for the conditions of “if number is less than one, return 0” and “if number is greater than one, 
+  return –1". 
+- Once those were established, I needed variables and equations to formulate the actual process of 
+  summing and then recursion. I referenced the code provided in the lecture and used below/sum/above as new 
+  variables and moved the above variable into the defined function of sumseries. Below/sum/ival were declared
+  in the function.  
+  The below number is equal to the above number – 1. Then that below value is assigned to the sum variable. 
+  From there, the summation of value of below and above are added to be assigned to the ival variable.  After
+  those three steps, the ival is returned 
+  Ex.  
+      Above = 5
+      Below = Above - 1         # 5 – 1 
+      Sum = sumseries(below)    # (4+3+2+1)
+      Ival = Above + Sum        # 5 + 10
+      Ival = 15 
 
 ############################################################################################################
