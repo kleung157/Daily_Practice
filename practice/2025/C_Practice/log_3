@@ -1,0 +1,258 @@
+C Practice Exercises
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - LBS290-13: Calculate Pay
+
+Question:
+This program will read an un-specified number of employee time records from input. 
+Each time record will contain an employee number (integer), an employee rate per hour (float) and number of hours worked. 
+You should give the employee time-and-a-half for overtime (hours over 40). 
+You must write a function named calcpay() to calculate the pay. 
+The function should have no return value and must not use any global variables. 
+The calculated pay should be passed out of the function using call by location.
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+
+int main() {
+    int empno;
+    float rate, hours, pay;
+    void calcpay();
+
+    while(1) {
+        if ( scanf("%d %f %f",&empno,&rate,&hours) < 3 ) {
+            break;
+        }
+
+        calcpay(&pay, rate, hours);
+
+        printf("Employee=%d Rate=%.2f Hours=%.2f Pay=%.2f\n", empno, rate, hours, pay);
+    } 
+}
+
+void calcpay(p,r,h)
+    /* declare pointer pay, rate and hour as float variables */
+    float *p,r,h; 
+{
+    /* if hours > 40, calculate pay for first 40 hours using rate 
+    and add the calculated overtime pay for hours over 40. */
+    if ( h > 40.0 ) { 
+       *p = r * 40.0 + (1.5 * r * (h - 40.0));
+    }
+    /* pay pointer = rate x hours */
+    else {
+       *p = r * h;
+    }
+}
+
+Input:
+123 5.00 40
+100 4.00 45
+199 5.25 10
+
+Output:
+Employee=123 Rate=5.00 Hours=40.00 Pay=200.00
+Employee=100 Rate=4.00 Hours=45.00 Pay=190.00
+Employee=199 Rate=5.25 Hours=10.00 Pay=52.50
+
+Notes:
+- This question required creating a function that uses pointers to the address that was provided in the main 
+  program. The main equation I used was pointer pay = rate x hour to determine the employee pay. An if 
+  statement was applied to create the special condition of overtime pay that is time and a half for hours 
+  over 40. Parentheses were used to calculate the overtime pay where overtime pay = 1.5 * rate * (hour – 40.0).
+  This calculation was added to the first calculated 40 hours for regular pay which was regular = rate * 40.0.  For the else statement, I placed the main equation pointer pay = rate x hour for all other conditions.  
+- In modern C the correct way to declare variables is in the function.  
+  Ex. 
+      void calcpay(float *p, float r, float h) 
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - Exercise RS-10: Concatenate Two Strings
+
+Question:
+Write a C program to prompt for two strings and concatenate them as shown in in the Python code below. 
+Use the functions strcpy and strcat from the string.h library in your code. 
+Pre-allocate your character arrays large enought to handle up to 100 characters on input for each string (i.e. do not use malloc as we have not yet covered that yet).
+
+Python Code:
+print('Enter two strings');
+first = input()
+second = input()
+print(first + " & " + second)
+
+C Code:
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_SIZE 100 /* define max size as 100 */
+
+int main() {
+    char dest[MAX_SIZE]; /* declare variables as characters with max_size */
+    char first[MAX_SIZE];
+    char second[MAX_SIZE];
+  
+    printf("Enter two strings\n"); /* print "Enter two strings" with new line */
+  
+    scanf("%99s", first); /* input first string with limit of 99 characters */
+    scanf("%99s", second); /* input second string with limit of 99 characters */
+  
+    strcpy(dest, first); /* copy first string to destination variable */
+    strcat(dest, " & "); /* concatenate destination variable with " & " */
+    strcat(dest, second); /* concatenate second string to destination variable */
+  
+    printf("%s", dest); /* print first + " & " + second */
+}
+
+Input:
+Kernighan
+Ritchie
+
+Output:
+Enter two strings
+Kernighan & Ritchie
+
+Notes:
+- Initially I solved the problem without using strcpy() and strcat(). I simply used scanf() to assign the 
+  inputs to first and second variables. Then used the printf() statement to print out the desired output. 
+  I couldn’t quite understand how strcpy() and strcat() functions worked with pointers but they already 
+  contain pointers in the functions apparently. 
+- My second iteration I decided to assign the results of each step to a variable called dest for destination.
+  It was much easier to define the max size at the top using #define then placing that same constant in the 
+  declarations for each variable. The scanf() function was used to limit inputs to 99 characters to prevent 
+  buffer overflow. The strcpy() function requires a destination and source so I used the dest variable and
+  the first variable string to copy the first string to assign a string to the destination. The strcat() also
+  requires a destination and source. I used the dest variable once again and concatenated a “ & “ as the 
+  prompt required. Then the dest variable was concatenated another time with the second variable string. 
+  Lastly the dest variable was printed after all the steps using printf(). 
+- scanf() function has potential overflow problems, better to use fgets() and remove the '\n' then sscanf(). 
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - Exercise RS-11: Write a function like Python rstrip()
+
+Question:
+Write a C function called py_rstrip() that removes spaces from the end of a string. 
+This function modifies its parameter and should never be called with a constant value.
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+#include <string.h>
+
+int main() {
+    char s1[] = "   Hello   World    ";
+    void py_rstrip();
+
+    py_rstrip(s1);
+    printf("-%s-\n", s1);
+}
+
+void py_rstrip(char inp[]) /* declare type and variable in function */
+{
+    int len; /* Declare len variable as int */
+    len = strlen(inp); /* Find the length of input and assign to len variable */
+  
+    while (len > 0 && inp[len-1] == ' ') { 
+        len -= 1; /* For blank space, decrement by 1, move from right to left */
+    }
+  
+    inp[len] = '\0'; /* Places the null terminator to end the string */
+}
+
+Input:
+N/A
+
+Output:
+-   Hello   World-
+
+Notes:
+- Earlier I was trying to figure out how to remove the new line /n from fgets() function. Looking through 
+  some code, I had saw that it could be used to solve the rstrip() function problem.
+- An index starting from the right could be done by using the strlen() function to find the length of the 
+  inputted string. At first, I had tried using an if statement and for loop to try to decrement the index each.
+  time a white space was found. It did not work as well as a while loop. The len > 0 was a good idea for a 
+  safety check in the sense that the string could create an error. I decided to use len -= 1 to decrement 
+  rather than –-len since that seemed a bit less intuitive for me. Placing a null terminator to the end of the
+  string ‘\0’ was important since I had removed it initially using len-1. So, assigning inp[len] = ‘\0’ at the 
+  end of the while loop makes sense to end the rstrip(). 
+- Remember to declare variables within the function for modern C and assign length of strings to an int and 
+  not a char data type. 
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - Exercise RS-12: Write a function like Python lstrip()
+
+Question:
+
+Python Code:
+
+C Code:
+
+Input:
+
+Output:
+
+Notes:
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - LBS290-14 Play with Arrays
+
+Question:
+
+Python Code:
+
+C Code:
+
+Input:
+
+Output:
+
+Notes:
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - LBS290-15 Play with Strings
+
+Question:
+
+Python Code:
+
+C Code:
+
+Input:
+
+Output:
+
+Notes:
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - LBS-98: A Touring Machine
+
+Question:
+
+Python Code:
+
+C Code:
+
+Input:
+
+Output:
+
+Notes:
+
+############################################################################################################
