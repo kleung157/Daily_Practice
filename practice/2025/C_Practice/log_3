@@ -193,16 +193,65 @@ Source:
 C Programming for Everybody - Exercise RS-12: Write a function like Python lstrip()
 
 Question:
+Write a C function called py_lstrip() that removes whitespace (blanks, tabs, and newlines) from the beginning of a string. 
+This function modifies its parameter and should never be called with a constant value.
 
 Python Code:
+N/A
 
 C Code:
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+int main() {
+    char s1[] = "   Hello   World    ";
+    void py_lstrip();
+
+    py_lstrip(s1);
+    printf("-%s-\n", s1);
+}
+
+void py_lstrip(char inp[]) /* Declare type and variable in function */
+{
+    int i = 0; /* Declare index and initialize to 0 */
+    int j = 0; /* Declare new index, initialize to 0 for shifted string */
+  
+    /* Find the index of the first non white space character and increment by 1 */
+    while ( inp[i] != '\0' && isspace(inp[i]) ) {
+        i++;
+    }
+  
+    /* Check if there is leading white space */
+    if ( i == 0 ) {
+        return; /* No white space found, do nothing */ 
+    }
+  
+    /* Shift remaining characters back to the start (index j) */
+    while ( inp[i] != '\0' ) {
+        inp[j] = inp[i];
+            i++;
+            j++;
+    }
+    
+    /* Place the null terminator at the end of the string */
+    inp[j] = '\0';
+}
 
 Input:
+N/A
 
 Output:
+-Hello   World    -
 
 Notes:
+- Thought that the lstrip() function would be easy and simple similar to the rstrip function() but it was 
+  pretty different overall. I noticed a new library was included in the main program <ctype.h> that classifies
+  and converts individual characters. Rather than using inp[i] == ‘ ‘ white space I ended up using isspace() 
+  function as isspace(inp[i]).  
+- The first non white space character needed to be found using a while loop and incremented by 1 for each 
+  blank space continually until found. A second while loop was performed to copy the found white space 
+  character index to the new index j. Then the resulting copied string was terminated using ‘\0’ 
 
 ############################################################################################################
 
@@ -210,16 +259,111 @@ Source:
 C Programming for Everybody - LBS290-14 Play with Arrays
 
 Question:
+The program will create a 10 element array and read in 10 integers into the array. 
+Then the program will print the integers backwards. 
+Then the program will scan for entries in the array which contain the value 100 and print out the index of the entries with the number 100. 
+The program will also count the number of entries which equal 100. 
+The program should work even if there are no entries which equal 100. 
+See the sample output for the expect format of the output.
 
 Python Code:
+N/A
 
 C Code:
+#include <stdio.h>
+
+/* Define array size and target value constants */
+#define ARRAY_SIZE 10 
+#define TARGET_VALUE 100
+
+int main() {
+   /* Declare integer, value, array, and count variables */
+   int i, v; 
+   int arr[ARRAY_SIZE];
+   int count=0; 
+  
+   /* Read in 10 integers into the array */
+   for ( i = 0; i < ARRAY_SIZE; i++ ) {
+       scanf("%d", &v);
+       arr[i] = v;
+   }
+   
+   /* Scan array entries backwards and print the array index and array value */
+   for ( i = ARRAY_SIZE-1; i >= 0; i-- ) { 
+       printf("numb[%d] = %d\n", i, arr[i]);
+   }
+   
+   printf("\n");
+   printf("Searching for entries equal to %d\n", TARGET_VALUE);
+   printf("\n");
+   
+   /* Scan array entries that contain 100 and print out index of entries with 100.
+      Increment the number of entries into the count variable */
+   for ( i = 0; i < ARRAY_SIZE; i++ ) {
+       if ( arr[i] == TARGET_VALUE ) {
+           printf("Found %d at %d\n", TARGET_VALUE, i);
+           count++;
+       }
+   }
+  
+   printf("\n");
+   printf("Found %d entries with %d", count, TARGET_VALUE);
+   
+   return 0;
+}
 
 Input:
+9
+5
+100
+16
+18
+20
+6
+100
+1
+77
 
 Output:
+numb[9] = 77
+numb[8] = 1
+numb[7] = 100
+numb[6] = 6
+numb[5] = 20
+numb[4] = 18
+numb[3] = 16
+numb[2] = 100
+numb[1] = 5
+numb[0] = 9
+
+Searching for entries equal to 100
+
+Found 100 at 2
+Found 100 at 7
+
+Found 2 entries with 100
 
 Notes:
+- Two out of three of the for loops needed for the problem were already provided. The first loop reads in the 
+  10 integers into the array using the scanf() function and assigns the values to an array based on index 
+  number. The second loop needed to be edited to print out the array indexes and array values in reverse order. 
+  I changed the initialization for this loop to the max index number of integers provided in the earlier first 
+  loop input then decremented by 1 to pass through the whole array. For the third for loop, it had similar 
+  conditions as the first for loop to run through all the values in the array from lowest to highest indexes. 
+  An if statement was added in the loop to count the number of entries that equaled 100 and printed out the 
+  index to where the entry was found in the array. Lastly, a final print statement was run to show the count 
+  of entries that equaled 100. 
+- For suggestions on improvement, I had multiple times where I used the same numbers, so defining them as 
+  constants at the top of the code makes more sense. I added ARRAY_SIZE and TARGET_VALUE to be 10 and 100 
+  respectively. These constants were switched in the declarations, for loops, print statements, and if 
+  statements. Also, for the second for loop instead of hard coding 9 as the highest index to initialize, 
+  I used the ARRAY_SIZE constant and subtracted by 1 to get 9. One thing I didn’t change was removing the v 
+  variable. This v variable could have been substituted with &arr[i] but I decided against it to keep the 
+  clarity of storing the scanned values into a variable. 
+  Ex.  
+      for ( i = 0; i < ARRAY_SIZE; i++ ) { 
+          scanf("%d", &arr[i]); 
+      } 
 
 ############################################################################################################
 
@@ -227,16 +371,95 @@ Source:
 C Programming for Everybody - LBS290-15 Play with Strings
 
 Question:
+You are to perform the following steps in a function named process(): 
+(1) Print out the string you are passed.
+(2) Count the number of characters in the string. 
+(3) If there are more than 10 characters in the string print out the 10th character (line[9]) 
+(4) Go through the string and replace every blank with a dash '-'
+(5) Print out the new string with dashes.
 
 Python Code:
+N/A
 
 C Code:
+#include <stdio.h>
+#include <string.h>
+
+int main() {
+    char line[1000];
+    void process();
+
+    strcpy(line,"Hi there and welcome to LBS290");
+    process(line);
+    strcpy(line,"I love C");
+    process(line);
+}
+
+void process(char line[])
+{
+    /* Declare index and count variable */
+    int i; 
+    int count = (int)strlen(line);
+  
+    /* Print the original string passed */
+    printf("\nString: %s\n", line);
+  
+    /* Scan through the string and replace blank spaces ' ' with dashes '-'.
+       Increment the index by 1 to keep count of the number of characters */
+    for ( i = 0; line[i] != '\0'; i++ ) {
+        if ( line[i] == ' ' ) {
+            line[i] = '-';
+        }
+    }
+   
+    /* Print the number of characters in the string */
+    printf("Count=%d\n", count);
+    
+    /* If the string has more than 10 characters, print the 10th character */
+    if ( count > 10 ) {
+        printf("The ninth character is: %c\n", line[9]);
+    }
+    
+    /* Print the modified string with dashes */
+    printf("String: %s\n", line);
+}
 
 Input:
+N/A
 
 Output:
+String: Hi there and welcome to LBS290
+Count=30
+The ninth character is: a
+String: Hi-there-and-welcome-to-LBS290
+
+String: I love C
+Count=8
+String: I-love-C
 
 Notes:
+- I started my approach by declaring the index variable within the defined function. There were 4 print 
+  statements that needed to be created for each line that was passed through the process() function and some
+  had certain conditions for them to be printed out. The original string passed into the function was printed
+  once. The next print statement printed the number of characters in the string. This count of characters was
+  done in a for loop that scanned through the inputted string and incremented by 1 to record the count. The 
+  for loop also had an if statement that replaced any blank spaces ‘ ‘ with dashes ‘-’ for the last print 
+  statement. The third print statement used an if statement to print if the number of characters in the 
+  string was greater than 10. If it was true then print the 10th character at index 9.  
+- The final output problem I ran into was the inconsistent number of new line characters ‘\n’ in the print 
+  statement. The first provided print statement code had ‘\n’ in the beginning and end of the statement. 
+  Every other print statement only needed one ‘\n’. 
+- For suggestions, void functions do not need a return 0; at the end of the function. For clarity in the 
+  count step, use the strlen() function since the string.h library is called in the main program code. 
+  Remember to cast the strlen() function as an int because the return type of strlen() is an unsigned integer
+  type. The for loop can be performed using pointers instead of using a declared index variable. 
+  Ex. 
+       char *p;  
+       for ( p = line; *p != '\0'; p++) {  
+           if ( *p == ' ' ) {  
+               *p = '-';  
+           } 
+       } 
 
 ############################################################################################################
 
