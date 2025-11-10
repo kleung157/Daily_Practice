@@ -1,0 +1,566 @@
+Date: 11/10/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2125
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Noom - Process a Refund
+Calculate and display the minimum, average and the maximum number of days it takes to process a refund for accounts opened from January 1, 2019. 
+Group by billing cycle in months.
+Note: The time frame for a refund to be fully processed is from settled_at until refunded_at.
+
+Data Dictionary:
+Table name = 'noom_signups'
+plan_id: numeric (num)
+signup_id: character (str)
+started_at: POSIXct, POSIXt (dt)
+
+Table name = 'noom_transactions'
+transaction_id: numeric (num)
+usd_gross: numeric (num)
+signup_id: character (str)
+settled_at: POSIXct, POSIXt (dt)
+refunded_at: POSIXct, POSIXt (dt)
+
+Table name = 'noom_plans'
+plan_id: numeric (num)
+billing_cycle_in_months: numeric (num)
+plan_rate: numeric (num)
+
+Code:
+Solution #1
+## Question:
+# Calculate and display the minimum, average, and the maximum number of days it takes to process a refund for
+# acounts opened from January 1, 2019. 
+# Group by billing cycle in months.
+# Note, the time frame for a refund to be fully processed is from settled_at until refunded_at.
+
+## Output:
+# month, minimum_days, average_days, maximum_days
+
+## Import libraries
+#install.packges(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#noom_signups <- read_csv("noom_signups.csv")
+#noom_transactions <- read_csv("noom_transactions.csv")
+#noom_plans <- read_csv("noom_plan.csv")
+signups_df <- data.frame(noom_signups)
+transactions_df <- data.frame(noom_transactions)
+plans_df <- data.frame(noom_plans)
+head(signups_df, 5)
+head(transactions_df, 5)
+head(plans_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - signups (25 x 3), transactions (25 x 5), plans (3 x 3)
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - plan_id, signup_id, transaction_id
+data.frame(lapply(signups_df, class))
+data.frame(lapply(transactions_df, class))
+data.frame(lapply(plans_df, class))
+
+dim(signups_df)
+dim(transactions_df)
+dim(plans_df)
+
+sum(duplicated(signups_df))
+sum(duplicated(transactions_df))
+sum(duplicated(plans_df))
+
+enframe(colSums(is.na(signups_df)), name="index", value="na_counts")
+enframe(colSums(is.na(transactions_df)), name="index", value="na_counts")
+enframe(colSums(is.na(plans_df)), name="index", value="na_counts")
+
+enframe(table(signups_df$plan_id), name="index", value="frequency")
+enframe(table(signups_df$signup_id), name="index", value="frequency")
+enframe(table(transactions_df$transaction_id), name="index", value="frequency")
+enframe(table(transactions_df$signup_id), name="index", value="frequency")
+enframe(table(plans_df$plan_id), name="index", value="frequency")
+
+## Iteration:
+start_date = as.POSIXct("2019-01-01")
+
+result_df <- signups_df %>%
+    filter(
+        # 1. Filter for accounts opened from January 1, 2019
+        as.Date(started_at) >= as.Date(start_date)
+    ) %>%
+    inner_join(
+        # 2. Join signups and plans DataFrames by plan_id
+        plans_df, by="plan_id"
+    ) %>%
+    inner_join(
+        # 3. Join signups/plans and transactions DataFrames by signup_id
+        transactions_df, by="signup_id"
+    ) %>%
+    mutate(
+        # 4. Calculate time frame for a refund to be fully processed using refunded_at - settled_at
+        refund_process_time = as.Date(refunded_at) - as.Date(settled_at)
+    ) %>%
+    group_by(billing_cycle_in_months) %>%
+    summarise(
+        # 5. Calculate the minimum, mean, and maximum number of days to process a refund for each
+        #    billing_cycle_in_months
+        minimum_days = min(refund_process_time, na.rm=TRUE),
+        average_days = round(mean(refund_process_time, na.rm=TRUE), digits=2),
+        maximum_days = max(refund_process_time, na.rm=TRUE),
+        .groups = "drop"
+    ) %>%
+    arrange(billing_cycle_in_months)
+
+## Result:
+result_df
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts found in the data quality check. I began my
+  approach by assigning the start date provided in the prompt to a variable in order to avoid hard coding it 
+  in a filter function. The signups DataFrame's started_at column was filtered for dates greater than or equal
+  to the created start_date variable. After filtering, inner joins were applied to the signups, plans, and
+  transactions DataFrames. Once all the data was merged, a calculation was performed to find the time frame
+  for a refund to be fully processed using the refunded_at and settled_at columns. Finally, the minimum,
+  average, and maximum days to process a refund for each billing_cycle_in_months were found using a group by
+  aggregation. 
+
+Suggestions and Final Thoughts:
+- If the POSIXct, POSIXt (datetime) columns had contained any time components then it would be better to use
+  the difftime() function to perform the calculation of refunded_at - settled_at columns to obtain the time
+  it takes to process a refund. 
+  ex. 
+      refund_process_time = as.numeric(
+          difftime(refunded_at, settled_at, units = "days")
+      )
+- Another scenario to consider would be if the transactions DataFrame had null values in the refunded_at
+  column. The rows with null values would have to be filtered out in order to calculate the refund process
+  time since refunded_at and settled_at values are required for the calculation.
+  ex.
+      filter(
+          !is.na(refunded_at)
+      )
+
+Solve Duration:
+22 minutes
+
+Notes Duration:
+6 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2157
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Amazon - 10% Monthly Sales Increase
+You have been asked to compare sales of the current month, May, to those of the previous month, April.
+The company requested that you only display products whose sales (UNITS SOLD * PRICE) have increased by more than 10% from the previous month to the current month.
+Your output should include the product id and the percentage growth in sales.
+
+Data Dictionary:
+Table name = 'online_orders'
+product_id: int64 (int)
+promotion_id: int64 (int)
+cost_in_dollars: int64 (int)
+customer_id: int64 (int)
+date_sold: datetime64 (dt)
+units_Sold: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# You have been asked to compare sales of the current month, May, to those of the previous month, April.
+# The company requested that you only display products whose sales (UNITS SOLD * PRICE) have increased by more
+# than 10% from the previous month to the current month.
+# Output should include the product id and the percentage growth in sales.
+
+## Output:
+# product_id, percentage_growth_sales
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#online_orders = pd.read_csv("online_orders.csv")
+orders_df = pd.DataFrame(online_orders)
+orders_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 29 x 6
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - customer_id, product_id, promotion_id
+#orders_df.info()
+orders_df.shape
+
+orders_df.duplicated().sum()
+
+orders_df.isna().sum().reset_index(name="na_count")
+
+orders_df["customer_id"].value_counts().reset_index(name="frequency")
+orders_df["product_id"].value_counts().reset_index(name="frequency")
+orders_df["promotion_id"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# 1. Calculate sales for each row using cost_in_dollars x units_sold
+orders_df["sales"] = orders_df["cost_in_dollars"] * orders_df["units_sold"]
+
+# 2. Extract the month from the date_sold column
+orders_df["month"] = orders_df["date_sold"].dt.month
+
+# 3. Filter for April (4) and May (5)
+filtered_df = orders_df[
+    orders_df["month"].isin((4, 5))
+].copy()
+
+# 4. Calculate the sales for products in April and May
+result_df = (
+    filtered_df.groupby(["product_id", "month"])["sales"].sum()
+    .reset_index(name="total_sales")
+    .sort_values(by=["product_id", "month"], ascending=True)
+)
+
+# 5. Pivot the data to display months as columns and total sales as rows
+#    Rename the month number to month names
+result_df = (
+    result_df.pivot(index="product_id", columns="month", values="total_sales")
+    .rename(columns={4: "April", 5: "May"})
+    .reset_index()
+)
+
+# 6. Calculate the percentage growth sales for each product_id
+#    Fill null values with 0 in the numerator calculation
+#    To avoid division by zero, fill nulls in denominator with 1
+#    percentage = 100.0 * (May total sales - April total_sales) / (April total_sales)
+result_df["percentage_growth_sales"] = round(
+    100.0 * (result_df["May"].fillna(0) - result_df["April"].fillna(0)) / result_df["April"].fillna(1)
+, 2)
+
+# 7. Filter for products whose sales increased by more than 10% 
+result_df = result_df[
+    result_df["percentage_growth_sales"] > 10    
+]
+
+# 8. Select relevant columns and sort by product id in ascending order
+result_df = result_df[["product_id", "percentage_growth_sales"]].sort_values(by="product_id", ascending=True)
+
+## Result:
+result_df
+
+Notes:
+- No nulls, duplicates, or discrepancies in value counts were found in the data quality check. Found myself
+  having to use a number of helper columns, multiple intermediate DataFrames, and pivoting the data to come
+  to a clear way of solving the problem.
+- I started my approach with creating helper columns in the orders DataFrame. The sales column was calculated
+  using the cost_in_dollars x units_sold columns and the month column contained the extraction of the month
+  from the date_sold column. The orders DataFrames was then filtered by the month column to include rows that
+  contained the month numbers corresponding to April and May. From there, the total sales for each product_id
+  and month were calculated using a group by sum aggregation and sorted in ascending order by product_id and
+  month columns. 
+- After aggregation, I tried to use the diff() function to perform the percentage calculations but it was a
+  bit difficult to see everything row by row. I decided that the better approach was to pivot the data using
+  the pivot() function and rename the month numbers to month names. The pivoted DataFrame was then used to
+  calculate the percentage growth in sales. Where percentage growth = 100.0 * (current - previous) / previous.
+  I filled null values in the numerator with 0s and for the denominator, filled null values with 1 to avoid
+  division by 0. The pivoted DataFrame was then filtered for products whose sales increased by more than
+  10% using the created percentage_growth_sales column. Lastly, the necessary output columns were selected
+  and sorted by the product_id column in ascending order.
+
+Suggestions and Final Thoughts:
+- Make sure to read the filter criteria in the prompt more correctly. I interpretted more than 10% as greater
+  than or equal to. It should actually just be greater than 10%.
+  ex.
+      result_df = result_df[
+          result_df["percentage_growth_sales"] > 10    
+      ]
+- Would be better to assign the months in a list to a variable rather than hard coding in the filter as a 
+  tuple. 
+  ex.
+      relevant_months = [4, 5]
+      
+      filtered_df = orders_df[
+          orders_df["month"].isin(relevant_months)
+      ].copy()
+- The difficult for this problem felt more like medium to hard, moreso leaning towards the hard side. While 
+  the beginning steps were not bad, the more difficult steps were pivoting the data and making sure that the
+  percentage calculations were accurate to account for nulls and avoiding division by 0.
+
+Solve Duration:
+45 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10013
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Uber - Positive Ad Channels
+Find the advertising channel with the smallest maximum yearly spending that still brings in more than 1500 customers each year.
+
+Data Dictionary:
+Table name = 'uber_advertising'
+advertising_channel: text (str)
+customers_acquired: bigint (int)
+money_spent: bigint (int)
+year: bigint (int)
+
+Code:
+**Attempt #1 (fixed as an appropriate solution)
+WITH YearlyAdvertisingMaxSpendingCustomers AS (
+    SELECT 
+        year,
+        advertising_channel,
+        money_spent,
+        -- 1. Calculate maximum yearly spending and minimum yearly customers for each advertising channel 
+        MAX(money_spent) OVER( 
+            PARTITION BY
+                advertising_channel
+        ) AS maximum_yearly_spending,
+        MIN(customers_acquired) OVER( 
+            PARTITION BY
+                advertising_channel
+        ) AS minimum_yearly_customers
+    FROM 
+        uber_advertising 
+),
+AdvertisingSpendingRank AS (
+    SELECT DISTINCT
+        advertising_channel,
+        maximum_yearly_spending,
+        -- 3. Rank the maximum yearly spending for each advertising channel in ascending order
+        DENSE_RANK() OVER(
+            ORDER BY 
+                maximum_yearly_spending ASC
+        ) AS dense_rank
+    FROM 
+        YearlyAdvertisingMaxSpendingCustomers
+    WHERE 
+        -- 2. Filter for advertising channels that bring in more than 1500 customers each year
+        minimum_yearly_customers > 1500
+)
+SELECT
+    advertising_channel
+FROM 
+    AdvertisingSpendingRank
+WHERE 
+    -- 4. Filter for advertising channel with smallest maximum yearly spending
+    dense_rank = 1;
+
+
+**Solution #1
+-- Question:
+-- Find the advertising channel with the smallest maximum yearly spending that still brings in more than
+-- 1500 customers each year.
+
+-- Output:
+-- advertising_channel
+
+-- Preview data:
+SELECT * FROM uber_advertising LIMIT 5;
+
+-- Check dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 18 x 4 
+-- Duplicates - 0
+-- Nulls - 0
+-- Value Counts - advertising_channel
+SELECT -- Dimensions, nulls
+    SUM(CASE WHEN advertising_channel IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN customers_acquired IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN money_spent IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN year IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM uber_advertising;
+
+SELECT -- Duplicates 
+    advertising_channel, customers_acquired, money_spent, year,
+    COUNT(*) AS duplicate_count
+FROM uber_advertising
+GROUP BY
+    advertising_channel, customers_acquired, money_spent, year
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    advertising_channel,
+    COUNT(*) AS frequency
+FROM uber_advertising
+GROUP BY
+    advertising_channel
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Calculate maximum yearly spending and minimum customers acquired for each advertising channel 
+-- 2. Filter for advertising channels that bring in more than 1500 customers each year
+-- 3. Rank the maximum yearly spending for each advertising channel in ascending order
+-- 4. Filter for advertising channel with smallest maximum yearly spending
+WITH AdvertisingSpendingCustomers AS (
+    SELECT 
+        advertising_channel,
+        MAX(money_spent) AS maximum_yearly_spending,
+        MIN(customers_acquired) AS minimum_yearly_customers
+    FROM uber_advertising 
+    GROUP BY advertising_channel
+),
+AdvertisingRank AS (
+    SELECT
+        advertising_channel,
+        maximum_yearly_spending,
+        DENSE_RANK() OVER(ORDER BY maximum_yearly_spending ASC) AS dense_rank
+    FROM AdvertisingSpendingCustomers
+    WHERE minimum_yearly_customers > 1500
+)
+SELECT
+    advertising_channel
+FROM AdvertisingRank
+WHERE dense_rank = 1;
+
+-- Result:
+WITH AdvertisingSpendingCustomers AS (
+    SELECT 
+        advertising_channel,
+        -- 1. Calculate maximum yearly spending and minimum customers acquired for each advertising channel 
+        MAX(money_spent) AS maximum_yearly_spending,
+        MIN(customers_acquired) AS minimum_yearly_customers
+    FROM 
+        uber_advertising 
+    GROUP BY 
+        advertising_channel
+),
+AdvertisingRank AS (
+    SELECT
+        advertising_channel,
+        maximum_yearly_spending,
+        -- 3. Rank the maximum yearly spending for each advertising channel in ascending order
+        DENSE_RANK() OVER(
+            ORDER BY 
+                maximum_yearly_spending ASC
+        ) AS dense_rank
+    FROM 
+        AdvertisingSpendingCustomers
+    WHERE 
+        -- 2. Filter for advertising channels that bring in more than 1500 customers each year
+        minimum_yearly_customers > 1500
+)
+SELECT
+    advertising_channel
+FROM 
+    AdvertisingRank
+WHERE 
+    -- 4. Filter for advertising channel with smallest maximum yearly spending
+    dense_rank = 1;
+
+
+**Solution #2
+WITH YearlyTotals AS (
+    -- STEP 1: Aggregate data to the yearly level for spending and customers
+    SELECT
+        year,
+        advertising_channel,
+        SUM(money_spent) AS total_yearly_spending,
+        SUM(customers_acquired) AS total_yearly_customers
+    FROM
+        uber_advertising
+    GROUP BY
+        year,
+        advertising_channel
+),
+CompliantChannels AS (
+    -- STEP 2: Identify channels that FAIL the "more than 1500 customers each year" test.
+    -- We find channels where the minimum yearly customer count is NOT > 1500.
+    -- Then, we use NOT IN to exclude them.
+    SELECT
+        advertising_channel
+    FROM
+        YearlyTotals
+    GROUP BY
+        advertising_channel
+    HAVING
+        MIN(total_yearly_customers) <= 1500
+)
+-- STEP 3 & 4: Calculate the MAX yearly spending for the compliant channels, and find the minimum of that max.
+SELECT
+    yt.advertising_channel
+FROM
+    YearlyTotals yt
+WHERE
+    yt.advertising_channel NOT IN (SELECT advertising_channel FROM CompliantChannels) -- Exclude non-compliant channels
+GROUP BY
+    yt.advertising_channel
+ORDER BY
+    MAX(yt.total_yearly_spending) ASC -- Order by the MAX spending for the compliant channel
+LIMIT 1;
+
+Notes:
+- The dataset contained no duplicates, nulls, or value counts with any potential problems. I had a bit of a
+  struggle trying to interpret the problem clearly. I thought I had an idea of what to do but I kept trying
+  to iterate on what I thought the problem was asking. At first I thought I just needed to group by and
+  aggregate every advertising_channel category to find the maximum spending amongst them and filter for
+  the smallest one. Then perhaps make another common table expression and make sure that each category in
+  the advertising_channel column had consecutive years where they brought in more than 1500 customers_acquired.
+- This logic seemed flawed in my head as I started writing the query and so I decided to backtrack and go
+  step by step to include as much detail and data as possible to see the full story that I wasn't seeing
+  initially in the prompt. I went with reading the question in a more literal sense. I acquired the maximum
+  money_spent for each advertising channel and their corresponding year. Then within that same query filtered
+  for rows that had customers_acquired > 1500. These steps were placed in a common table expression (CTE) and
+  queried again into another CTE to rank the maximum_yearly_spending in ascending order. From there, the last
+  subsequent query filtered for the advertising channel with the smallest maximum yearly spending based on
+  the rank.
+
+Suggestions and Final Thoughts:
+- Ended up thinking a little too deep about the problem and my initial hunch on how to solve it was probably
+  the most direct way of solving it. The dataset was presented in yearly row totals and not necessarily in
+  daily/month totals so I should have just gone with my first approach and not my second approach as I wrote
+  in the earlier notes. 
+- The steps that I wrote out in pseudocode still were applicable to the newly created Solution #1 compared
+  to Attempt #1 but I just needed to perform group by aggregations using MAX AND MIN in the first CTE rather
+  than trying to use windows functions for each row of the dataset. Another thing to add was the filter in
+  the second CTE because it filters out categories of the advertising channels that didn't have customers
+  greater than 1500 in all years.
+- An alternative to ranking would be to use ORDER BY and LIMIT functions but those aren't always applicable
+  to every case. Using a rank function makes the query more reusable and applicable to future scenarios.
+- Solution #2 is more of the intended approach that I wanted to take in Attempt #1 and as notes in the second
+  approach in the notes. Only difference would be using a rank function instead of ORDER BY AND LIMIT to find
+  the final row.
+- I fixed Attempt #1 to make it a plausible solution so the intended second approach in the notes section
+  could have been used but just needed to incorporate MIN() for customers_acquired and moving the filter
+  for minimum_yearly_customers to the second CTE rather than including it in the first CTE.
+
+Solve Duration:
+60 minutes
+
+Notes Duration:
+12 minutes
+
+Suggestions and Final Thoughts Duration:
+15 minutes
+
+############################################################################################################
