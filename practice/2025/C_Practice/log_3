@@ -467,15 +467,90 @@ Source:
 C Programming for Everybody - LBS-98: A Touring Machine
 
 Question:
+This is a subset of an important concept in Computer Science called a Turing Machine. 
+We call it a "Touring Machine" because it "wanders around and does things in memory" similar to a Turing Machine. 
+Your computer has 256 characters of memory. 
+The machine keeps track of the "position" or the "head" where data is to be written. 
+The starting position is zero. 
+You are to read a sequence of instructions from input and perform those instructions. 
+When there are no more instructions, print the memory out as a zero-terminated C character array. 
+Here are the instructions you need to support:
+42     Store this value into the memory at the current position
+>      Move the "position" one to the right (i.e. position++);
+<      Move the "position" one to the left (i.e. position--);
+All of the numbers should be in the range of 0-255 so they fit into a C char variable.
 
 Python Code:
+N/A
 
 C Code:
+#include <stdio.h>
+
+#define MAX_SIZE 256 /* Define constants */
+
+int main()
+{
+    char memory[MAX_SIZE]; /* Declare variables */
+    char token[MAX_SIZE];
+    int position = 0;
+    int value;
+    int i;
+  
+    for (i = 0; i < MAX_SIZE; i++) { /* Set all cells to 0 to initialize memory */
+        memory[i] = 0; 
+    }
+
+    while( scanf("%255s", token) == 1 ) { /* Read inputs and limit input size to MAXSIZE-1 */
+        if ( token[0] == '>' && token[1] == '\0') { /* Move the position one to the right */
+            if ( position < MAX_SIZE - 1) { /* Pointer bounds check */
+                position++;
+            }
+            continue; /* Go to next token, don't treat as a number */
+        }
+      
+        if ( token[0] == '<' && token[1] == '\0') { /* Move the position one to the left */
+            if ( position > 0) { /* Pointer bounds check */
+                position--;
+            }
+            continue; /* Go to next token, don't treat as a number */
+        }
+      
+        if ( sscanf(token, "%d", &value) == 1 ) { /* Read token inputs as decimal values */
+            if (value >= -128 && value <= 255) { /* Value range check */
+                memory[position] = (char)value; /* Store value into memory at current index position */
+            }
+        }
+    }
+    printf("Memory:\n%s\n", memory);
+    
+    return 0;
+}
 
 Input:
+42 > 114 > 105 > 97 > 
+110 < < < < 66
 
 Output:
+Memory:
+Brian
 
 Notes:
+- Tried to be more literal with the instructions and implement them into code. I started with if statements
+  to create conditions for the input but couldn’t quite figure out initially how to store the values into the
+  memory variable. There was another approach I played around with that involved using a switch() but that 
+  would mean declaring another variable and having to use other standard libraries. 
+- I went back to my original approach of using if statements and reviewed some of the past practice questions
+  I had and found that using sscanf() was necessary to read through the token inputs again as decimal values.
+  I got as far as having the appropriate number of characters for the final output but the middle characters
+  kept coming out wrong.  
+- I was quite stumped for a while but at least a majority of the code that I had written was getting to a 
+  viable solution. I simply had to add continue; statements to my if statements where ‘>’ and ‘<’ were
+  considered. Another addition that was needed was having an if statement for the sscanf() function and to 
+  make it equal to 1 or (TRUE).  
+- For suggestions, add && token[1] == ‘\0’ to the command character if statements to ensure that the token is
+  only the command character. Add pointer bounds check to only allow the position to stay within the bounds of
+  the max size memory. Add a check for value range in the sscanf() function if statement to ensure value fits
+  in to available 8-bit (byte) space. Set all cells to 0 (the null terminator ‘\0’ to initialize memory to
+  prevent crashes. Cast the integer value as a character value.
 
 ############################################################################################################
