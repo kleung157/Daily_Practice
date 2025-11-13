@@ -1,0 +1,582 @@
+Date: 11/13/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2128
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Amazon - Book Sales
+Calculate the total revenue made per book. 
+Output the book ID and total sales per book. 
+In case there is a book that has never been sold, include it in your output with a value of 0.
+
+Data Dictionary:
+Table name = 'amazon_books'
+unit_price: numeric (num)
+book_id: character (str)
+book_tltle: character (str)
+
+Table name = 'amazon_books_order_details'
+quantity: numeric (num)
+order_details_id: character (str)
+order_id: character (str)
+book_id: character (str)
+
+Code:
+Solution #1
+## Question:
+# Calculate the total revenue made per book. 
+# Output the book ID and total sales per book.
+# In case there is a book that has never been sold, include it in your output with a value of 0.
+
+## Output:
+# book_id, total_sales
+
+## Import libraries
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#amazon_books <- read_csv("amazon_books.csv")
+#amazon_books_order_details <- read_csv("amazon_books_order_details.csv")
+books_df <- data.frame(amazon_books)
+orders_df <- data.frame(amazon_books_order_details)
+head(books_df, 5)
+head(orders_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - books (20 x 3), orders (30 x 4)
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - book_id, book_title, orders_detail_id, order_id, book_id
+data.frame(lapply(books_df, class))
+data.frame(lapply(orders_df, class))
+
+dim(books_df)
+dim(orders_df)
+
+sum(duplicated(books_df))
+sum(duplicated(orders_df))
+
+enframe(colSums(is.na(books_df)), name="index", value="na_count")
+enframe(colSums(is.na(orders_df)), name="index", value="na_count")
+
+enframe(table(books_df$book_id), name="index", value="frequency")
+enframe(table(books_df$book_title), name="index", value="frequency")
+enframe(table(orders_df$order_details_id), name="index", value="frequency")
+enframe(table(orders_df$order_id), name="index", value="frequency")
+enframe(table(orders_df$book_id), name="index", value="frequency")
+
+## Iteration:
+result_df <- books_df %>%
+    left_join(
+        # 1. Left join books and orders Dataframes by book_id
+        orders_df, by="book_id"
+    ) %>%
+    mutate(
+        # 2. If quantity is null then 0, else, keep original quantity
+        updated_quantity = case_when(
+            is.na(quantity) ~ 0,
+            TRUE ~ quantity
+        ),
+        # 3. Calculate sales with updated_quantity x unit_price
+        sales = updated_quantity * unit_price
+    ) %>%
+    group_by(book_id) %>%
+    summarise(
+        # 4. Calculate the total sales for each book_id
+        total_sales = sum(sales, na.rm=TRUE),
+        .groups = "drop"
+    ) %>%
+    arrange(book_id)
+
+## Result:
+result_df
+
+Notes:
+- No duplicates, nulls, or abnormal value counts were found in the data quality checks. Nulls appeared when 
+  performing the initial left join between the books and orders DataFrames. The nulls were replaced with 0
+  specifically on the column quantity to setup a new column to perform a calculation to find the sales for 
+  each order. The unit_price and updated_quantity columns were used for finding the sales. After the sales 
+  was calculated, the total sales for each book_id were grouped and aggregated using the sum() function. 
+  Lastly, the final output was arranged in ascending order by book_id.
+
+Suggestions and Final Thoughts:
+- To be more concise and remove redundancy, it would be easier to account for books that never sold simply
+  by performing the sales calulation and accounting for nulls in the summarise() function by using na.rm
+  in the sum() function argument. I chose to use case_when() because then I could see the helper column and
+  account for all the rows being calculated correctly in each step. This approach is similar to how I would
+  tackle this problem in SQL.
+  ex.
+      mutate(
+          # Calculate line revenue. Unsold books will result in NA here.
+          sales = unit_price * quantity 
+      ) %>%
+      group_by(book_id) %>%
+      summarise(
+          # Sum the sales. na.rm=TRUE handles the NA's from unsold books, correctly summing them to 0.
+          total_sales = sum(sales, na.rm=TRUE),
+          .groups = "drop"
+      )
+- I made sure to check the left join for books and orders DataFrames in all possible scenarios to find the
+  correct missing values that were needed for the problem. Sometimes I get it on the first try or I have to
+  switch them around to get a feel for the concept again.
+
+Solve Duration:
+15 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+8 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2158
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Meta - Sales Evaluation on Media Formats
+The marketing department is evaluating the most effective promotional strategies for each product family.
+You have been asked to find the total sales by media type for each product family. 
+Here, “total sales” refers to cost_in_dollars multiplied by units_sold. 
+Each order is linked to a promotion, and the associated media type for that promotion should be used to categorize the sale. 
+For example, the product family ELECTRONICS could be sold 57% through INTERNET and 43% through BROADCAST.
+Your output should include the product family listed alphabetically, the media type, and the calculated percentage of sales rounded to the nearest whole number ordered from highest to lowest.
+
+Data Dictionary:
+Table name = 'online_orders'
+product_id: int64 (int)
+promotion_id: int64 (int)
+cost_in_dollars: int64 (int)
+customer_id: int64 (int)
+date_sold: datetime64 (dt)
+units_sold: int64 (int)
+
+Table name = 'online_sales_promotions'
+promotion_id: int64 (int)
+start_date: datetime64 (dt)
+end_date: datetime64 (dt)
+media_type: object (str)
+cost: int64 (int)
+
+Table name = 'online_products'
+product_id: int64 (int)
+product_class: object (str)
+brand_name: object (str)
+is_low_fat: object (str)
+is_recyclable: object (str)
+product_category: int64 (int)
+product_family: object (str)
+
+Code:
+Solution #1
+## Question:
+# The marketing department is evauating the most effective promotional strategies for each product family.
+# You have been asked to find the total sales by media type for each product family.
+# Here, "total sales" refers to cost_in_dollars multiplied by units_sold. 
+# Each order is linked to a promotion, and the associated media type for that promotion should be used to
+# categorize the sale.
+# For example, the product family ELECTRONICS could be sold 57% through INTERNET and 43% through BROADCAST
+# Output should include the product family listed alphabetically, the media type, and the calculated
+# percentage of sales rounded to the nearest whole number ordered from highest to lowest.
+
+## Output:
+# product_family, media_type, percentage_sales
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#online_orders = pd.read_csv("online_orders.csv")
+#online_sales_promotions = pd.read_csv("online_sales_promotions.csv")
+#online_products = pd.read_csv("online_products.csv")
+orders_df = pd.DataFrame(online_orders)
+promotions_df = pd.DataFrame(online_sales_promotions)
+products_df = pd.DataFrame(online_products)
+orders_df.head(5)
+promotions_df.head(5)
+products_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - orders: 29 x 6
+#            - promotions: 5 x 5
+#            - products: 12 x 7
+# Duplicates - orders: 0
+#            - promotions: 0
+#            - products: 0
+# Nulls - orders: 0
+#       - promotions: 0
+#       - products: 0
+# Value Counts - orders: product_id, promotion_id, customer_id
+#              - promotions: promotion_id, media_type
+#              - products: product_id, product_class, brand_name, is_low_fat, is_reyclable, product_family
+#orders_df.info()
+#promotions_df.info()
+#products_df.info()
+
+orders_df.shape
+promotions_df.shape
+products_df.shape
+
+orders_df.duplicated().sum()
+promotions_df.duplicated().sum()
+products_df.duplicated().sum()
+
+orders_df.isna().sum().reset_index(name="na_count")
+promotions_df.isna().sum().reset_index(name="na_count")
+products_df.isna().sum().reset_index(name="na_count")
+
+orders_df["product_id"].value_counts().reset_index(name="frequency")
+orders_df["promotion_id"].value_counts().reset_index(name="frequency")
+orders_df["customer_id"].value_counts().reset_index(name="frequency")
+promotions_df["promotion_id"].value_counts().reset_index(name="frequency")
+promotions_df["media_type"].value_counts().reset_index(name="frequency")
+products_df["product_id"].value_counts().reset_index(name="frequency")
+products_df["product_class"].value_counts().reset_index(name="frequency")
+products_df["brand_name"].value_counts().reset_index(name="frequency")
+products_df["is_low_fat"].value_counts().reset_index(name="frequency")
+products_df["is_recyclable"].value_counts().reset_index(name="frequency")
+products_df["product_family"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# 1. Merge orders, promotions, and products DataFrames
+merged_df = (
+    orders_df
+    .merge(promotions_df, on="promotion_id", how="inner")
+    .merge(products_df, on="product_id", how="inner")
+)
+
+# 2. Calculate sales for each row using cost_in_dollars x units_sold
+merged_df["sales"] = merged_df["cost_in_dollars"] * merged_df["units_sold"]
+
+# 3. Calculate total sales by media type for each product family
+result_df = (
+    merged_df.groupby(["product_family", "media_type"])["sales"].sum()
+    .reset_index(name="total_sales")
+)
+
+# 4. Calculate percentage of sales by media type for each product family, round to nearest whole number
+#    percentage = 100.0 * (media type total sales / total)
+result_df["total"] = result_df.groupby("product_family")["total_sales"].transform('sum')
+
+result_df["percentage_sales"] = round(
+    100.0 * (result_df["total_sales"] / result_df["total"])
+, 0)
+
+# 5. Select relevant columns, order by product_family ascending and percentage_sales in descending order
+result_df = (
+    result_df[["product_family", "media_type", "percentage_sales"]]
+    .sort_values(by=["product_family", "percentage_sales"], ascending=[True, False])
+)
+
+## Result:
+print("Percentage of total sales by media type for each product family:")
+result_df
+
+Notes:
+- Spent a considerable amount of time during the data quality evaluation since there were 3 DataFrames to 
+  perform numerous checks on. None of them had any concerning datatypes, duplicates, nulls, or value counts
+  that were potential issues for the question.
+- I started off my approach merging all the provided DataFrames together. The merged DataFrame was used to
+  create a new column that calculated the sales in each row by using the columns cost_in_dollars x units_sold.
+  From there, the total sales by media type and for each product family was calculated using a groupby sum
+  aggregation. Afterwards, the percentage of sales was calculated using media type total sales divided by
+  the total sales of each product_family. The results were converted to percentages by multiplying by 100.0
+  and rounded to the nearest whole number. Lastly, the relevant output columns were selected and sorted by
+  product family alphabetically and percentage sales in descending order.
+
+Suggestions and Final Thoughts:
+- If rounding to a nearest whole number then still specify the 0 in the function. It may be redundant but it
+  provides clarity and easier to debug if needed later.
+  ex.
+      result_df["percentage_sales"] = round(
+          100.0 * (result_df["total_sales"] / result_df["total"])
+      , 0)
+- I found that creating helper columns before performing percentage calculations to be a lot more easier to
+  understand the necessary steps to a problem rather than assuming that the reader will know what is going on.
+  It is more concise and efficient to not have them though.
+- Had to look up the sort_values() function documentation to figure out how to sort multiple values in the 
+  ascending argument.
+  ex.
+      result_df = (
+          result_df[["product_family", "media_type", "percentage_sales"]]
+          .sort_values(by=["product_family", "percentage_sales"], ascending=[True, False])
+      )
+      
+
+Solve Duration:
+33 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+6 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10019
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Lyft - Find the fraction of rides for each weather and the hour
+Find the fraction (percentage divided by 100) of rides each weather-hour combination constitutes among all weather-hour combinations.
+Output the weather, hour along with the corresponding fraction.
+
+Data Dictionary:
+Table name = 'lyft_rides'
+gasoline_cost: double precision (dbl)
+hour: bigint (int)
+index: bigint (int)
+travel_distance: double precision (dbl)
+weather: text (str)
+
+Code:
+**Attempt #1
+WITH WeatherHourRides AS (
+    SELECT 
+        weather,
+        hour,
+        -- 1. Count the number of rides for each weather-hour combination
+        COUNT(index) AS ride_count 
+    FROM 
+        lyft_rides 
+    GROUP BY
+        weather,
+        hour
+),
+WeatherHourRidesPercentages AS (
+    SELECT
+        weather,
+        hour,
+        ride_count,
+        -- 2. Calculate the total rides for each weather category
+        SUM(ride_count) OVER(
+            PARTITION BY 
+            weather
+        ) AS total_rides,
+        -- 3. Calculate ride percentage for each weather-hour combination
+        ROUND(
+            100.0 * ride_count / SUM(ride_count) OVER(PARTITION BY weather)
+        , 2) AS percentage
+    FROM 
+        WeatherHourRides
+)
+SELECT
+    weather,
+    hour,
+    -- 4. Calculate fraction of rides for each weather-hour combination
+    ROUND(
+        percentage / 100.0
+    , 2) AS fraction
+FROM 
+    WeatherHourRidesPercentages
+ORDER BY
+    weather,
+    hour;
+
+**Solution #1
+-- Question:
+-- Find the fraction (percentage divided by 100) of rides each weather-hour combination constitutes among
+-- all weather-hour combinations.
+-- Output the weather, hour along with the corresponding fraction.
+
+-- Output:
+-- weather, hour, fraction
+
+-- Preview data:
+SELECT * FROM lyft_rides LIMIT 5;
+
+-- Check dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 501 x 5
+-- Duplicates - 0
+-- Nulls - 0
+-- Value Counts - index, weather
+SELECT -- Dimensions, nulls
+    SUM(CASE WHEN gasoline_cost IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN hour IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN index IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN travel_distance IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN weather IS NULL THEN 1 ELSE 0 END) AS col5,
+    COUNT(*) AS total_rows
+FROM lyft_rides;
+
+SELECT -- Duplicates
+    gasoline_cost, hour, index, travel_distance, weather,
+    COUNT(*) AS duplicate_count
+FROM lyft_rides 
+GROUP BY
+    gasoline_cost, hour, index, travel_distance, weather
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    index,
+    COUNT(*) AS frequency
+FROM lyft_rides 
+GROUP BY index
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    weather,
+    COUNT(*) AS frequency
+FROM lyft_rides 
+GROUP BY weather
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Count the number of rides for each weather-hour combination
+-- 2. Calculate the total rides for all weather-hour combinations
+-- 3. Calculate ride percentage for each weather-hour combination
+-- 4. Calculate fraction of rides for each weather-hour combination
+WITH WeatherHourRides AS (
+    SELECT 
+        weather,
+        hour,
+        COUNT(index) AS ride_count 
+    FROM lyft_rides 
+    GROUP BY
+        weather,
+        hour
+),
+WeatherHourRidesPercentages AS (
+    SELECT
+        weather,
+        hour,
+        ride_count,
+        SUM(ride_count) OVER() AS total_rides,
+        ROUND(
+            100.0 * ride_count / SUM(ride_count) OVER()
+        ) AS percentage
+    FROM WeatherHourRides
+)
+SELECT
+    weather,
+    hour,
+    ROUND(
+        percentage / 100.0
+    , 2) AS fraction
+FROM WeatherHourRidesPercentages
+ORDER BY
+    weather,
+    hour;
+
+-- Result:
+WITH WeatherHourRides AS (
+    SELECT 
+        weather,
+        hour,
+        -- 1. Count the number of rides for each weather-hour combination
+        COUNT(index) AS ride_count 
+    FROM 
+        lyft_rides 
+    GROUP BY
+        weather,
+        hour
+),
+WeatherHourRidesPercentages AS (
+    SELECT
+        weather,
+        hour,
+        ride_count,
+        -- 2. Calculate the total rides for all weather-hour combinations
+        SUM(ride_count) OVER(
+        ) AS total_rides,
+        -- 3. Calculate ride percentage for each weather-hour combination
+        ROUND(
+            100.0 * ride_count / SUM(ride_count) OVER()
+        , 2) AS percentage
+    FROM 
+        WeatherHourRides
+)
+SELECT
+    weather,
+    hour,
+    -- 4. Calculate fraction of rides for each weather-hour combination
+    ROUND(
+        percentage / 100.0
+    , 2) AS fraction
+FROM 
+    WeatherHourRidesPercentages
+ORDER BY
+    weather,
+    hour;
+
+
+**Solution #2
+SELECT
+    weather,
+    hour,
+    -- 1. Count rides for the current weather-hour group
+    CAST(COUNT(*) AS DECIMAL) /
+    -- 2. Count total rides in the entire table (no PARTITION BY needed)
+    SUM(COUNT(*)) OVER () AS fraction
+FROM
+    lyft_rides
+GROUP BY
+    weather,
+    hour
+ORDER BY
+    weather,
+    hour;
+
+Notes:
+- There were no nulls, duplicates, or abnormal value counts that needed to be accounted for in solving the
+  problem as seen in the data quality checks. 
+- I decided to approach this problem with using as many helper columns and common table expressions (CTE) as 
+  needed to be more clear on understanding each step. While I could build the query conciseness and 
+  efficiency, it seemed a lot better to focus on solving the problem in my own intended approach first.
+- I started off counting the number of rides for each weather-hour combination in the first CTE. The next step
+  was querying from the first CTE and creating the helper column of total ride count for each weather category.
+  Then the calculation for percentage of rides for each weather-hour combination was performed using the
+  ride_count / sum(ride_count) multiplied by 100.0 to perform a numeric casting and account for floating point
+  errors. Lastly, the previous step was contained in a CTE which was queried again to calculate the fraction
+  using the percentage / 100.0.
+
+Suggestions and Final Thoughts:
+- The percentage and fraction should have a denominator with all weather-hour combinations rather than each
+  weather category per hour. I needed to remove the PARTITION BY weather argument in the window function
+  for sum aggregation of ride counts. Next time will have to read the question a little more carefully. Also
+  didn't know that windows aggregate functions didn't need an argument in the OVER() part.
+  ex.
+      SUM(ride_count) OVER() AS total_rides
+- To be more concise and efficient, all calculations could have been performed in a single query and with no
+  CTEs needed. The percentage did not needed to be calculated but since the problem mentioned it, I figured
+  it would be best to include it to show all steps. Counting the number of rides could have been done with
+  COUNT(*) or COUNT(index).
+  ex.
+      CAST(COUNT(*) AS DECIMAL) / SUM(COUNT(*)) OVER () AS fraction
+- I have included my initial attempt in Attempt #1, the revised solution in Solution #1, and the most optimal
+  approach in Solution #2.
+
+Solve Duration:
+19 minutes
+
+Notes Duration:
+6 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
