@@ -1,0 +1,490 @@
+Date: 11/14/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2130
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+General Assembly - Duplicate Training Lessons
+Display a list of users who took the same training lessons more than once on the same day. 
+Assume that each u_name is unique. 
+Output their usernames, training IDs, dates and the number of times they took the same lesson.
+
+Data Dictionary:
+Table name = 'users_training'
+u_id: numeric (num)
+u_name: character (str)
+
+Table name = 'training_details'
+u_t_id: numeric (num)
+u_id: numeric (num)
+training_id: numeric (num)
+training_date: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1
+## Question:
+# Display a list of users who took the same training lessons more than once on the same day.
+# Assume that each u_name is unique.
+# Output their usernames, training IDs, dates, and the number of times they took the same lesson.
+
+## Output:
+# u_name, training_id, training_date, training_count
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#users_training <- read_csv("users_training.csv")
+#training_details <- read_csv("training_details.csv")
+users_df <- data.frame(users_training)
+training_df <- data.frame(training_details)
+head(users_df, 5)
+head(training_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - users: 15 x 2
+#            - training: 60 x 4
+# Duplicates - users: 0
+#            - training: 0
+# Nulls - users: 0
+#       - training: 0
+# Value Counts - users: u_id, u_name
+#              - training: u_t_id, u_id, training_id
+dim(users_df)
+dim(training_df)
+
+sum(duplicated(users_df))
+sum(duplicated(training_df))
+
+enframe(colSums(is.na(users_df)), name="index", value="na_count")
+enframe(colSums(is.na(training_df)), name="index", value="na_count")
+
+enframe(table(users_df$u_id), name="index", value="frequency")
+enframe(table(users_df$u_name), name="index", value="frequency")
+enframe(table(training_df$u_t_id), name="index", value="frequency")
+enframe(table(training_df$u_id), name="index", value="frequency")
+enframe(table(training_df$training_id), name="index", value="frequency")
+
+## Iteration:
+result_df <- users_df %>%
+    inner_join(
+        # 1. Join users and training DataFrames by u_id
+        training_df, by="u_id"
+    ) %>%
+    group_by(u_name, training_id, training_date) %>%
+    summarise(
+        # 2. Count the number of times users took the same training lesson on the same date.
+        training_count = n_distinct(u_t_id),
+        .groups = "drop"
+    ) %>%
+    filter(
+        # 3. filter for users who took the same training lesson more than once
+        training_count > 1
+    ) %>%
+    arrange(u_name, training_id, training_date, training_count)
+
+# Result:
+result_df
+
+Notes:
+- No nulls, duplicates, or abnormal value counts were found in the data quality checks. I started my approach
+  by inner joining the provided users and training DataFrames by u_id. The combined DataFrame was then grouped
+  and aggregated to count the distinct number of u_t_id for each u_name, training_id, and training_date group.
+  From there, the resulting aggregation was filtered for training counts greater than 1 for users that took
+  the same lessons more than once on the same day. Lastly, the results were arranged in ascending order.
+
+Suggestions and Final Thoughts:
+- If the training_date column had a datetime value instead of just a date since it's defined as a POSIXct,
+  POSIXt datatype, then it would be necessary to extract the date using the as.Date() function.
+  ex.
+      mutate(
+          date = as.Date(training_date)
+      )
+- The n() function to count the number of rows that reflect the u_t_id would have worked in the summarise()
+  function but the safer way is to use n_distinct() to count the number of distinct ids if there were any
+  discrepancies.
+  ex.
+      summarise(
+          training_count = n(),
+          training_count = n_distinct(u_t_id)
+      )
+  
+Solve Duration:
+17 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2161
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Tiktok - Least Popular Video
+You have been asked to find the least popular video based on how many users have watched it.
+Consider that a user can watch a video multiple times. 
+Only the unique user views are counted.
+In the case of a tie, output all the video ids of the least popular video(s).
+
+Data Dictionary:
+Table name = 'videos_watched'
+user_id: object (str)
+video_id: object (str)
+watched_at: datetime64 (dt)
+
+Code:
+Solution #1
+## Question:
+# You have been asked to find the least popular video based on how many users who watched it.
+# Consider that a user can watch a video multiple times.
+# Only the unique user views are counted.
+# In the case of a tie, output all the video ids of the least popular video(s).
+
+## Output:
+# video_id
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#videos_watched = read_csv("videos_watched.csv")
+videos_df = pd.DataFrame(videos_watched)
+videos_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 51 x 3
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - user_id, video_id
+#videos_df.info()
+
+videos_df.shape
+
+videos_df.duplicated().sum()
+
+videos_df.isna().sum().reset_index(name="na_count")
+
+videos_df["user_id"].value_counts().reset_index(name="frequency")
+videos_df["video_id"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# 1. Count the number of unique users who watched each video
+result_df = videos_df.groupby("video_id")["user_id"].nunique().reset_index(name="unique_user_view_count")
+
+# 2. Filter for the least popular video based on unique user views and include ties, sort in ASC order.
+result_df = result_df[
+    result_df["unique_user_view_count"] == result_df["unique_user_view_count"].min()   
+].sort_values(by="video_id", ascending=True)
+
+## Result:
+print("The least popular videos based on how many users have watched them:")
+result_df
+
+Notes:
+- There were no duplicates, nulls or odd value counts found in the data quality check. My approach to this
+  problem was counting the number of unique users who watched each video using groupby aggregation and the
+  nunique() function. The aggregated data was then filtered for the least popular video based on the smallest
+  unique user view count using the min() function which includes ties. The final results were sorted in
+  ascending order by video_id.
+
+Suggestions and Final Thoughts:
+- Best to assign filter values to a variable rather than hard coding them in the filter function. This makes
+  the code easier to understand, reuse for later, and debug.
+  ex.
+      min_watchers = result_df["unique_user_view_count"].min()
+      result_df = result_df[
+          result_df["unique_user_view_count"] == min_watchers
+      ]
+- Another alternative approach to finding the least popular video and including ties would have been to go
+  with the the rank() function and assign a dense rank method based on ascending values and filter for lowest
+  ranking.
+  ex.
+      result_df["rank"] = result_df["unique_user_view_count"].rank(method="dense", ascending=True)
+      result_df = result_df[
+          result_df["rank"] == 1
+      ]
+      
+Solve Duration:
+8 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10037
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Wine Magazine - Find Favourite Wine Variety
+Find each taster's favorite wine variety.
+Consider that favorite variety means the variety that has been tasted by most of the time.
+Output the taster's name along with the wine variety.
+
+Data Dictionary:
+Table name = 'winemag_p2'
+country: text (str)
+description: text (str)
+designation: text (str)
+id: bigint (int)
+points: bigint (int)
+price: double precision (flt)
+province: text (str)
+region_1: text (str)
+region_2: text (str)
+taster_name: text (str)
+taster_twitter_handle: text (str)
+title: text (str)
+variety: text (str)
+winery: text (str)
+
+Code:
+Solution #1
+-- Question:
+-- Find each taster's favorite wine variety.
+-- Consider that favorite variety means the variety that has been tasted by most of the time.
+-- Output the taster's name along with the wine variety.
+
+-- Output:
+-- taster_name, variety
+
+-- Preview data:
+SELECT * FROM winemag_p2 LIMIT 5;
+
+-- Check dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 100 x 14
+-- Duplicates - 0
+-- Nulls - designation(24), price(5), region_1(21), region_2(67), taster_name(16), taster_twitter_handle(21)
+-- Value Counts: country, description, designation, id, province, region_1, region_2, taster_name,
+--               taster_twitter_handle, title, variety, winery
+SELECT -- Dimensions, nulls
+    SUM(CASE WHEN country IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN description IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN designation IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN points IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN price IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN province IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN region_1 IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN region_2 IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN taster_name IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN taster_twitter_handle IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN title IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN variety IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN winery IS NULL THEN 1 ELSE 0 END) AS col14,
+    COUNT(*) AS total_rows
+FROM winemag_p2;
+
+SELECT -- Duplicates
+    country, description, designation, id, points, price, province, region_1, region_2, taster_name, taster_twitter_handle, title, variety, winery,
+    COUNT(*) AS duplicate_count
+FROM winemag_p2
+GROUP BY
+    country, description, designation, id, points, price, province, region_1, region_2, taster_name, taster_twitter_handle, title, variety, winery
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    country,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY country
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    description,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY description
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, a lot of null values for designation
+    designation,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY designation
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, different number of digits for ids
+    id,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, some categories say Other mixed with province name
+    province,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY province
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, a lot of null values for region_1 as highest category
+    region_1,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY region_1
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, a lot of null values for region_2 as highest category
+    region_2,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY region_2
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, null values make up the second highest category
+    taster_name,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY taster_name
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, null values make up the second highest category
+    taster_twitter_handle,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY taster_twitter_handle
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    title,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY title
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    variety,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY variety
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    winery,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY winery
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Filter out missing values in taster_name and variety columns
+-- 2. Count the number of times a variety has been tasted by each taster name
+-- 3. Rank the variety count for each taster_name in descending order and include ties.
+-- 4. Filter for favorite variety of each taster_name based on highest ranking
+WITH TasterVarietyCountsRank AS (
+    SELECT 
+        taster_name,
+        variety,
+        COUNT(variety) AS variety_count,
+        DENSE_RANK() OVER(PARTITION BY taster_name ORDER BY COUNT(variety) DESC) AS dense_rank
+    FROM winemag_p2
+    WHERE taster_name IS NOT NULL
+        AND variety IS NOT NULL
+    GROUP BY
+        taster_name, 
+        variety
+)
+SELECT
+    taster_name,
+    variety
+FROM TasterVarietyCountsRank
+WHERE dense_rank = 1
+ORDER BY
+    taster_name,
+    variety;
+    
+-- Result:
+WITH TasterVarietyCountsRank AS (
+    SELECT 
+        taster_name,
+        variety,
+        -- 2. Count the number of times a variety has been tasted by each taster name
+        COUNT(variety) AS variety_count,
+        -- 3. Rank the variety count for each taster_name in descending order and include ties.
+        DENSE_RANK() OVER(
+            PARTITION BY 
+                taster_name 
+            ORDER BY 
+                COUNT(variety) DESC
+        ) AS dense_rank
+    FROM 
+        winemag_p2
+    WHERE 
+        -- 1. Filter out missing values in taster_name and variety columns
+        taster_name IS NOT NULL
+        AND variety IS NOT NULL
+    GROUP BY
+        taster_name, 
+        variety
+)
+SELECT
+    taster_name,
+    variety
+FROM 
+    TasterVarietyCountsRank
+WHERE 
+    -- 4. Filter for favorite variety of each taster_name based on highest ranking
+    dense_rank = 1
+ORDER BY
+    taster_name,
+    variety;
+
+Notes:
+- None of the duplicates or value counts were needed to solve the problem. The null values however were
+  considered specifically in the taster_name column. The first step in my query included a filter in the
+  WHERE clause to only include values in the taster_name and variety columns that were not missing. From
+  there, a groupby aggregation was performed to count the number of times a variety appeared to be tasted
+  by taster_name and vareity combination. A dense rank was then applied for ranking the variety counts in
+  descending order grouped by taster_name and to include ties. All of these steps were placed in a common 
+  table expression (CTE) and subsequently queried to filter for the highest ranking to show the favorite 
+  variety of each taster_name. The resulting output was ordered by taster_name and variety in ascending order.
+
+Suggestions and Final Thoughts:
+- This was a "find the top item per group" type of question that could have been solved in multiple common
+  table expressions (CTEs) but I chose to try to make it a little more concise and optimal this time rather
+  than having everything in it's own individual CTE.
+- There were a lot of text and id datatype columns that needed to be checked for discrepancies in value
+  counts which took up a bulk of the solve time.
+- Even though the problem doesn't mention ties, there were a lot of ties in favorite variety for each
+  taster_name and so there weren't many taster_name and variety combinations that were single favorite values.
+
+Solve Duration:
+24 minutes
+
+Notes Duration:
+6 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
