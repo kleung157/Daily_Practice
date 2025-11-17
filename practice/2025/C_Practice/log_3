@@ -675,16 +675,181 @@ Source:
 C Programming for Everybody - 6-A Linked Lists
 
 Question:
+You will write a function list_add() to append an integer to the end of a linked list. 
+You will also write a function called list_find() that will return the list node containing the integer value or NULL if the value is not in the list.
 
 Python Code:
+N/A
 
 C Code:
+#include <stdio.h>
+#include <stdlib.h>
+
+struct lnode {
+    int value;
+    struct lnode *next;
+};
+
+struct list {
+  struct lnode *head;
+  struct lnode *tail;
+};
+
+int main()
+{
+    void list_add();
+    void list_dump();
+    struct lnode * list_find();
+
+    struct list mylist;
+    struct lnode * mynode;
+
+    mylist.head = NULL;
+    mylist.tail = NULL;
+
+    list_add(&mylist, 10);
+    list_add(&mylist, 20);
+    list_add(&mylist, 30);
+    list_dump(&mylist);
+
+    mynode = list_find(&mylist, 42);
+    if ( mynode == NULL ) {
+        printf("Did not find 42\n");
+    } else {
+        printf("Looked for 42, found %d\n", mynode->value);
+    }
+
+    mynode = list_find(&mylist, 30);
+    if ( mynode == NULL || mynode->value != 30) {
+        printf("Did not find 30\n");
+    } else {
+        printf("Found 30\n");
+    }
+
+    list_add(&mylist, 40);
+    list_dump(&mylist);
+
+}
+
+void list_dump(lst)
+    struct list *lst;
+{
+    struct lnode *cur;
+    printf("\nDump:\n");
+    for(cur=lst->head; cur != NULL; cur=cur->next) {
+        printf("  %d\n", cur->value);
+    }
+}
+
+/* Append the value to the end of the linked list. */
+void list_add(lst, value)
+    struct list *lst;
+    int value;
+{
+    /* Allocate space only for the new node */
+    struct lnode *new = (struct lnode *)
+        malloc(sizeof(struct lnode));
+  
+    /* Check if allocation failed */
+    if ( new == NULL ) {
+        return;
+    }
+  
+    /* Initialize the node's fields.
+       Store the integer value directly.
+       New node is always last, next is NULL */
+    new->value = value; 
+    new->next = NULL; 
+  
+    /* List is not empty.
+       Append new node by updating current tail's 'next' pointer.
+       Update the list's 'tail' pointer to be the new node. */
+    if ( lst->tail != NULL ) {
+        lst->tail->next = new;
+        lst->tail = new;
+    }
+  
+    /* List is empty. 
+       Head and tail point to the new node */
+    if ( lst->head == NULL ) {
+        lst->head = new;
+        lst->tail = new;
+    }    
+}
+
+/* Scan function to search for a specific value */
+struct lnode * list_find(lst, value)
+    struct list *lst;
+    int value;
+{
+    /* Initialize a moving pointer to the head of the list. */
+    struct lnode *cur = lst->head;
+    
+    /* Loop until the current pointer reaches NULL, 
+       NULL signifies end of list */
+    while (cur != NULL) {
+      
+        /* Check if the current node contains the target value
+           If value found, return the pointer to matching node */
+        if ( cur->value == value ) {
+            return cur;
+        }
+        /* Move to the next node */
+        cur = cur->next;
+    }
+    
+    /* If the loop finishes without finding the value, return NULL */
+    return NULL;
+}
 
 Input:
+N/A
 
 Output:
+Dump:
+  10
+  20
+  30
+Did not find 42
+Found 30
+
+Dump:
+  10
+  20
+  30
+  40
 
 Notes:
+- The lecture notes for Chapter 6 had code that added character lines into a list. This question asked for
+  appending an integer to the end of a linked list using a similar list_add() function. At first, I used the
+  same lecture code in my own version of a list_add() function to see what the output would look like. Since
+  the question asked for an integer, I removed a lot of the string specific code like strcpy() and having to
+  use a character save variable to allocate characters. Instead, I switched the save variable to be an integer
+  and the malloc() allocation didn't use strlen() and simply used sizeof() of the integer value.
+  ex. 
+      int *save = (int *) malloc(sizeof(value));
+- Turns out the integer save step was not necessary either for the final function output. After manipulating 
+  the code for sometime, I had to figure out a way to save the values inputted in the function into a variable
+  using pointers. The *new pointer was defined in the structure lnode and allocated for space already. A step
+  was added to test if the allocation failed. The new pointer was used to initialize the node's fields such as
+  value and next variables. Value was the value of the input from the function and next was NULL. Moving to
+  the conditional statements, if a list was not empty based on the list not being NULL at the tail then the
+  next pointer had the new node appended to it and the tail pointer was the new node. If a list is empty, then
+  the head and tail pointers point to the new node.
+- For the second part of the question regarding the list_find() function, I saw that the provided main code
+  had a *cur pointer so I decided to declare that into the structure lnode as *cur = lst->head to initialize
+  a moving pointer to the head of the list. With a moving pointer, a while loop could be used to scan through
+  the earlier appended list until a NULL was reached. If the current node contained the target value then
+  the current node was returned. Otherwise, the current node would continually move on to the next node. At
+  the end of the loop, if the value was not found then a NULL value was returned.
+- The list_add() function appended to the list, the list_dump() function traversed the list, and list_find()
+  function searched through the list.
+- Will need to review structures and pointers a lot more to fully grasp the concepts since this problem was
+  a bit difficult at several points.
+- For suggeestions and key takeaways, adding to the tail is O(1) constant time because of the tail pointer.
+  The node's int value field provides the storage which eliminates the need for a separate malloc(sizeof(int)).
+  Declaring variables should be in the function parameters rather than outside the function since it's the 
+  old K&R style.
 
 ############################################################################################################
 
