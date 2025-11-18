@@ -1,0 +1,473 @@
+Date: 11/18/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2132
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Etsy - Caller History
+Given a phone log table that has information about callers' call history, find out the callers whose first and last calls were to the same person on a given day. 
+Output the caller ID, recipient ID, and the date called.
+
+Data Dictionary:
+Table name = 'caller_history'
+caller_id: numeric (num)
+recipient_id: numeric (num)
+date_called: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1
+## Question:
+# Given a phone log table that has information about callers' call history, 
+# find out the callers whose first and last calls were to the same person on a given day.
+# Output the caller ID, recipient ID and the date called.
+
+## Output:
+# caller_id, recipient_id, date
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#caller_history <- read_csv("caller_history.csv")
+calls_df <- data.frame(caller_history)
+head(calls_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 12 x 3
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - caller_id, recipient_id
+data.frame(lapply(calls_df, class))
+
+dim(calls_df)
+
+sum(duplicated(calls_df))
+
+enframe(colSums(is.na(calls_df)), name="index", value="na_count")
+
+enframe(table(calls_df$caller_id), name="index", value="frequency")
+enframe(table(calls_df$recipient_id), name="index", value="frequency")
+
+## Iteration:
+result_df <- calls_df %>%
+    mutate(
+        # 1. Extract the date from date_called column, convert back to as.POSIXct datatype
+        date = as.POSIXct(as.Date(date_called))
+    ) %>%
+    arrange(
+        # 2. Arrange caller_id, date_called, and date in ascending order
+        caller_id, date_called, date
+    ) %>%
+    group_by(caller_id, date) %>%
+    summarise(
+        # 3. Find the first and last call recipients of each caller by caller_id and date
+        first_call_recipient = first(recipient_id),
+        last_call_recipient = last(recipient_id),
+        .groups="drop"
+    ) %>%
+    filter(
+        # 4. Filter for callers whose first and last calls were to same person
+        first_call_recipient == last_call_recipient
+    ) %>%
+    select(
+        # 5. Select and rename relevant output columns
+        caller_id, recipient_id=first_call_recipient, date
+    )
+
+## Result:
+result_df
+
+Notes:
+- No duplicates, nulls, or abnormal value counts were found in the data quality check. I began my approach with
+  extracting the date from the date_called column using the as.Date() function then converting back to a POSIXct,
+  POSIXt datatype using the as.POSIXct() function. The dataset was sorted in ascending order by caller_id,
+  date_called and date columns using the arrange() function. From there, the first and last entries for 
+  caller_id and date combinations were grouped and aggregated using the first() and last() function in the 
+  summarise() function. After aggregation, the remaining data was filtered for where first_call_recipients == 
+  last_call_recipients. Finally, the relevant output columns were selected and renamed.
+
+Suggestions and Final Thoughts:
+- Using as.Date() or as_date() functions from the lubridate package for some reason converts the POSIXct and
+  POSIXt column into values that have 5 digits, for example "18993". My workaround is using as.POSIXct()
+  function after using the as.Date() or as_date() functions to extract the date.
+- An alternative approach would be to perform filter() with which.min() and distinct() without having to use
+  summarise(). This is less efficient and performant than my current method. 
+  ex.
+      result_df <- caller_history %>%
+           # 1. Extract the date for daily grouping
+           mutate(
+              call_date = as_date(date_called)
+           ) %>%
+  
+           # 2. Group by caller and the specific day
+           group_by(caller_id, call_date) %>%
+  
+           # 3. Filter the groups
+           filter(
+           # Identify the recipient of the first call (min date_called)
+           recipient_id[which.min(date_called)] == 
+           # Compare it to the recipient of the last call (max date_called)
+           recipient_id[which.max(date_called)],
+    
+           # Ensure there is more than one distinct call time for the day 
+           # (if the problem implies a log with multiple entries is needed)
+           # If a single call counts as first/last, remove this line:
+           n() > 1 
+           ) %>%
+  
+           # 4. Ungroup and select the required columns
+           ungroup() %>%
+           # Select the specific columns for the final output
+           # For the recipient ID, we can just take the first one since we've established they are all the same
+           select(caller_id, recipient_id = recipient_id, date_called = call_date) %>%
+  
+           # 5. Remove duplicates, as all rows in the filtered group will now be duplicates
+           distinct()
+
+Solve Duration:
+18 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+8 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2162
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Deloitte - Top 3 Year Month Sales
+The sales team wants to find out which months had the highest sales. 
+Based on the sales data provided, you must determine the top three year-month combinations for sales.
+Your output should include the top three monthly sales in the format YYYY-MM as well as the corresponding total monthly sales.
+
+Data Dictionary:
+Table name = 'fct_customer_sales'
+cust_id: object (str)
+prod_sku_id: object (str)
+order_date: datetime64 (dt)
+order_value: int64 (int)
+order_id: object (str)
+
+Code:
+Solution #1
+## Question:
+# The sales team wants to find out which months had the highest sales.
+# Based on the sales data provided, you must determine the top three year-month combinations for sales.
+# Output should include the top three monthly sales in the format YYYY-MM as well as the corresponding
+# total monthly sales.
+
+## Output:
+# year_month, total_monthly_sales
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#fct_customer_sales = pd.read_csv("fct_customer_sales.csv")
+sales_df = pd.DataFrame(fct_customer_sales)
+sales_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 78 x 5
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - cust_id, prod_sku_id, order_id
+#sales_df.info()
+
+sales_df.shape
+
+sales_df.duplicated().sum()
+
+sales_df.isna().sum().reset_index(name="na_count")
+
+sales_df["cust_id"].value_counts().reset_index(name="frequency")
+sales_df["prod_sku_id"].value_counts().reset_index(name="frequency")
+sales_df["order_id"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# 1. Extract year and month from order_date column in YYYY-MM format
+sales_df["year_month"] = sales_df["order_date"].dt.to_period('M')
+
+# 2. Calculate the total monthly sales for each year month combination
+result_df = sales_df.groupby("year_month")["order_value"].sum().reset_index(name="total_monthly_sales")
+
+# 3. Rank the total monthly sales in descending order, include ties
+result_df["rank"] = result_df["total_monthly_sales"].rank(method="dense", ascending=False)
+
+# 4. Filter for top 3 year month combinations for sales
+result_df = result_df[
+    result_df["rank"] <= 3    
+]
+
+# 5. Select relevant columns and sort by total monthly sales
+result_df = result_df[["year_month", "total_monthly_sales"]].sort_values(by="total_monthly_sales", ascending=False)
+
+## Result:
+print("Top three year-month combinations for sales:")
+result_df
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts found in the data quality check. I started my
+  approach with extracting the year and month from the order_date column in YYYY-MM format using the 
+  .dt.to_period('M') function. From there, I calculated the total monthly sales for each year_month 
+  combination with groupby sum aggregation using the groupby(), sum() and reset_index() functions. The
+  resulting aggregated data was dense ranked by the total_monthly_sales column in descending order using the
+  rank() function. Afterwards, the DataFrame was filterd for top 3 year month combinations for sales based on
+  rank. Lastly, the necessary output columns were selected and sorted by total monthly sales in ascending 
+  order.
+
+Suggestions and Final Thoughts:
+- When using the .dt.to_period('M') function, the datetime column is converted to a Period object. The output
+  could be converted to a string using .astype(str)
+  ex.
+      result_df["year_month"] = result_df["year_month"].astype(str)
+- An alternative to extracting the year month combination would be using the .dt.strftime() function() and
+  specifying the parameters '%Y-%m')
+  ex.
+      sales_df["year_month"] = sales_df["order_date"].dt.strftime("%Y-%m")
+- The prompt did not specify any potential ties in the aggregated values but I used the dense rank method to
+  account for potential edge cases and reproducibility of the code.
+
+Solve Duration:
+11 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10040
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Wine Magazine
+Find all wines from the winemag_p2 dataset which are produced in the country that have the highest sum of points in the winemag_p1 dataset
+
+Data Dictionary:
+Table name = 'winemag_p1'
+country: text (str)
+description: text (str)
+designation: text (str)
+id: bigint (int)
+points: bigint (int)
+price: double precision (flt)
+province: text (str)
+region_1: text (str)
+region_2: text (str)
+variety: text (str)
+winery: text (str)
+
+Table name = 'winemag_p1'
+country: text (str)
+description: text (str)
+designation: text (str)
+id: bigint (int)
+points: bigint (int)
+price: double precision (flt)
+province: text (str)
+region_1: text (str)
+region_2: text (str)
+taster_name: text (str)
+taster_twitter_handle: text (str)
+title: text (str)
+variety: text (str)
+winery: text (str)
+
+Code:
+Solution #1
+-- Question:
+-- Find all wines from the winemag_p2 dataset which are produced in the country that have the highest sum 
+-- of points in winemag_p1 dataset.
+
+-- Output:
+-- title
+
+-- Preview data:
+SELECT * FROM winemag_p1 LIMIT 5;
+SELECT * FROM winemag_p2 LIMIT 5;
+
+-- Check dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - p1: 100 x 11
+--            - p2: 100 x 14
+-- Duplicates - p1: 0
+--            - p2: 0
+-- Nulls - p1: designation(36), price(3), region_1(20), region_2(61)
+--       - p2: designation(24), price(5), region_1(21), region_2(67), taster_name(16), 
+--             taster_twitter_handle(21)
+-- Value Counts - p1: country, description, designation, id, province, region_1, region_2,
+--                     variety, winery
+--              - p2: country, description, designation, id, province, region_1, region_2,
+--                     taster_name, taster_twitter_handle, title, variety, winery
+SELECT -- Dimensions and Nulls
+    SUM(CASE WHEN country IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN description IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN designation IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN points IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN price IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN province IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN region_1 IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN region_2 IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN variety IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN winery IS NULL THEN 1 ELSE 0 END) AS col11,
+    COUNT(*) AS total_rows
+FROM winemag_p1;
+
+SELECT
+    SUM(CASE WHEN country IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN description IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN designation IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN points IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN price IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN province IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN region_1 IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN region_2 IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN taster_name IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN taster_twitter_handle IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN title IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN variety IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN winery IS NULL THEN 1 ELSE 0 END) AS col14,
+    COUNT(*) AS total_rows
+FROM winemag_p2;
+
+SELECT -- Duplicates
+    country, description, designation, id, points, price, province, region_1, region_2, variety, winery,
+    COUNT(*) AS duplicate_count
+FROM winemag_p1
+GROUP BY
+    country, description, designation, id, points, price, province, region_1, region_2, variety, winery
+HAVING COUNT(*) > 1;
+
+SELECT
+    country, description, designation, id, points, price, province, region_1, region_2, taster_name, taster_twitter_handle, title, variety, winery,
+    COUNT(*) AS duplicate_count
+FROM winemag_p2
+GROUP BY
+    country, description, designation, id, points, price, province, region_1, region_2, taster_name, taster_twitter_handle, title, variety, winery
+HAVING COUNT(*) > 1;
+
+-- Iteration:
+-- 1. Calculate sum of points for each country in winemag_p1 dataset
+-- 2. Rank the sum of points in descending order and include ties
+-- 3. Inner join CountryTotalPointsRank with winemag_p2 table by matching country column
+-- 4. Filter for country with highest sum of points based on rank
+WITH CountryTotalPointsRank AS (
+    SELECT 
+        country,
+        SUM(points) AS total_points,
+        DENSE_RANK() OVER(ORDER BY SUM(points) DESC) AS dense_rank
+    FROM winemag_p1
+    GROUP BY 
+        country
+)
+SELECT
+    wp2.title
+FROM winemag_p2 as wp2
+JOIN CountryTotalPointsRank AS ctpr
+    ON wp2.country = ctpr.country
+WHERE ctpr.dense_rank = 1
+ORDER BY wp2.title ASC;
+
+-- Result:
+WITH CountryTotalPointsRank AS (
+    SELECT 
+        country,
+        -- 1. Calculate sum of points for each country in winemag_p1 dataset
+        SUM(points) AS total_points,
+        -- 2. Rank the sum of points in descending order and include ties
+        DENSE_RANK() OVER(
+            ORDER BY SUM(points) DESC
+        ) AS dense_rank
+    FROM 
+        winemag_p1
+    GROUP BY 
+        country
+)
+SELECT
+    wp2.title
+FROM 
+    winemag_p2 as wp2
+JOIN 
+    -- 3. Inner join CountryTotalPointsRank with winemag_p2 table by matching country column
+    CountryTotalPointsRank AS ctpr
+    ON wp2.country = ctpr.country
+WHERE 
+    -- 4. Filter for country with highest sum of points based on rank
+    ctpr.dense_rank = 1
+ORDER BY 
+    wp2.title ASC;
+
+Notes:
+- None of the duplicates, nulls, or value counts in the data quality check were needed to solve the problem.
+  My approach started with calculating the sum of points for each country in the winemag_p1 dataset by using a
+  groupby sum aggregation and then dense ranking the total points in descending order to include ties. These
+  steps involved the SUM() and DENSE_RANK() function and were contained in a common table expression (CTE).
+  The created CountryTotalPointsRank CTE was then inner joined to a subsequent query that called for the 
+  winemag_p2 table by matching the country column values. This query filtered for the country with the
+  highest sum of points based on rank. The resulting output was the title column being selected and ordered
+  in ascending order.
+
+Suggestions and Final Thoughts:
+- If the country or title columns from either provided table contained null values then it would be better to
+  filter out those values in the WHERE clause.
+  ex.
+      WHERE country IS NOT NULL;
+      WHERE title IS NOT NULL;
+- An alternative approach to finding the country with the highest sum of points could be to order the 
+  winemag_p1 data by SUM(points) DESC then use the LIMIT 1 function. This isn't as robust nor able to be
+  reproducible for other codes. It is a little more efficient but doesn't consider edge cases.
+  ex.
+      SELECT
+          country
+      FROM
+          winemag_p1
+      GROUP BY
+          country
+      ORDER BY
+          SUM(points) DESC -- Sorts sums descending
+      LIMIT 1; -- Selects only the absolute highest one
+- I don't think I would use a subquery over a CTE if I had to choose. Mainly would want to maintain a sense
+  of clarity of understanding and being able to debug and reproduce for later usages.
+- I didn't perform the value count checks since the problem didn't use any of the columns I listed that were
+  of potential concern that were id and text columns.
+
+Solve Duration:
+23 minutes
+
+Notes Duration:
+7 minutes
+
+Suggestions and Final Thoughts Duration:
+7 minutes
+
+############################################################################################################
