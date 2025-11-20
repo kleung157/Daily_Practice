@@ -1,0 +1,561 @@
+Date: 11/20/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2133
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Netflix - First Three Most Watched Videos
+After a new user creates an account and starts watching videos, the user ID, video ID, and date watched are captured in the database. 
+Find the top 3 videos most users have watched as their first 3 videos. 
+Output the video ID and the number of times it has been watched as the users' first 3 videos.
+In the event of a tie, output all the videos in the top 3 that users watched as their first 3 videos.
+
+Data Dictionary:
+Table name = 'videos_watched'
+user_id: character (str)
+video_id: character (str)
+watched_at: POSIXct, POSIXt (dt)
+
+Code:
+## Question:
+# After a new user creates an account and starts watching videos, the user ID, video ID, and date watched
+# are captured in the database.
+# Find the top 3 videos most users have watched as their first 3 videos.
+# Output the video ID and the number of times it has been watched as the users' first 3 videos.
+# In the event of a tie, output all the videos in the top 3 that users watched as their first 3 videos.
+
+## Output:
+# video_id, user_first_three_watch_count
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#videos_watched <- read_csv("videos_watched.csv")
+videos_df <- data.frame(videos_watched)
+head(videos_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 51 x 3
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - user_id, video_id
+data.frame(lapply(videos_df, class))
+
+dim(videos_df)
+
+sum(duplicated(videos_df))
+
+enframe(colSums(is.na(videos_df)), name="index", value="na_count")
+
+enframe(table(videos_df$user_id), name="index", value="frequency")
+enframe(table(videos_df$video_id), name="index", value="frequency")
+
+## Iteration:
+result_df <- videos_df %>%
+    group_by(user_id) %>%
+    mutate(
+        # 1. Rank each user's watched videos in ascending order
+        rank = dense_rank(watched_at)
+    ) %>%
+    filter(
+        # 2. Filter for users' first 3 videos watched
+        rank <= 3
+    ) %>%
+    ungroup() %>%
+    group_by(video_id) %>%
+    summarise(
+        # 3. Count the number of times each video has been watched by users as their first 3 videos
+        user_first_three_watch_count = n(),
+        .groups="drop"
+    ) %>%
+    mutate(
+        # 4. Rank the user first three watch count in descending order, include ties
+        watch_rank = dense_rank(desc(user_first_three_watch_count))
+    ) %>%
+    filter(
+        # 5. Filter for top 3 videos most users have watched as their first 3 videos
+        watch_rank <= 3
+    ) %>%
+    select(
+        # 6. Select relevant columns
+        video_id, user_first_three_watch_count
+    ) %>%
+    arrange(
+        # 7. Arrange in descending order by user_first_three_watch_count
+        desc(user_first_three_watch_count)
+    )
+    
+## Result:
+result_df
+
+Notes:
+- No duplicates, nulls, or abnormal value counts were found in the data quality check. I started my approach
+  with ranking each user's watched videos in ascending order, and filtering for users' first 3 videos watched
+  using group_by(), mutate(), dense_rank(), and filter() functions. From there, I performed a group by count 
+  aggregation for counting the number of times each video has been watched by users as their first 3 videos
+  using group_by(), summarise(), and n() functions. The resulting aggregation was ranked by 
+  user_first_three_watch_count in descending order which included ties and filtered for top 3 videos most users 
+  have watched as their first 3 videos using mutate(), dense_rank(), and filter() functions. Afterwards, the 
+  relevant columns were selected and arranged in descending order by user_first_three_watch_count using the 
+  select() and arrange() functions.
+
+Suggestions and Final Thoughts:
+- After the groupby count aggregation step using the summarise() function, an alternative approach to
+  ranking and filtering would be to use the slice_max() function to select the top 3 counts and keeping
+  all ties. Specify the parameters in order_by, n, and with_ties arguments. The only problem I can see with
+  this is that even though it includes ties, I would have to change the n argument in slice_max() to a higher
+  number to have top 3 and include ties if there was in fact a tie.
+  ex.
+      slice_max(
+          order_by = user_first_three_watch_count,
+          n = 3,
+          with_ties = TRUE
+      )
+- Had considered using min_rank() or row_number() for the initial ranking of user's watched videos in
+  ascending order but the dense_rank() function covers a lot of scenarios for potential edge cases.
+- For the groupby count aggregation step, I was thinking about using n_distinct() on user_id. The prompt
+  however does not specify unique user watch counts so I went with n() instead to include all counts of users
+  watching videos.
+
+Solve Duration:
+17 minutes
+
+Notes Duration:
+8 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2164
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Amazon - Stock Codes with Prices Above Average
+You are given a dataset of online transactions, and your task is to identify product codes whose unit prices are greater than the average unit price of sold products.
+•   The unit price should be the original price (i.e., the minimum unit price for each product code).
+•   The average unit price should be computed based on the unique product codes and their original prices.
+Your output should contain productcode and unitprice (the original price).
+
+Data Dictionary:
+Table name = 'online_retails'
+invoiceno: int64 (int)
+productcode: object (str)
+quantity: int64 (int)
+invoicedate: datetime64 (dt)
+unitprice: float64 (flt)
+
+Code:
+**Attempt #1
+# 1. Calculate the average unit price based on unique product codes and original prices
+retails_df["average_unit_price"] = retails_df["unitprice"].mean()
+
+# 2. Filter for products whose unit prices are greater than the average unit price of sold products
+result_df = retails_df[
+    retails_df["unitprice"] > retails_df["average_unit_price"]
+].copy()
+
+# 3. Select relevant columns and sort by productcode in ascending order
+result_df = result_df[["productcode", "unitprice"]].sort_values(by="productcode", ascending=True)
+
+## Result:
+print("Product codes whose unit prices are greater than the average unit price of sold products:")
+result_df"
+
+
+**Solution #1
+## Question:
+# You are given a dataset of online transactions, and your task is to identify product codes whose unit
+# prices are greater than the average unit price of sold products.
+# The unit price should be the original price (i.e. the minimum unit price for each product code).
+# The average unit price should be computed based on the unique product codes and their original prices.
+# Your output should contain productcode and unitprice (the original price).
+
+## Output:
+# productcode, unitprice
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#online_retails = pd.read_csv("online_retails.csv")
+retails_df = pd.DataFrame(online_retails)
+retails_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 39 x 5
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - invoiceno, productcode
+#retails_df.info()
+
+retails_df.shape
+
+retails_df.duplicated().sum()
+
+retails_df.isna().sum().reset_index(name="na_count")
+
+retails_df["invoiceno"].value_counts().reset_index(name="frequency")
+retails_df["productcode"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# 1. Calculate the average unit price based on unique product codes and original prices
+result_df = retails_df.groupby("productcode")["unitprice"].min().reset_index(name="original_price")
+result_df["average_unit_price"] = result_df["original_price"].mean()
+
+# 2. Filter for products whose unit prices are greater than the average unit price of sold products
+result_df = result_df[
+    result_df["original_price"] > result_df["average_unit_price"]
+].copy().rename(columns={"original_price": "unitprice"})
+
+# 3. Select relevant columns and sort by productcode in ascending order
+result_df = result_df[["productcode", "unitprice"]].sort_values(by="productcode", ascending=True)
+
+## Result:
+print("Product codes whose unit prices are greater than the average unit price of sold products:")
+result_df
+
+Notes:
+- No duplicates, nulls, or unusual value counts were found in the data quality check. I began my approach by
+  creating a calculated column to calculate the average unit price based on unique product codes and original
+  prices using the mean() function. Next, the products whose unit prices were greater than average unit price
+  of sold prices were filtered using a conditional statement. Last, the necessary output columns were selected
+  and sorted in ascending order by productcode using the sort_values() function.
+- I had thought that each unique product code would have multiple entries but each entry was unique for each
+  unique product code so I didn't need to use groupby or transform on the productcode column.
+
+Suggestions and Final Thoughts:
+- Since each entry in the online_retails DataFrame was not duplicated and there weren't multiple product code
+  entries for each unique product code then my Attempt #1 ended up with the same answer as Solution #1. 
+  However, to ensure that I follow the prompt to a tee, it would be better to simply perform all necessary
+  steps to account for edge cases.
+- The average_unit_price calculated column was calculated using the original_price column which was created
+  by a groupby minimum aggregation of productcode and unitprice. This original price was used in the filter
+  statement instead of the unitprice column. The filtered results had columns renamed and selected for
+  the necessary outputs and sorted accordingly.
+- Creating the result_df DataFrame step removed duplicates, ensured the correct price was used by calculating
+  the minimum unit price for each product code, and was more efficient than creating multiple columns with
+  the transform() function which is more memory-intensive.
+  ex.
+      result_df = retails_df.groupby("productcode")["unitprice"].min().reset_index(name="original_price")
+
+Solve Duration:
+18 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+18 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10041
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Wine Magazine - Most Expensive And Cheapest Wine
+Find the cheapest and the most expensive variety in each region. 
+Output the region along with the corresponding most expensive and the cheapest variety. 
+Be aware that there are 2 region columns, the price from that row applies to both of them.
+Note: The results set contains no ties.
+
+Data Dictionary:
+Table name = 'winemag_p1'
+country: text (str)
+description: text (str)
+designation: text (Str)
+id: bigint (int)
+points: bigint (int)
+price: double precision (flt)
+province: text (str)
+region_1: text (str)
+region_2: text (str)
+variety: text (str)
+winery: text (str)
+
+Code:
+Solution #1
+-- Question:
+-- Find the cheapest and the most expensive variety in each region.
+-- Output the region along with the corresponding most expensive and the cheapest variety.
+-- Be aware that there are 2 region columns, the price from that row applies to both of them
+-- Note, the results set contains no ties.
+
+-- Output:
+-- region, cheapest_variety, most_expensive_variety
+
+-- Preview data:
+SELECT * FROM winemag_p1 LIMIT 5;
+
+-- Check dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 100 x 11
+-- Duplicates - 0
+-- Nulls - designation(36), price(3), region_1(20), region_2(61)
+-- Value Counts - country, description, designation, id, province, region_1, region_2, variety, winery
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN country IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN description IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN designation IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN points IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN price IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN province IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN region_1 IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN region_2 IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN variety IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN winery IS NULL THEN 1 ELSE 0 END) AS col11,
+    COUNT(*) AS total_rows
+FROM winemag_p1;
+
+SELECT -- Duplicates
+    country, description, designation, id, points, price, province, region_1, region_2, variety, winery,
+    COUNT(*) AS duplicate_count
+FROM winemag_p1
+GROUP BY
+    country, description, designation, id, points, price, province, region_1, region_2, variety, winery
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    country,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY country
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    description,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY description
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, nulls as number 1
+    designation,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY designation
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, different number of digits per id
+    id,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    province,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY province
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, nulls as number 1
+    region_1,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY region_1
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, nulls as number 1
+    region_2,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY region_2
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    variety,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY variety
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    winery,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY winery
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Filter for regions and prices where values are not null
+-- 2. Combine region_1 and region_2 prices into a single table using UNION ALL
+-- 3. Rank prices in ascending and descending order
+-- 4. Filter for cheapest and most expensive varieties
+-- 5. Join cheapest and most expensive varieties within the same region
+-- 6. Use DISTINCT to not contain any duplicate ties
+WITH CombinedRegionsVarietiesPrices AS (
+    SELECT 
+        region_1 AS region,
+        variety,
+        price
+    FROM winemag_p1
+    WHERE region_1 IS NOT NULL
+        AND price IS NOT NULL
+
+    UNION ALL
+
+    SELECT
+        region_2 AS region,
+        variety,
+        price
+    FROM winemag_p1
+    WHERE region_2 IS NOT NULL
+        AND price IS NOT NULL
+),
+RegionsVarietiesPricesRank AS (
+    SELECT
+        region,
+        variety,
+        price,
+        DENSE_RANK() OVER(PARTITION BY region ORDER BY price ASC) AS asc_rank,
+        DENSE_RANK() OVER(PARTITION BY region ORDER BY price DESC) AS desc_rank
+    FROM CombinedRegionsVarietiesPrices
+)
+SELECT DISTINCT
+    rvpr1.region,
+    rvpr1.variety AS cheapest_variety,
+    rvpr2.variety AS most_expensive_variety
+FROM RegionsVarietiesPricesRank AS rvpr1
+JOIN RegionsVarietiesPricesRank AS rvpr2
+    ON rvpr1.region = rvpr2.region
+WHERE rvpr1.asc_rank = 1
+    AND rvpr2.desc_rank = 1
+ORDER BY rvpr1.region;
+
+-- Result:
+WITH CombinedRegionsVarietiesPrices AS (
+    SELECT 
+        region_1 AS region,
+        variety,
+        price
+    FROM 
+        winemag_p1
+    WHERE 
+        -- 1. Filter for regions and prices where values are not null
+        region_1 IS NOT NULL 
+        AND price IS NOT NULL
+
+    -- 2. Combine region_1 and region_2 prices into a single table using UNION ALL
+    UNION ALL
+
+    SELECT
+        region_2 AS region,
+        variety,
+        price
+    FROM 
+        winemag_p1
+    WHERE
+        region_2 IS NOT NULL
+        AND price IS NOT NULL
+),
+RegionsVarietiesPricesRank AS (
+    SELECT
+        region,
+        variety,
+        price,
+        -- 3. Rank prices in ascending and descending order
+        DENSE_RANK() OVER(
+            PARTITION BY 
+                region 
+            ORDER BY 
+                price ASC
+        ) AS asc_rank,
+        DENSE_RANK() OVER(
+            PARTITION BY 
+                region 
+            ORDER BY 
+                price DESC
+        ) AS desc_rank
+    FROM 
+        CombinedRegionsVarietiesPrices
+)
+-- 6. Use DISTINCT to not contain any duplicate ties
+SELECT DISTINCT
+    rvpr1.region,
+    rvpr1.variety AS cheapest_variety,
+    rvpr2.variety AS most_expensive_variety
+FROM 
+    RegionsVarietiesPricesRank AS rvpr1
+JOIN 
+    -- 5. Join cheapest and most expensive varieties within the same region
+    RegionsVarietiesPricesRank AS rvpr2
+    ON rvpr1.region = rvpr2.region
+WHERE 
+    -- 4. Filter for cheapest and most expensive varieties
+    rvpr1.asc_rank = 1
+    AND rvpr2.desc_rank = 1
+ORDER BY 
+    rvpr1.region;
+
+Notes:
+- The nulls in price, region_1, and region_2 found in the data quality check were important to consider for
+  solving the problem. These nulls were filtered out in the initial common table expression (CTE) that
+  encompassed querying the regions, varieties, and prices for both regions and performing a union to combine
+  them into one table. The next step queried from this CTE and ranked prices in ascending and descending order
+  for each region to reflect the cheapest and most expensive varieties of wine. This was also placed in a CTE
+  to be queried twice and inner joined baseed on cheapest_variety with a filter of ascending rank = 1 and
+  most_expensive_variety with a filter of descending rank = 1. The DISTINCT function was used to remove any 
+  potential duplicate tie entries.
+
+Suggestions and Final Thoughts:
+- The prompt includes a note that says the results set contains no ties. When solving the problem, there
+  were numerous null values in price and region that affected the results set. The ranking step had to use
+  the same price entries for cheapest_variety and most_expensive_variety on multiple occasions to cover the
+  gaps. My approach Solution #1 involved having to use the DISTINCT function in the SELECT statement because
+  region, cheapest_variety, and most_expensive_variety combinations were repeated in the final output.
+- An alternative method to not have to use the DISTINCT function was to use MAX() and CASE WHEN statement
+  then filter by rank using an OR statement and grouping by region. The first two steps using CTEs from
+  Solution #1 would remain the same before this method is implemented. Using conditional group by aggregation
+  is more efficient than using JOINs and DISTINCT since it removes duplicates and is only a single pass
+  through the CTE.
+  ex.
+      SELECT
+          region,
+          MAX(CASE WHEN asc_rank = 1 THEN variety END) AS cheapest_variety,
+          MAX(CASE WHEN desc_rank = 1 THEN variety END) AS most_expensive_variety
+      FROM
+          RegionsVarietiesPricesRank
+      WHERE
+          asc_rank = 1 
+          OR desc_rank = 1
+      GROUP BY
+          region;
+- UNION ALL appends all the values from two tables. UNION appends only distinct values from two tables
+
+Solve Duration:
+30 minutes
+
+Notes Duration:
+8 minutes
+
+Suggestions and Final Thoughts Duration:
+20 minutes
+
+############################################################################################################
