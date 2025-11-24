@@ -857,15 +857,195 @@ Source:
 C Programming for Everybody - 6-B Linked List Delete
 
 Question:
+You will extend the previous assignment with list_add() and list_find() and add a function called list_delete() that will find and remove the node containing the integer value if it is in the list.
 
 Python Code:
+N/A
 
 C Code:
+#include <stdio.h>
+#include <stdlib.h>
+
+struct lnode {
+    int value;
+    struct lnode *next;
+};
+
+struct list {
+  struct lnode *head;
+  struct lnode *tail;
+};
+
+int main()
+{
+    void list_add();
+    void list_dump();
+    struct lnode * list_find();
+
+    struct list mylist;
+    struct lnode * mynode;
+
+    mylist.head = NULL;
+    mylist.tail = NULL;
+
+    list_add(&mylist, 10);
+    list_add(&mylist, 20);
+    list_add(&mylist, 30);
+    list_dump(&mylist);
+
+    list_remove(&mylist, 42);
+
+    list_remove(&mylist, 10);
+    list_dump(&mylist);
+
+    list_remove(&mylist, 30);
+    list_dump(&mylist);
+
+    list_add(&mylist, 40);
+    list_dump(&mylist);
+
+}
+
+void list_dump(lst)
+    struct list *lst;
+{
+    struct lnode *cur;
+    printf("\nDump:\n");
+    for(cur=lst->head; cur != NULL; cur=cur->next) {
+        printf("  %d\n", cur->value);
+    }
+}
+
+/* Append the value to the end of the linked list. */
+void list_add(lst, value)
+    struct list *lst;
+    int value;
+{
+    /* Allocate space only for the new node */
+    struct lnode *new = (struct lnode *)
+       malloc(sizeof(struct lnode));
+    
+    /* Check if allocation failed */
+    if ( new == NULL ) {
+        return;
+    }
+  
+    /* Initialize the node's fields.
+       Store the integer value directly.
+       New node is always last, next is NULL */
+    new->value = value;
+    new->next = NULL;
+  
+    /* List is not empty.
+       Append the new node by updating current tail's 'next' pointer.
+       Update the list's 'tail' pointer to be the new node. */
+    if ( lst->tail != NULL ) {
+        lst->tail->next = new;
+        lst->tail = new;
+    }
+  
+    /* List is empty.
+       Head and tail point to the new node */
+    if ( lst->head == NULL ) {
+       lst->head = new;
+       lst->tail = new;
+    }
+}
+
+/* Remove the value from the linked list. */
+void list_remove(lst, value)
+    struct list *lst;
+    int value;
+{
+    /* Initialize a moving pointer to the head of the list. 
+       Include pointers for tracking previous node and for node to be freed */
+    struct lnode *prev = NULL;
+    struct lnode *cur = lst->head;
+    struct lnode *temp = NULL;
+  
+    /* Loop until the current pointer reaches NULL,
+       NULL signifies the end of list */
+    while ( cur != NULL ) {
+    
+        /* Check if the current node contains the target value */
+        if ( cur->value == value ) {
+          
+            /* Case 1: Node found at head of list (prev is NULL) 
+               New head is next node */
+            if ( prev == NULL ) {
+                lst->head = cur->next;
+            }
+            /* Case 2: Node found in middle or at tail of list
+               Unlink 'cur' by connecting 'prev' to 'cur's next */
+            else {
+                prev->next = cur->next;
+            }
+            
+            /* Case 3: Node found at tail of list (cur->next is NULL)
+               If it's the only node (prev == NULL) or the last node, update tail */
+            if ( cur-> next == NULL ) {
+                lst->tail = prev; 
+            }
+          
+            /* Hold the pointer before freeing (memory leak prevention) */
+            temp = cur;
+          
+            /* Deallocate memory for the removed node */
+            free(temp);
+          
+            /* Removal complete, exit function */
+            return;
+        }
+        /* If value not found in 'cur', move pointers to the next node */
+        prev = cur;
+        cur = cur->next;
+    }
+  
+    /* If the loop finishes without finding the value, return NULL */
+    return NULL;
+}
 
 Input:
+N/A
 
 Output:
+Dump:
+  10
+  20
+  30
+
+Dump:
+  20
+  30
+
+Dump:
+  20
+
+Dump:
+  20
+  40
 
 Notes:
+- I attempted to use the code that list_find() function had for the previous linked list question. Most of
+  it was needed but the critical part was tracking the previous node with the current node since removing a
+  value from a linked list requires finding the value to delete, unlinking it and readjusting the list as 
+  necessary depending on if the value is in the start, middle, or end of list. I referenced the lecture
+  slides to try to figure out a way to include extra declarations like the *prev pointer and understand the
+  process of deleting items from a linked list from looking at drawn pictures and diagrams.
+- I was missing a pointer for the node to be freed and needed to initialize it as "struct lnode *temp = NULL;".
+  In the while loop, the if statement for checking if the current node contained the target value needed to
+  have 3 separate if statement cases for if the value to be deleted was in the head, middle, or tail of the 
+  list. If the node was found at the head of the list where "prev = NULL" then the new head becomes the next
+  node using code "lst->head = cur->next". If the node was found at the middle of the list, the previous node
+  is the next node using code "prev->next = cur->next". If the node was found at the end of the list, where
+  "cur-> next == NULL" then the new tail is the previous node "lst->tail = prev". The next steps held the
+  cur pointer which contained the node to be freed in a temp variable and it was deallocated using the free()
+  function. Once the removal of the node was complete, the function is exited. Outside of this if statement
+  and still within the while loop, if the value was not found in the 'cur' pointer then move pointers to the
+  next node as "prev = cur" and "cur = cur->next". Lastly, if the while loop finishes without finding the value
+  to remove then do nothing or printf("Value %d not found in the list.\n", value);
+- Will need to review the diagrams for delete item from linked list and doubly linked list in the lecture
+  slides. Also still not that great with pointers, structures and linked lists in general yet. Whole chapter
+  6 will be reviewed more thoroughly.
 
 ############################################################################################################
