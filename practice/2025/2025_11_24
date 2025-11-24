@@ -1,0 +1,644 @@
+Date: 11/24/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2135
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Lyft - Actual vs Predicted Arrival Time
+Calculate the 90th percentile difference between Actual and Predicted arrival time in minutes for all completed trips within the first 14 days of 2022.
+
+Data Dictionary:
+Table name = 'trip_details'
+id: character (str)
+client_id: character (str)
+driver_id: character (str)
+city_id: character (str)
+client_rating: numeric (num)
+driver_rating: numeric (num)
+request_at: POSIXct, POSIXt (dt)
+predicted_eta: POSIXct, POSIXt (dt)
+actual_time_of_arrival: POSIXct, POSIXt (dt)
+status: character (str)
+
+Code:
+Solution #1
+## Question:
+# Calculate the 90th percentile difference betwen Actual and Predicted arrival time in minutes for all
+# completed trips within the first 14 days of 2022.
+
+# Output:
+# percentile_difference_90th
+
+# Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#trip_details <- read_csv("trip_details.csv")
+trips_df <- data.frame(trip_details)
+head(trips_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 72 x 10
+# Duplicates - 0
+# Nulls - client_rating(7), driver_rating(7), predicted_eta(6), actual_time_of_arrival(6)
+# Value Counts - id, client_id, driver_id, city_id, status
+data.frame(lapply(trips_df, class))
+
+dim(trips_df)
+
+sum(duplicated(trips_df))
+
+enframe(colSums(is.na(trips_df)), name="index", value="na_count")
+
+enframe(table(trips_df$id), name="index", value="frequency")
+enframe(table(trips_df$client_id), name="index", value="frequency")
+enframe(table(trips_df$driver_id), name="index", value="frequency")
+enframe(table(trips_df$city_id), name="index", value="frequency")
+enframe(table(trips_df$status), name="index", value="frequency")
+
+## Iteration:
+start_date = as.POSIXct(as.Date("2022-01-01"))
+end_date = as.POSIXct(as.Date("2022-01-14"))
+
+result_df <- trips_df %>%
+    filter(
+        # 1. Filter for first 14 days of 2022, "completed" trips, actual_time_of_arrival not null,
+        #    and predicted_eta not null
+        (request_at >= start_date & request_at <= end_date),
+        status == "completed",
+        !is.na(actual_time_of_arrival),
+        !is.na(predicted_eta)
+    ) %>%
+    mutate(
+        # 2. Calculate difference between actual and predicted arrival time in minutes
+        time_difference_mins = as.numeric((actual_time_of_arrival - predicted_eta) / 60)
+    ) %>%
+    group_by(status) %>%
+    summarise(
+        # 3. Find the 90th percentile difference for all completed trips
+        percentile_difference_90th = quantile(time_difference_mins, probs = 0.9, na.rm=TRUE)
+    ) %>%
+    select(
+        # 4. Select relevant columns
+        percentile_difference_90th
+    )
+    
+## Result:
+print(paste0("The 90th percentile difference for completed trips within first 14 days of 2022: ",
+             result_df$percentile_difference_90th, " minutes"))
+
+Notes:
+- In the data quality check, the columns actual_time_of_arrival and predicted_eta both contained 6 null values
+  that were relevant for the problem at hand. For my approach to this question, I started with assigning
+  a start date ("2022-01-01" and end date ("2022-01-14") to two different variables to meet the requirements
+  of first 14 days of 2022. From there, I began a dplyr pipe chain that filtered for first 14 days of 2022,
+  "completed" trips, actual_time_of_arrival not null, and predicted_eta not null. After the filter, I created
+  a custom column measure to calculate the time difference in minutes between actual_time_of_arrival and
+  predicted_eta columns. Then the "completed" status column was grouped and summarised to find the 90th
+  percentile difference of the time difference in minutes for the arrival time. Lastly, the necessary output
+  percentile difference column was selected.
+- Had to look up the quantile() function to determine 90th percentile. The quantile function parameters
+  are quantile(data, probs, na.rm). It can be used in groupby summarise functions or for creating a new 
+  calculated column using the mutate function.
+  ex.
+      quantile(time_difference_mins, probs = 0.9, na.rm=TRUE)
+
+Suggestions and Final Thoughts:
+- The standard R function for time difference is the difftime() function. The parameters of the difftime()
+  function are difftime(col1, col2, units). It's best to convert the POSIXct, POSIXt datatype to numeric
+  using the as.numeric() function as well. The units parameter skips the need for dividing by 60 to find
+  the minutes when subtracting the times between columns.
+  ex. 
+      time_difference_mins = as.numeric(difftime(actual_time_of_arrival, predicted_eta, units = "mins"))
+- The print() and paste0() functions can perform similar printing of final output values to Python's print()
+  function. If a dataframe is the final output then the necessary column to output can be selected. An example
+  of the parameters can be print(paste(string1, varaible_or_string2, string3, ...). The paste0() function
+  joins all arguments int oa single string without any seperator.
+  ex. 
+      print(paste0("The 90th percentile difference for completed trips within first 14 days of 2022: ",
+             result_df$percentile_difference_90th, " minutes"))
+
+Solve Duration:
+22 minutes
+
+Notes Duration:
+7 minutes
+
+Suggestions and Final Thoughts Duration:
+12 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9599
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+ESPN - Old And Young Athletes
+Find the old-to-young player ratio for each Olympic games. 
+'Old' is defined as ages 50 and older and 'young' is defined as athletes 25 or younger. 
+Output the Olympic games, number of old athletes, number of young athletes, and the old-to-young ratio.
+
+Data Dictionary:
+Table name = 'olympics_athletes_events'
+id: int64 (int)
+name: object (str)
+sex: object (str)
+age: float64 (flt)
+height: float64 (flt)
+weight: float64 (flt)
+team: object (str)
+noc: object (str)
+games: object (str)
+year: int64 (int)
+season: object (str)
+city: object (str)
+sport: object (str)
+event: object (str)
+medal: object (str)
+
+Code:
+Solution #1
+## Question:
+# Find the old-to-young player ratio for each Olympic games.
+# 'Old' is defined as ages 50 and older and 'young' is defined as athletes 25 or younger.
+# Output the Olympic games, number of old athletes, number of young athletes, and the old-to-young ratio.
+
+## Output:
+# games, old_athletes_count, young_athletes_count, old_to_young_ratio
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#olympics_athletes_events = pd.read_csv("olympics_athletes_events.csv")
+olympics_df = pd.DataFrame(olympics_athletes_events)
+olympics_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 352 x 15 -> 349 x 15
+# Duplicates - 3
+# Nulls - age(65), height(226), weight(249), medal(232)
+# Value Counts - id, name, sex, team, noc, games, season, city, sport, event, medal
+#olympics_df.info()
+
+olympics_df.shape
+
+olympics_df.duplicated().sum()
+olympics_df = olympics_df.drop_duplicates(keep="first")
+olympics_df.shape
+
+olympics_df.isna().sum().reset_index(name="na_count")
+
+olympics_df["id"].value_counts().reset_index(name="frequency")
+olympics_df["name"].value_counts().reset_index(name="frequency")
+olympics_df["sex"].value_counts().reset_index(name="frequency")
+olympics_df["team"].value_counts().reset_index(name="frequency")
+olympics_df["noc"].value_counts().reset_index(name="frequency")
+olympics_df["games"].value_counts().reset_index(name="frequency")
+olympics_df["season"].value_counts().reset_index(name="frequency")
+olympics_df["city"].value_counts().reset_index(name="frequency")
+olympics_df["sport"].value_counts().reset_index(name="frequency")
+olympics_df["event"].value_counts().reset_index(name="frequency")
+olympics_df["medal"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# 1. Filter for where age is not null
+filtered_df = olympics_df[
+    olympics_df["age"].notna()
+].copy()
+
+# 2. Categorize athletes as 'Old' if 50 and older or 'young' if 25 or younger
+conditions = [
+    filtered_df["age"] >= 50,
+    filtered_df["age"] <= 25
+]
+
+choices = ["Old", "young"]
+
+filtered_df["category"] = np.select(conditions, choices, default="Uncategorized")
+
+# 3. Count the number of 'Old' and 'young' athletes for each olympic games
+result_df = (
+    filtered_df.groupby("games")
+    .agg(old_athletes_count=("category", lambda x: np.sum(x == "Old")),
+         young_athletes_count=("category", lambda x: np.sum(x == "young"))
+    )
+    .reset_index()
+    .sort_values(by="games", ascending=True)
+)
+
+# 4. Calculate the old_to_young ratio, ratio = old / young
+#    If denominator is 0 or null, then null, otherwise perform ratio calculation
+result_df["old_to_young_ratio"] = np.where(
+    (result_df["young_athletes_count"] == 0) | (result_df["young_athletes_count"].isna()),
+    np.nan,
+    result_df["old_athletes_count"] / result_df["young_athletes_count"]
+)
+
+## Result:
+print("Old-to-young player ratio for each Olympic games:")
+result_df
+
+Notes:
+- In the data quality checks, I discovered 3 duplicates and 65 nulls in the age column which were necessary
+  for the problem at hand. I removed the duplicates using the drop_duplicates(keep="first") function and
+  proceeded to use a new updated DataFrame.
+- For the first step in my approach for solving the problem, I filtered for rows in the age column that were 
+  not null. Then the rows were categorized as 'Old' or 'young' depending on conditional statements where if 50
+  and older then "Old" or if 25 or younger then "young", otherwise "Uncategorized" using the np.select() 
+  function. From there, I counted the number of "Old" and "young" athletes for each olympic games using groupby
+  aggregation combined with lambda x and np.sum() functions. Finally, I calculated the old_to_young_ratio using
+  the young_athletes_count and old_athletes_count columns and considered edge cases where if the denominator 
+  was 0 or null then output null, otherwise perform the ratio calculation using the np.where() function.
+- Looked up np.select() and np.where() functions to confirm the parameters and use cases. For np.select(),
+  the paramaters are np.select(condition_list, choice_list, default=""). This involves assigning conditions
+  to a list and to a variable and assigning choices to a list and to a variable. Anything that doesn't fit
+  the conditions or choices then defaults to "" as specified. For np.where(), the parameters are
+  np.select(condition, true, false). The condition can be a number of AND or OR statements, in this case I
+  used == 0 and .isna() to consider edge cases for the denominator before a ratio calculation. 
+  ex.
+      conditions = [filtered_df["age"] >= 50, filtered_df["age"] <= 25]
+      choices = ["Old", "young"]
+      filtered_df["category"] = np.select(conditions, choices, default="Uncategorized")
+  ex.
+      result_df["old_to_young_ratio"] = np.where(
+          (result_df["young_athletes_count"] == 0 | result_df["young_athletes_count"].isna()),
+          None,
+          result_df["old_athletes_count"] / result_df["young_athletes_count"]
+     )
+      
+Suggestions and Final Thoughts:
+- The OR operator (|) has higher precedence than the equality operator (==). Have to use separate parentheses
+  to separate conditions in the np.where() function. Otherwise, the condition after the OR operator is 
+  performed first instead of the equality operator.
+  ex.
+      (result_df["young_athletes_count"] == 0) | (result_df["young_athletes_count"].isna())
+- For assigning a null value to a row, use None or np.nan. np.nan is more appropriate for this problem because
+  of the ratio calculation being a float to assign a float datatype. Otherwise the None situation would
+  assign the column as an object
+  ex.
+      result_df["old_to_young_ratio"] = np.where(
+          (result_df["young_athletes_count"] == 0) | (result_df["young_athletes_count"].isna()),
+          np.nan,
+          result_df["old_athletes_count"] / result_df["young_athletes_count"]
+      )
+- When using lambda x for filtering within a groupby aggregation column, use np.sum() function to count the
+  specific filtered rows from the lambda x variable.
+  ex. 
+      young_athletes_count=("category", lambda x: np.sum(x == "young")
+  
+Solve Duration:
+34 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+8 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10042
+
+Difficulty:
+Hard
+
+Question Type:
+SQL
+
+Question:
+Wine Magazine - Top 3 Wineries In The World
+Find the top 3 wineries in each country based on the average points earned. 
+In case there is a tie, order the wineries by winery name in ascending order. 
+Output the country along with the best, second best, and third best wineries. 
+If there is no second winery (NULL value) output 'No second winery' and if there is no third winery output 'No third winery'. 
+For outputting wineries format them like this: "winery (avg_points)"
+
+Data Dictionary:
+Table name = 'winemag_p1'
+country: text (str)
+description: text (str)
+designation: text (str)
+id: bigint (int)
+points: bigint (int)
+price: double precision (flt)
+province: text (str)
+region_1: text (str)
+region_2: text (str)
+variety: text (str)
+winery: text (str)
+
+Code:
+Solution #1
+-- Question:
+-- Find the top 3 wineries in each country based on the average points earned.
+-- In case there is a tie, order the wineries by winery name in ascending order.
+-- Output the country along with the best, second best, and third best wineries.
+-- If there is no second winery (NULL value) output 'No second winery' and if there is no third winery
+-- output 'No third winery'. 
+-- For outputting wineries format them like this: "winery (avg_points)"
+
+-- Output:
+-- country, best, second_best, third_best
+
+-- Preview data:
+SELECT * FROM winemag_p1 LIMIT 5;
+
+-- Check dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 100 x 11
+-- Duplicates - 0
+-- Nulls - designation(36), price(3), region_1(20), region_2(61)
+-- Value Counts - country, description, designation, province, region_1, region_2, variety, winery
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN country IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN description IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN designation IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN points IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN price IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN province IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN region_1 IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN region_2 IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN variety IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN winery IS NULL THEN 1 ELSE 0 END) AS col11,
+    COUNT(*) AS total_rows
+FROM winemag_p1;
+
+SELECT -- Duplicates
+    country, description, designation, id, points, price, province, region_1, region_2, variety, winery,
+    COUNT(*) AS duplicate_count
+FROM winemag_p1
+GROUP BY
+    country, description, designation, id, points, price, province, region_1, region_2, variety, winery
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    country,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY country
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    description,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY description
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    designation,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY designation
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    id,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    province,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY province
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    region_1,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY region_1
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    region_2,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY region_2
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    variety,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY variety
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    winery,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY winery
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Calculate the average points for each winery per country
+-- 2. Rank the wineries in each country by average points in descending order
+--    and winery name in ascending order, include ties
+-- 3. Filter for top 3 wineries in each country using rank
+-- 4. Concatenate the winery and average points as "winery (avg_points)"
+-- 5. Pivot the top 3 rankings per country
+-- 6. Fill any null second_best with 'No second winery' and any null third_best with 'No third winery'
+WITH CountryWineryAveragePointsRank AS (
+    SELECT
+        country,
+        winery,
+        AVG(points) AS average_points,
+        DENSE_RANK() OVER(PARTITION BY country ORDER BY AVG(points) DESC, winery ASC) AS dense_rank
+    FROM winemag_p1 
+    GROUP BY 
+        country, 
+        winery
+),
+CountryWineryPointsTop3 AS (
+    SELECT
+        country,
+        CONCAT(winery, ' ', '(', ROUND(average_points), ')') AS winery_avg_points,
+        dense_rank
+    FROM CountryWineryAveragePointsRank
+    WHERE dense_rank <= 3
+),
+CountryWineryPointsPivoted AS (
+    SELECT
+        country,
+        MAX(CASE WHEN dense_rank = 1 THEN winery_avg_points END) AS best,
+        MAX(CASE WHEN dense_rank = 2 THEN winery_avg_points END) AS second_best,
+        MAX(CASE WHEN dense_rank = 3 THEN winery_avg_points END) AS third_best
+    FROM CountryWineryPointsTop3
+    GROUP BY country
+)
+SELECT
+    country,
+    best,
+    CASE WHEN second_best IS NULL THEN 'No second winery' ELSE second_best END AS second_best,
+    CASE WHEN third_best IS NULL THEN 'No third winery' ELSE third_best END AS third_best
+FROM CountryWineryPointsPivoted
+ORDER BY country;
+
+-- Result:
+WITH CountryWineryAveragePointsRank AS (
+    SELECT
+        country,
+        winery,
+        -- 1. Calculate the average points for each winery per country
+        AVG(points) AS average_points,
+        -- 2. Rank the wineries in each country by average points in descending order
+        --    and winery name in ascending order, include ties
+        DENSE_RANK() OVER(
+            PARTITION BY 
+                country 
+            ORDER BY 
+                AVG(points) DESC, 
+                winery ASC
+        ) AS dense_rank
+    FROM 
+        winemag_p1 
+    GROUP BY 
+        country, 
+        winery
+),
+CountryWineryPointsTop3 AS (
+    SELECT
+        country,
+        -- 4. Concatenate the winery and average points as "winery (avg_points)"
+        CONCAT(winery, ' ', '(', ROUND(average_points), ')') AS winery_avg_points,
+        dense_rank
+    FROM 
+        CountryWineryAveragePointsRank
+    WHERE 
+        -- 3. Filter for top 3 wineries in each country using rank
+        dense_rank <= 3
+),
+CountryWineryPointsPivoted AS (
+    SELECT
+        country,
+        -- 5. Pivot the top 3 rankings per country
+        MAX(
+            CASE 
+                WHEN dense_rank = 1 
+                THEN winery_avg_points 
+            END
+        ) AS best,
+        MAX(
+            CASE 
+                WHEN dense_rank = 2 
+                THEN winery_avg_points 
+            END
+        ) AS second_best,
+        MAX(
+            CASE 
+                WHEN dense_rank = 3 
+                THEN winery_avg_points 
+            END
+        ) AS third_best
+    FROM 
+        CountryWineryPointsTop3
+    GROUP BY 
+        country
+)
+SELECT
+    country,
+    best,
+    -- 6. Fill any null second_best with 'No second winery' and any null third_best with 'No third winery'
+    CASE 
+        WHEN second_best IS NULL 
+        THEN 'No second winery' 
+        ELSE second_best 
+    END AS second_best,
+    CASE 
+        WHEN third_best IS NULL 
+        THEN 'No third winery' 
+        ELSE third_best 
+    END AS third_best
+FROM 
+    CountryWineryPointsPivoted
+ORDER BY 
+    country;
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts in the data quality check that were necessary for
+  solving the problem. 
+- I began my approach by calculating the average points for each winery per country and ranking the wineries
+  in each country by average points in descending order and winery name in ascending order to include ties.
+  This step was encompassed in a common table expression (CTE) called CountryWineryAveragePointsRank. The 
+  CTE was queried to filter for the top 3 wineries in each country using rank and the winery and average 
+  points columns were concatenated in the format "winery (avg_points)". These steps were placed in a CTE 
+  called CountryWineryPointsTop3. Once the second CTE was established, the data was pivoted to show the top
+  3 rankings per country using groupby max aggregation and case when statements and encased in a third CTE 
+  called CountryWineryPointsPivoted. For the last step, the third CTE was queried to fill in any NULL rankings
+  witheither 'No second winery' or 'No third winery' for second_best and third_best columns respectively.
+- Had forgotten that I could use multiple columns to order by in the DENSE_RANK() function so it met the 
+  prompt's condition of "in case there is a tie, order the wineries by winery name in ascending order". Later
+  added the ORDER BY winery ASC to the ORDER BY avg(points) in the DENSE_RANK() function for the first CTE.
+  ex.
+      DENSE_RANK() OVER(
+          PARTITION BY 
+              country 
+          ORDER BY 
+              AVG(points) DESC, 
+              winery ASC
+      ) AS dense_rank;
+- When using SQL, I have to remember that it's not double quotations and it's single quotations ' ' when 
+  trying to create strings. Too used to using Python and R. Luckily was able to catch it when using the 
+  CONCAT() function
+  ex.
+      CONCAT(winery, ' ', '(', ROUND(average_points), ')') AS winery_avg_points
+- To avoid having duplicate NULL values in pivoted data, use groupby MAX aggregation with CASE WHEN statements.
+  ex.
+      SELECT
+          country,
+          MAX(CASE WHEN dense_rank = 1 THEN winery_avg_points END) AS best,
+          MAX(CASE WHEN dense_rank = 2 THEN winery_avg_points END) AS second_best,
+          MAX(CASE WHEN dense_rank = 3 THEN winery_avg_points END) AS third_best
+      FROM 
+          CountryWineryPointsTop3
+      GROUP BY 
+          country;
+
+Suggestions and Final Thoughts:
+- The CountryWineryPointsTop3 CTE in solution #1 could have been merged with the CountryWineryPointsPivoted
+  CTE into a single CTE. I wanted to have the CONCAT() step in a single step to not mix the pivoting process
+  with the text manipulation process.
+- As for the last step, instead of using a CASE WHEN statement, the COALESCE() function could have been
+  used to replace null values in the second_best and third_best columns with the text 'No second winery' or
+  'No third winery'
+  ex.
+      COALSECE(second_best, 'No second winery') AS second_best_winery,
+      COALESCE(third_best, 'No third winery') AS third_best_winery;
+- The prompt doesn't mention anything about including decimal places for the average points earned so I 
+  rounded to the nearest whole number but for most cases it would be best to have 2 decimal places. Adding
+  2 parameter to the ROUND() function.
+  ex.
+      CONCAT(winery, ' ', '(', ROUND(average_points, 2), ')') AS winery_avg_points;
+
+Solve Duration:
+57 minutes
+
+Notes Duration:
+8 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
