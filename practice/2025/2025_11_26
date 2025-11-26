@@ -1,0 +1,687 @@
+Date: 11/26/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2137
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Lyft - Most Profitable City of 2021
+It's the end-of-year review, and you've been tasked with identifying the city with the most profitable month in 2021.
+The output should provide the city, the most profitable month, and the profit.
+
+Data Dictionary:
+Table name = 'lyft_orders'
+city: character (str)
+country: character (str)
+customer_id: character (str)
+driver_id: character (str)
+order_id: numeric (num)
+
+Table name = 'lyft_payment_details'
+order_id: numeric (num)
+order_date: POSIXct, POSIXt (dt)
+promo_code: logical (bool)
+order_fare: numeric (num)
+
+Code:
+Solution #1
+## Question:
+# It's the end-of-year review, and you've been tasked with identifying the city with the most 
+# profitable month in 2021.
+# The output should provide the city, the most profitable month, and the profit.
+
+## Output:
+# city, month, total_profit
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#lyft_orders <- read_csv("lyft_orders.csv")
+#lyft_payment_details <- read_csv("lyft_payment_details.csv")
+orders_df <- data.frame(lyft_orders)
+payments_df <- data.frame(lyft_payment_details)
+head(orders_df, 5)
+head(payments_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - orders: 21 x 5
+#            - payments: 21 x 4
+# Duplicates - orders: 0
+#            - payments: 0
+# Nulls - orders: 0
+#       - payments: 0
+# Value Counts - orders: city, country, customer_id, driver_id, order_id
+#              - payments: order_id, promo_code
+data.frame(lapply(orders_df, class))
+data.frame(lapply(payments_df, class))
+
+dim(orders_df)
+dim(payments_df)
+
+sum(duplicated(orders_df))
+sum(duplicated(payments_df))
+
+enframe(colSums(is.na(orders_df)), name="index", value="na_count")
+enframe(colSums(is.na(payments_df)), name="index", value="na_count")
+
+enframe(table(orders_df$city), name="index", value="frequency")
+enframe(table(orders_df$country), name="index", value="frequency")
+enframe(table(orders_df$customer_id), name="index", value="frequency")
+enframe(table(orders_df$driver_id), name="index", value="frequency")
+enframe(table(orders_df$order_id), name="index", value="frequency")
+enframe(table(payments_df$order_id), name="index", value="frequency")
+enframe(table(payments_df$promo_code), name="index", value="frequency")
+
+## Iteration:
+result_df <- payments_df %>%
+    filter(
+        # 1. Filter for dates in 2021
+        year(order_date) == 2021
+    ) %>%
+    mutate(
+        # 2. Extract month from date column
+        month = month(order_date)
+    ) %>%
+    inner_join(
+        # 3. Inner join orders and payment DataFrames by order_id
+        orders_df, by="order_id"
+    ) %>%
+    group_by(city, month) %>%
+    summarise(
+        # 4. Calculate the total profits for each month per city
+        total_profit = sum(order_fare, na.rm=TRUE),
+        .groups="drop"
+    ) %>%
+    slice_max(
+        # 5. Filter for city with most profitable month, include ties
+        total_profit
+    ) %>%
+    arrange(city)
+
+## Result:
+result_df
+
+Notes:
+- The data quality check revealed no duplicates, nulls, or abnormal value counts. There was a missing table
+  in the question that wasn't provided and I had to look at other versions of the prompt that had the table
+  name where I could reference for the lyft_orders table which contained the necessary column "city" and the
+  matching id "order_id".
+- I started my approach with a dplyr pipe chain on the payments DataFrame and filtering for dates in 2021
+  using the filter() and year() functions. Next, I extracted the month from the date column using the mutate()
+  and month() functions. From there, I inner joined the orders and payment DataFrames by order_id using the
+  inner_join() function. The merged dataset was then grouped and aggregated by sum to find the total
+  profits for each month per city using the group_by(), summarise(), and sum() functions. After, the aggregated
+  result was filtered for the city with the most profitable month and included ties using the slice_max() 
+  function. Lastly, the output was arranged in ascending order by city.
+
+Suggestions and Final Thoughts:
+- The rm() function cleans up the environment and removes temporary variables used in analysis. Can be used
+  at the start or end of the script. Also may be used on single or multiple objects throughout analysis. Good
+  to keep in mind for memory management.
+  ex.
+      data1 <- data.frame(a = 1)
+      func1 <- function(x) x + 1
+      rm(data1, func1)
+      rm(lyft_orders, lyft_payment_details, result_df)
+- The month() function can be used to get the month name aside from the month number by specifying the 
+  additional parameters in month(column, label, abbr), specifically label = TRUE and abbr = FALSE.
+  ex.
+      month = month(order_date, label = TRUE, abbr = FALSE)
+
+Solve Duration:
+17 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+8 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9601
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Forbes - Find The Best Day For Trading AAPL Stock
+Find which calendar day of the month (e.g. the 6th, 17th, 25th, etc.) tends to be the best for trading AAPL stock across all months in the dataset. 
+The best day is the one with highest positive difference between average closing price and average opening price. 
+Output the result along with the average opening and closing prices.
+
+Data Dictionary:
+Table name = 'aapl_historical_stock_price'
+date: datetime64 (dt)
+year: int64 (int)
+month: int64 (int)
+open: float64 (flt)
+high: float64 (flt)
+low; float64 (flt)
+close: float64 (flt)
+volume: int64 (int)
+id: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# Find which calendar day of the month (ex. 6th, 17th, 26th, etc.) tends to be the best for trading AAPL
+# stock across all months in the dataset.
+# The best day is the one with highest positive difference between average closing price and average
+# opening price.
+# Output the result along with the average opening and closing prices.
+
+## Output:
+# calendar_day_of_month, average_opening_price, average_closing_price
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#aapl_historical_stock_price = pd.read_csv("aapl_historical_stock_price.csv")
+stocks_df = pd.DataFrame(aapl_historical_stock_price)
+stocks_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 247 x 9
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - id
+#stocks_df.info()
+
+stocks_df.shape
+
+stocks_df.duplicated().sum()
+
+stocks_df.isna().sum().reset_index(name="na_count")
+
+stocks_df["id"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# 1. Extract the calendar day of the month from date column
+stocks_df["calendar_day_of_month"] = stocks_df["date"].dt.day
+
+# 2. Calculate the average opening and average closing prices for each calendar day of month
+result_df = (
+    stocks_df
+    .groupby("calendar_day_of_month")
+    .agg(average_opening_price=('open', 'mean'),
+         average_closing_price=('close', 'mean'))
+    .reset_index()
+)
+
+# 3. Calculate the difference between average closing price and average opening price for each day
+result_df["difference"] = result_df["average_closing_price"] - result_df["average_opening_price"]
+
+# 4. Filter for day of month with highest positive difference, include ties
+highest_positive_difference = result_df["difference"].max()
+
+result_df = result_df[
+    result_df["difference"] == highest_positive_difference
+]
+
+# 5. Select relevant columns
+result_df = result_df[["calendar_day_of_month", "average_opening_price", "average_closing_price"]]
+
+## Result:
+print("The best calendar day of the month for trading AAPL stocks:")
+result_df
+
+Notes:
+- There were no duplicates, nulls or abnormal value counts found in the data quality check that were relevant
+  for solving the problem. 
+- I began my approach to the prompt by extracting the calendar day of the month from the date column using the
+  .dt.day accessory function. Next, I calculated the average opening and average closing prices for each
+  calendar day of the month using groupby(), agg(), and reset_index() functions. From there, I calculated the
+  difference between average closing price and average opening price for each calendar day of the month using
+  the necessary columns with subtraction. Afterwards, the dataset was filtered for day of month with highest
+  positive difference and included ties by assigning the highest_positive_difference variable as the max() of
+  the difference column. Lastly, the necessary output columns were selected from the resulting DataFrame.
+
+Suggestions and Final Thoughts:
+- For my solution, I assigned the highest positive difference to a variable using the max() function but there
+  are numerous alternative approaches that could be more concise. For example, using rank() on the difference
+  column then filtering for the appropriate highest rank. Another method would be to use the nlargest()
+  function with the parameters nlargest(n, columns, keep). The first parameter n is to find the top number of
+  results, the second parameter columns is the relevant column, and the third parameter keep is to keep all
+  rows if there is a tie. An additional approach would be to use .loc and idxmax() if there were no ties to
+  account for, it only returns a single value.
+  ex.
+      result_df = result_df.nlargest(
+          n = 1,
+          columns = "difference",
+          keep = "all"
+      )
+  ex.
+      best_day = result_df.loc[
+          result_df["difference"].idmax()
+      ]
+
+Solve Duration:
+15 minutes
+
+Notes Duration:
+7 minutes
+
+Suggestions and Final Thoughts Duration:
+12 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10043
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Wine Magazine - Median Price Of Wines
+Find the median price for each wine variety across both datasets. 
+Output distinct varieties along with the corresponding median price.
+
+Data Dictionary:
+Table name = 'winemag_p1'
+country: varchar (str)
+description: varchar (str)
+designation: varchar (str)
+id: bigint (int)
+points: bigint (int)
+price: float (flt)
+province: varchar (str)
+region_1: varchar (str)
+region_2: varchar (str)
+variety: varchar (str)
+winery: varchar (str)
+
+Table name = 'winemag_p2'
+country: varchar (str)
+description: varchar (str)
+designation: varchar (str)
+id: bigint (int)
+points: bigint (int)
+price: float (flt)
+province: varchar (str)
+region_1: varchar (str)
+region_2: varchar (str)
+taster_name: varchar (str)
+taster_twitter_handle: varchar (str)
+title: varchar (str)
+variety: varchar (str)
+winery: varchar (str)
+
+Code:
+Solution #1
+-- Question:
+-- Find the median price for each wine variety across both datasets.
+-- Output distinct varieties along with the corresponding median price.
+
+-- Output:
+-- variety, median_price
+
+-- Preview data:
+SELECT TOP 5* FROM winemag_p1;
+SELECT TOP 5* FROM winemag_p2;
+
+-- Check dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - p1: 100 x 11
+--            - p2: 100 x 14
+-- Duplicates - p1: 0
+--            - p2: 0
+-- Nulls - p1: designation(36), price(3), region_1(20), region_2(61)
+--       - p2: designation(24), price(5), region_1(21), region_2(67), 
+--             taster_name(16), taster_twitter_handle(21)
+-- Value Counts - p1: country, description, designation, id, province, region_1, region_2, variety, winery
+--              - p2: country, description, designation, id, province, region_1, region_2, taster_name,
+--                    taster_twitter_handle, title, variety, winery
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN country IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN description IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN designation IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN points IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN price IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN province IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN region_1 IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN region_2 IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN variety IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN winery IS NULL THEN 1 ELSE 0 END) AS col11,
+    COUNT(*) AS total_rows
+FROM winemag_p1;
+
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN country IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN description IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN designation IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN points IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN price IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN province IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN region_1 IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN region_2 IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN taster_name IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN taster_twitter_handle IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN title IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN variety IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN winery IS NULL THEN 1 ELSE 0 END) AS col14,
+    COUNT(*) AS total_rows
+FROM winemag_p2;
+
+SELECT -- Duplicates
+    country, description, designation, id, points, price, province, region_1, region_2, variety, winery,
+    COUNT(*) AS duplicate_count
+FROM winemag_p1
+GROUP BY
+    country, description, designation, id, points, price, province, region_1, region_2, variety, winery
+HAVING COUNT(*) > 1;
+
+SELECT -- Duplicates
+    country, description, designation, id, points, price, province, region_1, region_2, taster_name, taster_twitter_handle, title, variety, winery,
+    COUNT(*) AS duplicate_count
+FROM winemag_p2
+GROUP BY
+    country, description, designation, id, points, price, province, region_1, region_2, taster_name, taster_twitter_handle, title, variety, winery
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    country,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY country
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    description,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY description
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    designation,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY designation
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    id,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    province,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY province
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    region_1,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY region_1
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    region_2,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY region_2
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    variety,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY variety
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    winery,
+    COUNT(*) AS frequency
+FROM winemag_p1
+GROUP BY winery
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    country,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY country
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    description,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY description
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    designation,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY designation
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    id,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    province,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY province
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    region_1,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY region_1
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    region_2,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY region_2
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    taster_name,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY taster_name
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    taster_twitter_handle,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY taster_twitter_handle
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    title,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY title
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    variety,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY variety
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    winery,
+    COUNT(*) AS frequency
+FROM winemag_p2
+GROUP BY winery
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Filter for prices not being null
+-- 2. Combine variety and price from winemag_p1 and winemag_p2 tables using union all
+-- 3. Assign row numbers in ascending and descending order based on price for each variety
+-- 4. Filter for median values where row_asc = row_desc, OR row_asc + 1 = row_desc, OR row_asc = row_desc + 1
+-- 5. Calculate the median price for each variety using the average median values
+WITH CombinedVarietyPrice AS (
+    SELECT 
+        variety,
+        price
+    FROM winemag_p1
+    WHERE price IS NOT NULL
+
+    UNION ALL
+ 
+    SELECT
+        variety,
+        price
+    FROM winemag_p2
+    WHERE price IS NOT NULL
+),
+CombinedVarietyPriceRows AS (
+    SELECT
+        variety,
+        price,
+        ROW_NUMBER() OVER(PARTITION BY variety ORDER BY price ASC) AS row_asc,
+        ROW_NUMBER() OVER(PARTITION BY variety ORDER BY price DESC) AS row_desc
+    FROM CombinedVarietyPrice
+)
+SELECT
+    variety,
+    AVG(price) AS median_price
+FROM CombinedVarietyPriceRows
+WHERE row_asc = row_desc
+    OR row_asc + 1 = row_desc
+    OR row_asc = row_desc + 1
+GROUP BY variety
+ORDER BY variety ASC;
+
+-- Result:
+WITH CombinedVarietyPrice AS (
+    SELECT 
+        variety,
+        price
+    FROM 
+        winemag_p1
+    WHERE 
+        -- 1. Filter for prices not being null
+        price IS NOT NULL
+
+    -- 2. Combine variety and price from winemag_p1 and winemag_p2 tables using union all
+    UNION ALL
+ 
+    SELECT
+        variety,
+        price
+    FROM 
+        winemag_p2
+    WHERE 
+        price IS NOT NULL
+),
+CombinedVarietyPriceRows AS (
+    SELECT
+        variety,
+        price,
+        -- 3. Assign row numbers in ascending and descending order based on price for each variety
+        ROW_NUMBER() OVER(
+            PARTITION BY 
+                variety 
+            ORDER BY 
+                price ASC
+        ) AS row_asc,
+        ROW_NUMBER() OVER(
+            PARTITION BY 
+                variety 
+            ORDER BY 
+                price DESC
+        ) AS row_desc
+    FROM 
+        CombinedVarietyPrice
+)
+SELECT
+    variety,
+    -- 5. Calculate the median price for each variety using the average median values
+    AVG(price) AS median_price
+FROM 
+    CombinedVarietyPriceRows
+WHERE 
+    -- 4. Filter for median values row_asc = row_desc, OR row_asc + 1 = row_desc, OR row_asc = row_desc + 1
+    row_asc = row_desc
+    OR row_asc + 1 = row_desc
+    OR row_asc = row_desc + 1
+GROUP BY 
+    variety
+ORDER BY
+    variety ASC;
+
+Notes:
+- In the data quality check, the price column contained null values for both the winemag_p1 and winemag_p2
+  tables. Some value for the varieties of wine had names were off by one letter and had a combination of names
+  but that could just be a distinct name for the wine itself. The checks took about 20 minutes of the solve
+  time to be thorough.
+- My approach to this problem was initially filtering for prices in both tables where the value was not null
+  and combining these tables based on variety and price columns using the UNION ALL function. This step was
+  contained in a common table expression (CTE) called CombinedVarietyPrice which was queried subsequently to
+  assign row numbers in ascending and descending order based on price for each variety. For this, the query
+  was placed in a second CTE called CombinedVarietyPriceRows. After the second CTE, the final query step
+  filtered for median values where row_asc = row_desc, or row_asc + 1 = row_desc, or row_asc = row_desc + 1.
+  Lastly, the median price for each variety was calculated using the average of the median values.
+- Switched to MS SQL Server dialect for this problem, felt a bit weird using TOP 5* instead of LIMIT 5 to
+  preview data but the rest of the syntax across dialects seemed to be the same. I did not use any specific
+  median function that could be reserved for certain dialects.
+
+Suggestions and Final Thoughts:
+- The dedicated function for median is PERCENTILE_CONT() and can be used in PostgreSQL, MS SQL Server, Oracle,
+  or MySQL. Specify the median with 0.5 in the function then place it in the select statement with WITHIN
+  GROUP (ORDER BY col) (PARTITION BY col). This method is more concise and cleaner but Solution #1 can be
+  used across all dialects.
+  ex.
+      SELECT
+          variety,
+          PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY price) (PARTITION BY variety) AS median_price
+      FROM 
+          CombinedVarietyPrice
+      GROUP BY
+          variety
+      ORDER BY
+          variety ASC;
+     
+Solve Duration:
+33 minutes
+
+Notes Duration:
+12 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
