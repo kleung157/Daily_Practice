@@ -1,0 +1,521 @@
+Date: 11/27/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2138
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+DoorDash - Top 2 Restaurants of 2022
+Christmas is quickly approaching, and your team anticipates an increase in sales. 
+To predict the busiest restaurants, they wanted to identify the top two restaurants by ID in terms of sales in 2022.
+The output should include the restaurant IDs and their corresponding sales.
+Note: Please remember that if an order has a blank value for actual_delivery_time, it has been canceled and therefore does not count towards monthly sales.
+
+Data Dictionary:
+Table name = 'order_value'
+delivery_id: character (str)
+sales_amount: numeric (num)
+
+Table name = 'delivery_orders'
+delivery_id: character (str)
+order_placed_time: POSIXct, POSIXt (dt)
+predicted_delivery_time: POSIXct, POSIXt (dt)
+actual_delivery_time: POSIXct, POSIXt (dt)
+delivery_rating: numeric (num)
+driver_id: character (str)
+restaurant_id: character (str)
+consumer_id: character (str)
+
+Code:
+Solution #1
+## Question:
+# Christmas is quickly approaching, and your team anticipates an increase in sales.
+# To predict the busiest restaurants, they want to identify the top two restaurants by ID in terms of
+# sales in 2022.
+# The output should include the restaurant IDs and their corresponding sales.
+# Note, remember that if an order has a blank value for actual_delivery_time, it has been canceled and
+# therefore does not count towards monthly sales.
+
+## Output:
+# restaurant_id, total_sales
+
+## Import libaries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#order_value <- read_csv("order_value.csv")
+#delivery_orders <- read_csv("delivery_orders.csv")
+sales_df <- data.frame(order_value)
+deliveries_df <- data.frame(delivery_orders)
+head(sales_df, 5)
+head(deliveries_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - sales: 50 x 2
+#            - deliveries: 50 x 8
+# Duplicates - sales: 0
+#            - deliveries: 0
+# Nulls - sales: 0
+#       - deliveries: actual_delivery_time(3), delivery_rating(3)
+# Value Counts - sales: delivery_id
+#              - deliveries: delivery_id, driver_id, restaurant_id, consumer_id
+data.frame(lapply(sales_df, class))
+data.frame(lapply(deliveries_df, class))
+
+dim(sales_df)
+dim(deliveries_df)
+
+sum(duplicated(sales_df))
+sum(duplicated(deliveries_df))
+
+enframe(colSums(is.na(sales_df)), name="index", value="na_count")
+enframe(colSums(is.na(deliveries_df)), name="index", value="na_count")
+
+enframe(table(sales_df$delivery_id), name="index", value="frequency")
+enframe(table(deliveries_df$delivery_id), name="index", value="frequency")
+enframe(table(deliveries_df$driver_id), name="index", value="frequency")
+enframe(table(deliveries_df$restaurant_id), name="index", value="frequency")
+enframe(table(deliveries_df$consumer_id), name="index", value="frequency")
+
+## Iteration:
+result_df <- deliveries_df %>%
+    filter(
+        # 1. Filter for orders placed in 2022 and actual_delivery_time not null
+        year(order_placed_time) == 2022 &
+        !is.na(actual_delivery_time)
+    ) %>%
+    inner_join(
+        # 2. Inner join sales and deliveries DataFrames by delivery_id
+        sales_df, by="delivery_id"
+    ) %>%
+    group_by(restaurant_id) %>%
+    summarise(
+        # 3. Calculate the total sales for each restaurant_id
+        total_sales = sum(sales_amount, na.rm=TRUE),
+        .groups="drop"
+    ) %>%
+    slice_max(
+        # 4. Filter for top two restaurants by total sales and include ties
+        total_sales,
+        n=2,
+        with_ties = TRUE
+    ) %>%
+    arrange(desc(total_sales), restaurant_id)
+
+## Result:
+result_df
+
+Notes:
+- The data quality check revealed three null values for the actual_delivery_time column in the deliveries
+  DataFrame which are relevant to the problem.
+- The approach I took was creating a dplyr pipe chain using the deliveries DataFrame and filtering for orders
+  placed in 2022 and the actual_delivery_time not being null using the filter(), year() and !is.na() functions.
+  Next, I inner joined sales and deliveries DataFrames by delivery_id using the inner_join() function. 
+  Afterwards, the merged dataset was grouped and aggregated by sum to calculate the total sales for each
+  restaurant_id using the group_by(), summarise(), and sum() functions. The aggregated results were then used
+  to filter for the top two restaurants by total sales and included ties using the slice_max() function. 
+  Lastly, the data was arranged by total sales in descending order and restaurant_id in ascending order using
+  arrange() and desc() functions.
+
+Suggestions and Final Thoughts:
+- Aside from using the built-in slice_max() function to filter for top two restaurants by total sales and
+  including ties, another approach to consider is using the mutate() and dense_rank() to rank the total sales
+  in descending order for each restaurant_id. Then use filter() to filter for the top two rankings which
+  includes ties.
+- For further analysis, if I wanted to find the percent contribution of sales for the top two restaurants, 
+  I could calculate the grand total of sales for the entire dataset then use that as the denominator and the
+  numerator would be the existing total sales for the top two restaurants. This calculation would be done row
+  by row. 
+  percent = (total_sales / grand_total_sales) * 100.0
+
+Solve Duration:
+18 minutes
+
+Notes Duration:
+6 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9605
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Google - Find the average rating of movie stars
+Find the average rating of each movie star along with their names and birthdays. 
+Sort the result in the ascending order based on the birthday. 
+Use the names as keys when joining the tables.
+
+Data Dictionary:
+Table name = 'nominee_filmography'
+name: object (str)
+amg_movie_id: object (str)
+movie_title: object (str)
+role_type: object (str)
+rating: float64 (flt)
+year: int64 (int)
+id: int64 (int)
+
+Table name = 'nominee_information'
+name: object (str)
+amg_person_id: object (str)
+top_genre: object (str)
+birthday: datetime64 (dt)
+id: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# Find the average rating of each movie star along with their names and birthdays.
+# Sort the result in the ascending order based on the birthday.
+# Use the names as keys when joining the tables.
+
+## Output:
+# average_rating, name, birthday
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#nominee_filmography = pd.read_csv("nominee_filmography.csv")
+#nominee_information = pd.read_Csv("nominee_information.csv")
+filmography_df = pd.DataFrame(nominee_filmography)
+information_df = pd.DataFrame(nominee_information)
+filmography_df.head(5)
+information_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - filmography: 202 x 7
+#            - information: 127 x 5
+# Duplicates - filmography: 0
+#            - information: 0
+# Nulls - filmography: rating(45)
+#       - information: 0
+# Value Counts - filmography: name, amg_movie_id, movie_title, role_type, id
+#              - information: name, amg_person_id, top_genre, id
+#filmography_df.info()
+#information_df.info()
+
+filmography_df.shape
+information_df.shape
+
+filmography_df.duplicated().sum()
+information_df.duplicated().sum()
+
+filmography_df.isna().sum().reset_index(name="na_count")
+information_df.isna().sum().reset_index(name="na_count")
+
+filmography_df["name"].value_counts().reset_index(name="frequency")
+filmography_df["amg_movie_id"].value_counts().reset_index(name="frequency")
+filmography_df["movie_title"].value_counts().reset_index(name="frequency")
+filmography_df["role_type"].value_counts().reset_index(name="frequency")
+filmography_df["id"].value_counts().reset_index(name="frequency")
+information_df["name"].value_counts().reset_index(name="frequency")
+information_df["amg_person_id"].value_counts().reset_index(name="frequency")
+information_df["top_genre"].value_counts().reset_index(name="frequency")
+information_df["id"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# 1. Filter for rating where not null in filmography DataFrame
+filtered_df = filmography_df[
+    filmography_df["rating"].notna()
+].copy()
+
+# 2. Calculate the average rating of each movie star name
+aggregated_df = filtered_df.groupby("name")["rating"].mean().reset_index(name="average_rating")
+
+# 3. Merge the aggregated results and information DataFrames by "name"
+result_df = pd.merge(aggregated_df, information_df, on="name", how="inner")
+
+# 4. Select relevant columns
+result_df = result_df[["average_rating", "name", "birthday"]]
+
+# 5. Sort results in ascending order by birthday
+result_df = result_df.sort_values(by="birthday", ascending=True)
+
+## Result:
+print("The average ratings of each movie star:")
+result_df
+
+Notes:
+- There were 45 null values found in the rating column for the filmography DataFrame when performing the
+  data quality check which were pertinent to the question.
+- I started my approach with filtering for ratings in the filmography DataFrame where values were not null
+  using the notna() function. From there, I calculated the average rating of each movie star name using the
+  groupby(), mean(), and reset_index() functions. Next, I merged the aggregated results and information
+  DataFrames by "name" using the pd.merge() function. The merged dataset was then selected for relevant
+  necessary output columns and sorted in ascending order by the birthday column using the sort_values()
+  function.
+
+Suggestions and Final Thoughts:
+- To achieve a similar pipe chain structure like in the R environment, the steps used in Solution #1 could
+  have been consolidated into a single pipe chain as well. This avoids having to create a number of 
+  intermediate DataFrames.
+  ex.
+      result_df = (
+          filmography_df[
+              filmography_df["rating"].notna()
+          ]
+          .groupby("name")["rating"].mean().reset_index(name="average_rating")
+          .merge(
+              information_df[["name", "birthday"]], 
+              on="name", 
+              how="inner"
+          )
+          .sort_values(
+              by="birthday", 
+              ascending=True
+          )
+          [["average_rating", "name", "birthday"]]
+      )
+
+Solve Duration:
+17 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+8 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10046
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Yelp - Top 5 States With 5 Star Businesses
+Find the top 5 states with the most 5-star businesses. 
+Return the state name and the number of 5-star businesses. 
+Rank states by the number of 5-star businesses in descending order. 
+States with the same total should share the same rank, and the next rank should increase by one (without skipping numbers). 
+If multiple states are tied at the same rank, include all of them in the output.
+
+Data Dictionary:
+Table name = 'yelp_business'
+address: varchar (str)
+business_id: varchar (str)
+categories: varchar (str)
+city: varchar (str)
+is_open: bigint (int)
+latitude: float (flt)
+longitude: float (flt)
+name: varchar (str)
+neighborhood: varchar (str)
+postal_code: varchar (str)
+review_count: bigint (int)
+stars: float (flt)
+state: varchar (str)
+
+Code:
+Solution #1
+-- Question:
+-- Find the top 5 states with the most 5-star businesses.
+-- Return the state name and the number of 5-star businesses.
+-- Rank states by the number of 5-star businesses in descending order.
+-- States with the same total should share the same rank, 
+-- and the next should increase by one (without skipping numbers).
+-- If multiple states are tied at the same rank, include all of them in the output.
+
+-- Output:
+-- state, five_star_businesses_count
+
+-- Preview data:
+SELECT TOP 5* FROM yelp_business;
+
+-- Check dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 100 x 13
+-- Duplicates - 0
+-- Nulls - address(7), neighborhood(64), postal_code(2)
+-- Value Counts - address, business_id, categories, city, name, neighborhood, postal_code, state
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN address IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN business_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN categories IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN city IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN is_open IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN latitude IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN longitude IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN name IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN neighborhood IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN postal_code IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN review_count IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN stars IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN state IS NULL THEN 1 ELSE 0 END) AS col13,
+    COUNT(*) AS total_rows
+FROM yelp_business;
+
+SELECT -- Duplicates
+    address, business_id, categories, city, is_open, latitude, longitude, name, neighborhood, postal_code, review_count, stars, state,
+    COUNT(*) AS duplicate_count
+FROM yelp_business
+GROUP BY
+    address, business_id, categories, city, is_open, latitude, longitude, name, neighborhood, postal_code, review_count, stars, state
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Count
+    address,
+    COUNT(*) AS frequency
+FROM yelp_business
+GROUP BY address
+ORDER BY frequency DESC;
+
+SELECT -- Value Count
+    business_id,
+    COUNT(*) AS frequency
+FROM yelp_business
+GROUP BY business_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Count
+    categories,
+    COUNT(*) AS frequency
+FROM yelp_business
+GROUP BY categories
+ORDER BY frequency DESC;
+
+SELECT -- Value Count
+    city,
+    COUNT(*) AS frequency
+FROM yelp_business
+GROUP BY city
+ORDER BY frequency DESC;
+
+SELECT -- Value Count
+    name,
+    COUNT(*) AS frequency
+FROM yelp_business
+GROUP BY name
+ORDER BY frequency DESC;
+
+SELECT -- Value Count
+    neighborhood,
+    COUNT(*) AS frequency
+FROM yelp_business
+GROUP BY neighborhood
+ORDER BY frequency DESC;
+
+SELECT -- Value Count
+    postal_code,
+    COUNT(*) AS frequency
+FROM yelp_business
+GROUP BY postal_code
+ORDER BY frequency DESC;
+
+SELECT -- Value Count
+    state,
+    COUNT(*) AS frequency
+FROM yelp_business
+GROUP BY state
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Filter for 5 star businesses
+-- 2. Count the number of 5 star businesses for each state
+-- 3. Rank the 5 star businesses count in descending order for each state and include ties
+-- 4. Filter for top 5 states with the most 5 star businesses using ranking
+WITH StateFiveStarBusinessesCountRank AS (
+    SELECT 
+        state,
+        COUNT(business_id) AS five_star_businesses_count,
+        DENSE_RANK() OVER(ORDER BY COUNT(business_id) DESC) AS dense_rank
+    FROM yelp_business
+    WHERE stars = 5
+    GROUP BY state
+)
+SELECT
+    state,
+    five_star_businesses_count
+FROM StateFiveStarBusinessesCountRank
+WHERE dense_rank <= 5
+ORDER BY 
+    five_star_businesses_count DESC,
+    state ASC;
+
+-- Result:
+WITH StateFiveStarBusinessesCountRank AS (
+    SELECT 
+        state,
+        -- 2. Count the number of 5 star businesses for each state
+        COUNT(business_id) AS five_star_businesses_count,
+        -- 3. Rank the 5 star businesses count in descending order for each state and include ties
+        DENSE_RANK() OVER(
+            ORDER BY 
+                COUNT(business_id) DESC
+        ) AS dense_rank
+    FROM 
+        yelp_business
+    WHERE 
+        -- 1. Filter for 5 star businesses
+        stars = 5
+    GROUP BY 
+        state
+)
+SELECT
+    state,
+    five_star_businesses_count
+FROM 
+    StateFiveStarBusinessesCountRank
+WHERE 
+    -- 4. Filter for top 5 states with the most 5 star businesses using ranking
+    dense_rank <= 5
+ORDER BY 
+    five_star_businesses_count DESC,
+    state ASC;
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts in the data quality check that were relevant for
+  solving the problem.
+- I began my approach by filtering for five star businesses in the stars column, counting the number of five
+  businesses for each state in the business_id column, and ranking the five star businesses count in
+  descending order for each state and included ties using the COUNT() and DENSE_RANK() functions. These steps
+  were placed into a common table expression (CTE) called StateFiveStarBusinessesCountRank and subsequently
+  queried to filter for top 5 states with the most 5 star businesses using ranking. The necessary output 
+  columns were selected and ordered by five_star_businesses_count in descending order and state in ascending
+  order.
+
+Suggestions and Final Thoughts:
+- Even though the stars column had the data type float, the values were whole numbers without decimal places.
+  If they were actual float values then the WHERE clause in the CTE for Solution #1 should be to filter for
+  values with decimals places. SQL promotes the integer 5 to a float data type automatically but 5.0 would
+  be much safer to use.
+  ex. 
+      WHERE
+          stars = 5.0;
+- Performing the unique value counts check helped determine whether or not to use DISTINCT in the COUNT()
+  aggregation for five star businesses. All of them revealed single frequency counts which meant there were
+  no replicated values in the business_id column.
+
+Solve Duration:
+22 minutes
+
+Notes Duration:
+6 minutes
+
+Suggestions and Final Thoughts Duration:
+7 minutes
+
+############################################################################################################
