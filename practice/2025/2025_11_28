@@ -1,0 +1,509 @@
+Date: 11/28/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2139
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+CVS Health - Average Age of Claims by Gender
+You have been asked to calculate the average age by gender of people who filed more than 1 claim in 2021.
+The output should include the gender and average age rounded to the nearest whole number.
+
+Data Dictionary:
+Table name = 'cvs_claims'
+claim_id: numeric (num)
+account_id: character (str)
+date_submitted: POSIXct, POSIXt (dt)
+date_accepted: POSIXct, POSIXt (dt)
+date_rejected: POSIXct, POSIXt (dt)
+
+Table name = 'cvs_accounts'
+age: numeric (num)
+account_id: character (str)
+gender: character (str)
+
+Code:
+Solution #1
+## Question:
+# You have been asked to calculate the average age by gender of people who filed more than 1 claim in 2021.
+# The output should include the gender and average age rounded to the nearest whole number.
+
+## Output:
+# gender, average_age
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#cvs_claims <- read_csv("cvs_claims.csv")
+#cvs_accounts <- read_csv("cvs_accounts.csv")
+claims_df <- data.frame(cvs_claims)
+accounts_df <- data.frame(cvs_accounts)
+head(claims_df, 5)
+head(accounts_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - claims: 16 x 5
+#            - accounts: 16 x 3
+# Duplicates - claims: 0
+#            - accounts: 0
+# Nulls - claims: date_accepted(12), date_rejected(11)
+#       - accounts: 0
+# Value Counts - claims: claim_id, account_id
+#              - accounts: account_id, gender
+data.frame(lapply(claims_df, class))
+data.frame(lapply(accounts_df, class))
+
+dim(claims_df)
+dim(accounts_df)
+
+sum(duplicated(claims_df))
+sum(duplicated(accounts_df))
+
+enframe(colSums(is.na(claims_df)), name="index", value="na_count")
+enframe(colSums(is.na(accounts_df)), name="index", value="na_count")
+
+enframe(table(claims_df$claim_id), name="index", value="frequency")
+enframe(table(claims_df$account_id), name="index", value="frequency")
+enframe(table(accounts_df$account_id), name="index", value="frequency")
+enframe(table(accounts_df$gender), name="index", value="frequency")
+
+## Iteration:
+result_df <- claims_df %>%
+    filter(
+        # 1. Filter for claims in 2021
+        year(date_submitted) == 2021
+    ) %>%
+    group_by(account_id) %>%
+    summarise(
+        # 2. Count the number of claims for each account_id
+        claim_count = n(),
+        .groups="drop"
+    ) %>%
+    filter(
+        # 3. Filter for accounts with more than 1 claim
+        claim_count > 1
+    ) %>%
+    inner_join(
+        # 4. Inner join claims and accounts DataFrames by "account_id"
+        accounts_df, by="account_id"
+    ) %>%
+    group_by(gender) %>%
+    summarise(
+        # 5. Calculate the average age for each gender, round to nearest whole number
+        average_age = round(
+            mean(age, na.rm=TRUE), 
+            digits=0
+        ),
+        .groups="drop"
+    )
+    
+## Result:
+result_df
+
+Notes:
+- The data quality check revealed no duplicates, nulls, or value counts that were relevant for solving the
+  problem. The claim_id column were all unique so the n_distinct() function did not to be used over the n().
+- I began my approach to this problem by establishing a dplyr pipe chain to filter for claims in 2021 using the
+  date_submitted column in the claims DataFrame with functions filter() and year(). Next, I grouped and
+  aggregated to count the number of claims for each account_id using the group_by(), summarise(), and n()
+  functions. From there, I filtered for accounts with more than 1 claim using the filter() function.
+  Afterwards, the claims and accounts DataFrames were inner joined by account_id using the inner_join()
+  function. Lastly, the merged dataset was grouped and aggregated to calculate the average age for each
+  gender and rounded to the nearest whole number using the group_by(), summarise(), and mean() functions.
+
+Suggestions and Final Thoughts:
+- The round() function if rounding to the nearest whole number does not need the parameter digits=0, it can
+  be simplified to just be round(). I kept the parameter for clarity and possible debugging.
+  ex. 
+      round(mean(age, na.rm=TRUE))
+- I noticed that when reaching the step to group by and aggregate the average age for each gender, the
+  filtered data rows did not contain a lot of numerical values for the female category. In fact, there was
+  only a single row for females while the males had multiple. It wasn't a true average in this case.
+
+Solve Duration:
+16 minutes
+
+Notes Duration:
+6 minutes
+
+Suggestions and Final Thoughts Duration:
+6 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9607
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Amazon - The Most Expensive Products Per Category
+Find the most expensive products on Amazon for each product category. 
+Output category, product name and the price (as a number)
+
+Data Dictionary:
+Table name = 'innerwear_amazon_com'
+product_name: object (str)
+mrp: object (str)
+price: object (str)
+pdp_url: object (str)
+brand_name: object (str)
+product_category: object (str)
+retailer: object (str)
+description: object (str)
+rating: float64 (flt)
+review_count: int64 (int)
+style_attributes: object (str)
+total_sizes: object (str)
+available_size: object (str)
+color: object (str)
+
+Code:
+Solution #1
+## Question:
+# Find the most expensive products on Amazon for each product category.
+# Output category, product name and the price (as a number)
+
+## Output:
+# product_category, product_name, price
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#innerwear_amazon_com = pd.read_csv("innerwear_amazon_com.csv")
+innerwear_df = pd.DataFrame(innerwear_amazon_com)
+innerwear_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 100 x 14
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - product_name, mrp, price, pdp_url, brand_name, product_category, retailer,
+#                description, style_attributes, total_sizes, available_size, color
+#innerwear_df.info()
+
+innerwear_df.shape
+
+innerwear_df.duplicated().sum()
+
+innerwear_df.isna().sum().reset_index(name="na_count")
+
+innerwear_df["product_name"].value_counts().reset_index(name="frequency")
+innerwear_df["mrp"].value_counts().reset_index(name="frequency")
+innerwear_df["price"].value_counts().reset_index(name="frequency")
+innerwear_df["pdp_url"].value_counts().reset_index(name="frequency")
+innerwear_df["brand_name"].value_counts().reset_index(name="frequency")
+innerwear_df["product_category"].value_counts().reset_index(name="frequency")
+innerwear_df["retailer"].value_counts().reset_index(name="frequency")
+innerwear_df["description"].value_counts().reset_index(name="frequency")
+innerwear_df["style_attributes"].value_counts().reset_index(name="frequency")
+innerwear_df["total_sizes"].value_counts().reset_index(name="frequency")
+innerwear_df["available_size"].value_counts().reset_index(name="frequency")
+innerwear_df["color"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# 1. Remove the $ from price, trim the white space, and convert to float datatype
+innerwear_df["cleaned_price"] = (
+    innerwear_df["price"]
+    .str.replace("$", "", regex=False)
+    .str.strip()
+    .astype(float)
+)
+
+# 2. Rank product prices in descending order for each product category, include ties
+innerwear_df["rank"] = innerwear_df.groupby("product_category")["cleaned_price"].rank(method="dense", ascending=False)
+
+# 3. Filter for most expensive product for each product category using rank
+result_df = innerwear_df[
+    innerwear_df["rank"] == 1
+].copy().rename(columns={"cleaned_price": "actual_price"})
+
+# 4. Select relevant columns 
+result_df = result_df[["product_category", "product_name", "actual_price"]]
+
+# 5. Arrange by actual price in DESC order, product category in ASC, and product name in ASC
+result_df = result_df.sort_values(by=["actual_price", "product_category", "product_name"], 
+                                  ascending=[False, True, True])
+
+## Result:
+print("Most expensive products on Amazon for each product category:")
+result_df
+
+Notes:
+- The data quality check showed that the price column was a object datatype and contained the $ character.
+- I started my approach to this problem by removing the $ character from the price column and converting it
+  to a float datatype using the str.replace() and astype() functions. From there, I ranked the cleaned prices
+  in descending order for each product category and included ties using the groupby() and rank() functions.
+  Next, I filtered for most expensive product for each product_category using top ranking and renamed the
+  cleaned price column using the functions copy() and rename(). The dataset was then selected for relevant 
+  output columns and arranged in descending order by actual_price, ascending order by product_category, and
+  ascending order by product_name using the sort_values() function.
+- For some reason tried to use the max() function instead of rank() function when solving this problem. I
+  got them mixed up a few times and eventually I settled on a SQL approach for using dense rank and then
+  filtering. Made the question a lot harder than it needed to be. Will happen from time to time.
+- Looked up str.replace() function since I had forgotten the syntax for removing or replacing characters.
+  The parameters are str.replace(old, new, count) where old is the substring to replace, new is the new
+  substring, and count is an integer specifying the number of occurences to replace.
+  ex.
+      innerwear_df["cleaned_price"] = innerwear_df["price"].str.replace("$", "").astype(float)
+
+Suggestions and Final Thoughts:
+- For handling multiple currency symbols and removing all non-digit and non-period characters in the price
+  column, it would be best to use the str.replace() function with regular expressions.
+  ex. 
+      str.replace(r'[^\d.]', '', regex=True)
+- An alternative to using regular expressions is replacing each character using str.replace() and then
+  using str.strip() to trim the leading/lagging white space in the string.
+  ex.
+      str.replace('Rs.', '', regex=False)    # removes $ currency symbol
+      str.replace(',', '', regex=False)      # removes , thousands seperator
+      str.strip()                            # remove leading/lagging space
+- The max() function method would be to use idxmax() instead of the rank() function and filtering.
+  The idxmax() finds the index label of the maximum value in a column for each group. Then use the indices
+  to select the corresponding rows in the original DataFrame. The downside of idxmax() is that it does not
+  include ties for edge cases.
+  ex.
+      max_price_indices = innerwear_df.groupby("product_category")["cleaned_price"].idxmax()
+      most_expensive_products = innerwear_df.loc[max_price_indices]
+
+Solve Duration:
+40 minutes
+
+Notes Duration:
+7 minutes
+
+Suggestions and Final Thoughts Duration:
+15 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10062
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Meta - Fans vs Opposition
+Meta/Facebook is quite keen on pushing their new programming language Hack to all their offices. 
+They ran a survey to quantify the popularity of the language and send it to their employees. 
+To promote Hack they have decided to pair developers which love Hack with the ones who hate it so the fans can convert the opposition. 
+Their pair criteria is to match the biggest fan with biggest opposition, second biggest fan with second biggest opposition, and so on. 
+Write a query which returns this pairing. 
+Output employee ids of paired employees. 
+Sort users with the same popularity value by id in ascending order.
+Duplicates in pairings can be left in the solution. 
+For example, (2, 3) and (3, 2) should both be in the solution.
+
+Data Dictionary:
+Table name = 'facebook_hack_survey'
+age: bigint (int)
+employee_id: bigint (int)
+gender: varchar (str)
+popularity: bigint (int)
+
+Code:
+**Attempt #1
+WITH OppositionEmployeeRank AS (
+    SELECT
+        employee_id,
+        popularity,
+        -- 1. Rank opposition employees based on popularity in ascending order, include ties
+        DENSE_RANK() OVER(ORDER BY popularity ASC) AS opposition_asc_rank
+    FROM 
+        facebook_hack_survey
+),
+FanEmployeeRank AS (
+    SELECT
+        employee_id,
+        popularity,
+        -- 2. Rank fan employees based on popularity in descending order, include ties
+        DENSE_RANK() OVER(ORDER BY popularity DESC) AS fan_desc_rank
+    FROM 
+        facebook_hack_survey
+)
+SELECT 
+    oer.employee_id AS employee_id_1,
+    fer.employee_id AS employee_id_2
+FROM 
+    OppositionEmployeeRank AS oer
+JOIN 
+    -- 3. Inner join opposition and fan CTEs by matching opposition and fan ranks
+    FanEmployeeRank AS fer
+    ON oer.opposition_asc_rank = fer.fan_desc_rank
+WHERE 
+    -- 4. Filter for employee_id_1 not equal to employee_id_2 to avoid same individual employee
+    oer.employee_id != fer.employee_id
+ORDER BY 
+    -- 5. Sort employee pairs in ascending order
+    employee_id_1 ASC,
+    employee_id_2 ASC;
+
+** Solution #1
+-- Question:
+-- Meta/Facebook is quite keen on pushing their new progrmaming language Hack to all their offices.
+-- They ran a survey to quantify the popularity of the language and send it to their employees.
+-- To promote Hack they have decided to pair developers which love Hack with the ones who hate it so the
+-- fans can convert the opposition.
+-- Their pair criteria is to match the biggest fan with biggest opposition, second biggest fan with
+-- second biggest opposition, and so on. 
+-- Write a query which returns this pairing.
+-- Output employee ids of paired employees.
+-- Sort users with the same popularity value by id in ascending order.
+-- Duplicate pairings can be left in the solution.
+-- For example, (2,3), and (3,2) should both be in the solution.
+
+-- Output:
+-- employee_id_1, employee_id_2
+
+-- Preview data:
+SELECT TOP 5* FROM facebook_hack_survey;
+
+-- Check dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 17 x 4
+-- Duplicates - 0
+-- Nulls - 0
+-- Value Counts - employee_id, gender
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN age IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN employee_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN gender IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN popularity IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM facebook_hack_survey;
+
+SELECT -- Duplicates
+    age, employee_id, gender, popularity,
+    COUNT(*) AS duplicate_count
+FROM facebook_hack_survey
+GROUP BY
+    age, employee_id, gender, popularity
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    employee_id,
+    COUNT(*) AS frequency
+FROM facebook_hack_survey
+GROUP BY employee_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    gender,
+    COUNT(*) AS frequency
+FROM facebook_hack_survey
+GROUP BY gender
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Rank opposition employees based on popularity in ASC, employee_id in ASC, include ties
+-- 2. Rank fan employees based on popularity in DESC, employee_id in ASC, include ties
+-- 3. Inner join opposition and fan CTEs by matching opposition and fan ranks
+-- 4. Filter for employee_id_1 not equal to employee_id_2 to avoid same individual employee
+-- 5. Sort employee pairs in ascending order
+WITH OppositionEmployeeRank AS (
+    SELECT
+        employee_id,
+        popularity,
+        DENSE_RANK() OVER(ORDER BY popularity ASC, employee_id ASC) AS opposition_asc_rank
+    FROM facebook_hack_survey
+),
+FanEmployeeRank AS (
+    SELECT
+        employee_id,
+        popularity,
+        DENSE_RANK() OVER(ORDER BY popularity DESC, employee_id ASC) AS fan_desc_rank
+    FROM facebook_hack_survey
+)
+SELECT 
+    oer.employee_id AS employee_id_1,
+    fer.employee_id AS employee_id_2
+FROM OppositionEmployeeRank AS oer
+JOIN FanEmployeeRank AS fer
+    ON oer.opposition_asc_rank = fer.fan_desc_rank
+WHERE oer.employee_id != fer.employee_id
+ORDER BY 
+    employee_id_1 ASC,
+    employee_id_2 ASC;
+
+-- Result:
+WITH OppositionEmployeeRank AS (
+    SELECT
+        employee_id,
+        popularity,
+        -- 1. Rank opposition employees based on popularity in ASC, employee_id in ASC, include ties
+        DENSE_RANK() OVER(ORDER BY popularity ASC, employee_id ASC) AS opposition_asc_rank
+    FROM 
+        facebook_hack_survey
+),
+FanEmployeeRank AS (
+    SELECT
+        employee_id,
+        popularity,
+        -- 2. Rank fan employees based on popularity in DESC, employee_id in ASC, include ties
+        DENSE_RANK() OVER(ORDER BY popularity DESC, employee_id ASC) AS fan_desc_rank
+    FROM 
+        facebook_hack_survey
+)
+SELECT 
+    oer.employee_id AS employee_id_1,
+    fer.employee_id AS employee_id_2
+FROM 
+    OppositionEmployeeRank AS oer
+JOIN 
+    -- 3. Inner join opposition and fan CTEs by matching opposition and fan ranks
+    FanEmployeeRank AS fer
+    ON oer.opposition_asc_rank = fer.fan_desc_rank
+WHERE 
+    -- 4. Filter for employee_id_1 not equal to employee_id_2 to avoid same individual employee
+    oer.employee_id != fer.employee_id
+ORDER BY 
+    -- 5. Sort employee pairs in ascending order
+    employee_id_1 ASC,
+    employee_id_2 ASC;
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts found in the data quality check.
+- My approach to this problem began with ranking the opposition employees based on popularity in ascending 
+  order and including ties using the dense_rank() function. Next, I ranked the fan employees based on 
+  popularity in descending order and included ties. Both of these steps were placed into common table
+  expressions (CTEs) named OppositionEmployeeRank and FanEmployeeRank respectively. From there, I inner joined
+  the two CTEs by their ascending and descending rank columns and filtered for where the employee_id was not
+  the same for both CTEs. Lastly, I sortd the employee pairs in ascending order.
+- I couldn't quite figure out what the prompt meant by "sort users with the same popularity value by id
+  in ascending order". I sorted by id in ascending order overall.
+
+Suggestions and Final Thoughts:
+- The "sort users with the same popularity value by id in ascending order" was meant for tie breaking.
+  Place the employee_id in ascending order for the ORDER BY clause in the dense_rank() function.
+  ex.
+       DENSE_RANK() OVER(ORDER BY popularity ASC, employee_id ASC) AS opposition_asc_rank;
+       DENSE_RANK() OVER(ORDER BY popularity DESC, employee_id ASC) AS fan_desc_rank;
+  
+Solve Duration:
+30 minutes
+
+Notes Duration:
+8 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
