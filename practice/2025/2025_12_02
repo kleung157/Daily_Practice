@@ -1,0 +1,670 @@
+Date: 12/02/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2140
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+American Express - Third Highest Total Transaction
+American Express is reviewing their customers' transactions, and you have been tasked with locating the customer who has the third highest total transaction amount.
+The output should include the customer's id, as well as their first name and last name. 
+For ranking the customers, use type of ranking with no gaps between subsequent ranks.
+
+Data Dictionary:
+Table name = 'customers'
+id: numeric (num)
+first_name: character (str)
+last_name: character (str)
+city: character (str)
+address: chracter (str)
+phone_number: character (str)
+
+Table name = 'card_orders'
+order_id: numeric (num)
+cust_id: numeric (num)
+total_order_cost: numeric (num)
+order_date: character (str)
+order_details: character (str)
+
+Code:
+Solution #1
+## Question:
+# American Express is reviewing their customers' transactions, 
+# and you have been asked with locating the customer who has the third highest total transaction amount.
+# The output should include the customer's id, as well as their first name and last name.
+# For ranking the customers, use type of ranking with no gaps between subsequent ranks.
+
+## Output:
+# customer_id, first_name, last_name
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#customers <- read_csv("customers.csv")
+#card_orders <- read_csv("card_orders.csv")
+customers_df <- data.frame(customers)
+orders_df <- data.frame(card_orders)
+head(customers_df, 5)
+head(orders_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - customers: 15 x 6
+#            - orders: 30 x 5
+# Duplicates - customers: 0
+#            - orders: 0
+# Nulls - customers: address(7)
+#       - orders: 0
+# Value Counts - customers: id, first_name, last_name, city, address, phone_number 
+#              - orders: order_id, cust_id, order_date, order_details
+data.frame(lapply(customers_df, class))
+data.frame(lapply(orders_df, class))
+
+dim(customers_df)
+dim(orders_df)
+
+sum(duplicated(customers_df))
+sum(duplicated(orders_df))
+
+enframe(colSums(is.na(customers_df)), name="index", value="na_count")
+enframe(colSums(is.na(orders_df)), name="index", value="na_count")
+
+enframe(table(customers_df$id), name="index", value="frequency")
+enframe(table(customers_df$first_name), name="index", value="frequency")
+enframe(table(customers_df$last_name), name="index", value="frequency")
+enframe(table(customers_df$city), name="index", value="frequency")
+enframe(table(customers_df$address), name="index", value="frequency")
+enframe(table(customers_df$phone_number), name="index", value="frequency")
+enframe(table(orders_df$order_id), name="index", value="frequency")
+enframe(table(orders_df$cust_id), name="index", value="frequency")
+enframe(table(orders_df$order_date), name="index", value="frequency")
+enframe(table(orders_df$order_details), name="index", value="frequency")
+
+## Iteration:
+result_df <- customers_df %>%
+    inner_join(
+        # 1. Inner join customers and orders DataFrames by id and cust_id respectively
+        orders_df, by=c("id"="cust_id")
+    ) %>%
+    group_by(id, first_name, last_name) %>%
+    summarise(
+        # 2. Calculate the total transaction amount for each 
+        #    customer id, first_name, and last_name combination
+        total_transaction_amount = sum(total_order_cost),
+        .groups="drop"
+    ) %>%
+    mutate(
+        # 3. Rank the total_transaction_amount in descending order, include ties, no gaps
+        rank = dense_rank(desc(total_transaction_amount))
+    ) %>%
+    filter(
+        # 4. Filter for third highest total transaction amount based on rank
+        rank == 3
+    ) %>%
+    select(
+        # 5. Select and rename relevant columns
+        customer_id=id, first_name, last_name
+    )
+
+## Result:
+result_df
+
+Notes:
+- The data quality check did not reveal any duplicates, nulls, or abnormal value counts relevant for solving
+  the problem.
+- I started my approach with inner joining the customers and orders DataFrames by id and cust_id columns
+  resepctively using the inner_join() function. Next, I calculated the total transaction amount for each
+  customer_id, first_name, and last_name column combination using group_by(), summarise(), and sum() 
+  functions. From there, the aggregated results in the total_transaction_amount column were ranked in
+  descending order to include ties and no gaps using the mutate() and dense_rank() functions. Afterwards,
+  the data was filtered for third highest total transaction amount based on rank using the filter() function.
+  Lastly, the necessary output columns were selected and renamed using the select() function.
+  
+Suggestions and Final Thoughts:
+- An alternative approach to be more efficient and optimal would have been to perform the aggregation step
+  in the orders DataFrame then join to the customers DataFrame to obtain the first_name and last_name.
+  ex.
+      result_df <- orders_df %>%
+          group_by(cust_id) %>%
+          summarise(
+               total_transaction_amount = sum(total_order_cost),
+               .groups="drop"
+          ) %>%
+          mutate(
+               rank = dense_rank(desc(total_transaction_amount))
+          ) %>%
+          filter(
+               rank == 3
+          ) %>%
+          inner_join(
+               customers_df, by=c("cust_id"="id")
+          ) %>%
+          select(
+               customer_id=cust_id, first_name, last_name 
+          )
+- Try to think about what steps can be performed on each DataFrame first before joining any tables together.
+  This ensures that there are less rows to work with and the process is more computationally efficient.
+
+Solve Duration:
+20 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+8 minutes
+
+###########################################################################################################
+
+Website:
+StrataScratch - ID 9609
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Google - Find Nexus5 control group users in Italy who don't speak Italian
+Find user id, language, and location of all Nexus 5 control group users in Italy who do not speak Italian.
+Sort the results in ascending order based on the occurred_at value of the playbook_experiments dataset.
+
+Data Dictionary:
+Table name = 'playbook_experiments'
+user_id: int64 (int)
+occured_at: datetime64 (dt)
+experiment: object (str)
+experiment_group: object (str)
+location: object (str)
+device: object (str)
+
+Table name = 'playbook_users'
+user_id: int64 (int)
+created_at: datetime64 (dt)
+company_id: int64 (int)
+language: object (str)
+activated_at: datetime64 (dt)
+state: object (str)
+
+Code:
+## Question:
+# Find user id, language, and location of all Nexus 5 control group users in Italy who do not speak Italian.
+# Sort the results in ascending order based on the occurred_at value of the playbook_experiments dataset.
+
+## Output:
+# user_id, language, location
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#playbook_experiments = pd.read_csv("playbook_experiments.csv")
+#playbook_users = pd.read_csv("playbook_users.csv")
+experiments_df = pd.DataFrame(playbook_experiments)
+users_df = pd.DataFrame(playbook_users)
+experiments_df.head(5)
+users_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - experiments: 180 x 6
+#            - users: 219 x 6
+# Duplicates - experiments: 0
+#            - users: 0
+# Nulls - experiments: 0
+#       - users: activated_at(2)
+# Value Counts - experiments: user_id, experiment, experiment_group, location, device
+#              - users: user_id, company_id, language, state
+#experiments_df.info()
+#users_df.info()
+
+experiments_df.shape
+users_df.shape
+
+experiments_df.duplicated().sum()
+users_df.duplicated().sum()
+
+experiments_df.isna().sum().reset_index(name="na_count")
+users_df.isna().sum().reset_index(name="na_count")
+
+experiments_df["user_id"].value_counts().reset_index(name="frequency")
+experiments_df["experiment"].value_counts().reset_index(name="frequency")
+experiments_df["experiment_group"].value_counts().reset_index(name="frequency")
+experiments_df["location"].value_counts().reset_index(name="frequency")
+experiments_df["device"].value_counts().reset_index(name="frequency")
+users_df["user_id"].value_counts().reset_index(name="frequency")
+users_df["company_id"].value_counts().reset_index(name="frequency")
+users_df["language"].value_counts().reset_index(name="frequency")
+users_df["state"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# 1. Filter for Nexus 5 control group users in Italy
+filtered_experiments_df = experiments_df[
+    (experiments_df["experiment_group"].str.lower() == "control_group") &
+    (experiments_df["device"].str.lower() == "nexus 5") &
+    (experiments_df["location"].str.capitalize() == "Italy")
+].copy()
+
+# 2. Inner join filtered and users DataFrame by user_id
+result_df = pd.merge(
+    filtered_experiments_df, 
+    users_df[["user_id", "language"]], 
+    on="user_id", 
+    how="inner"
+)
+
+# 3. Filter for users who do not speak Italian 
+result_df = result_df[
+    result_df["language"].str.lower() != "italian"
+].copy()
+
+# 4. Sort in ascending order based on occurred_at column
+result_df = result_df.sort_values(
+    by="occurred_at", 
+    ascending=True
+)
+
+# 5. Select relevant columns
+result_df = result_df[
+    ["user_id", "language", "location"]
+]
+
+## Result:
+print("Nexus 5 control group users in Italy who do not speak Italian:")
+result_df
+Notes:
+- There were no nulls, duplicates, or abnormal value counts in the data quality check that were pertinent 
+  for solving the problem.
+- I began my approach by filtering for 'nexus 5', 'control_group' users in 'Italy' from various columns such
+  as experiment_group, device, and location from the experiments DataFrame. From there, I inner joined the
+  filtered experiments and users DataFrames by user_id using the pd.merge() function. The merged dataset
+  was then filtered for users who do not speak Italian and sorted in ascending order based on the occurred_at
+  column using copy() and sort_value() functions. Finally, the relevant columns for the output were selected.
+
+Suggestions and Final Thoughts:
+- I performed thorough checks on the value counts of each categorical column to find the standardized case
+  format for each value but to ensure consistency it is best to use the str function for edge cases
+  in the filtering process. Aside from str.lower() and str.upper() functions, there is a str.capitalize() to
+  use for capitalized values.
+  ex.
+      filtered_experiments_df = experiments_df[
+          (experiments_df["experiment_group"].str.lower() == "control_group") &
+          (experiments_df["device"].str.lower() == "nexus 5") &
+          (experiments_df["location"].str.capitalize() == "Italy")
+      ].copy()
+- For aggregation and ranking problems, it makes more sense to filter out rows in individual DataFrames 
+  before joining. For multi-column look ups it's more optimal to join the tables first then filter all at
+  once.
+  ex.
+      result_df = pd.merge(
+           experiments_df,
+           users_df["user_id", "language"],
+           on="user_id",
+           how="inner"
+      )
+      result_df = result_df[
+           (result_df["experiment_group"].str.lower() == "control_group") &
+           (result_df["device"].str.lower() == "nexus 5") &
+           (result_df["location"].str.capitalize() == "Italy") &
+           (result_df["language"].str.lower() != "italian")
+      ]
+- I did notice that the final results had some user_ids displayed more than once to show that they know
+  more than one language. If the problem had asked for unique or distinct users then I would have filtered
+  for that using the unique() function.
+
+Solve Duration:
+21 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+15 minutes
+
+###########################################################################################################
+
+Website:
+StrataScratch - ID 10067
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Google - Google Fit User Tracking
+Find the average session distance travelled by Google Fit users based on GPS location data. 
+Calculate the distance for two scenarios:
+Taking into consideration the curvature of the earth
+Taking into consideration the curvature of the earth as a flat surface
+Assume one session distance is the distance between the biggest and the smallest step. 
+If the session has only one step id, discard it from the calculation. 
+Assume that session can't span over multiple days.
+Output the average session distances calculated in the two scenarios and the difference between them.
+Formula to calculate the distance with the curvature of the earth:
+R = 6371
+ϕ1 = lat1 × π/180
+ϕ2 = lat2 × π/180
+​d = arccos(sinϕ1 × sinϕ2 + cosϕ1 × cosϕ2 × cos(longitude2 × (π/180) - longitude1 × (π/180))) × R
+Formula to calculate distance on a flat surface:
+D = 111
+d = sqrt((lat2 - lat1)^2 + (lon2 - lon1)^2) × D
+
+Data Dictionary:
+Table name = 'google_fit_location'
+altitude: float (flt)
+day: bigint (int)
+latitude: float (flt)
+longitude: float (flt)
+session_id: bigint (int)
+step_id: bigint (int)
+user_id: varchar (str)
+
+Code:
+Solution #1
+-- Question:
+-- Find the average session distance travelled by Google Fit users based on GPS location data.
+-- Calculate the distance for two scenarios:
+-- Taking into consideration the curvature of the earth
+-- Taking into consideration the curvature of the earth as a flat surface
+-- Assume one session distance is the distance between the biggest and the smallest step.
+-- If the session has only one step id, discard it from the calculation.
+-- Assume that session can't span over multiple days.
+-- Output the average session distances calculated in the two scenarios and the difference between them.
+
+-- Output:
+-- average_session_distance1, average_session_distance2, difference
+
+-- Preview data:
+SELECT TOP 5* FROM google_fit_location;
+
+-- Check dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 100 x 7
+-- Duplicates - 0
+-- Nulls - 0
+-- Value Counts - session_id, step_id, user_id
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN altitude IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN day IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN latitude IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN longitude IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN session_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN step_id IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col7,
+    COUNT(*) AS total_rows
+FROM google_fit_location;
+
+SELECT -- Duplicates
+    altitude, day, latitude, longitude, session_id, step_id, user_id,
+    COUNT(*) AS duplicate_count
+FROM google_fit_location
+GROUP BY
+    altitude, day, latitude, longitude, session_id, step_id, user_id
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    session_id,
+    COUNT(*) AS frequency
+FROM google_fit_location
+GROUP BY session_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    step_id,
+    COUNT(*) AS frequency
+FROM google_fit_location
+GROUP BY step_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    user_id,
+    COUNT(*) AS frequency
+FROM google_fit_location
+GROUP BY user_id
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Rank the biggest altitude steps for each user_id, session_id, day in desending order
+-- 2. Rank the smallest altitude steps for each user_id, session_id, day in ascending order
+-- 3. Count the number of step_id per user_id, session_id, day
+-- 4. Filter for sessions with more than one step_id count
+-- 5. Filter for biggest step and smallest step rows
+-- 6. Self inner join with UserSessionDayStepCountAltitudeRank table to pivot the data
+-- 7. Calculate radians for each session, radians = latitude * (PI / 180)
+-- 8. Calculate distance with curvature of the earth
+--    d = arccos(sinϕ1 × sinϕ2 + cosϕ1 × cosϕ2 × cos(longitude2 × (π/180) - longitude1 × (π/180))) × R
+-- 9. Calculate distance on a flat survace
+--    d = sqrt((lat2 - lat1)^2 + (lon2 - lon1)^2) × D
+-- 10. Calculate average session distance for each scenario
+-- 11. Calculate the difference between average session distances from both scenarios
+WITH UserSessionDayStepCountAltitudeRank AS (
+    SELECT 
+        user_id,
+        session_id,
+        day,
+        step_id,
+        latitude,
+        longitude,
+        altitude,
+        DENSE_RANK() OVER(PARTITION BY user_id, session_id, day ORDER BY altitude DESC) AS biggest_step_desc,
+        DENSE_RANK() OVER(PARTITION BY user_id, session_id, day ORDER BY altitude ASC) AS smallest_step_asc,
+        COUNT(step_id) OVER(PARTITION BY user_id, session_id, day) AS step_id_count
+    FROM google_fit_location
+),
+LatitudeLongitudeRadian AS (
+    SELECT
+        usdscar1.latitude AS lat1,
+        usdscar1.longitude AS long1,
+        usdscar2.latitude AS lat2,
+        usdscar2.longitude as long2,
+        usdscar1.latitude * (PI() / 180) AS radian1,
+        usdscar2.latitude * (PI() / 180) AS radian2
+    FROM UserSessionDayStepCountAltitudeRank AS usdscar1
+    JOIN UserSessionDayStepCountAltitudeRank AS usdscar2
+        ON usdscar1.user_id = usdscar2.user_id
+        AND usdscar1.session_id = usdscar2.session_id
+        AND usdscar1.day = usdscar2.day
+    WHERE usdscar1.step_id_count > 1
+        AND usdscar1.biggest_step_desc = 1
+        AND usdscar2.smallest_step_asc = 1
+),
+ScenarioDistances AS (
+    SELECT
+        ACOS(
+            SIN(radian1) * SIN(radian2)
+            + COS(radian1) * COS(radian2) * COS(long2 * (PI() / 180) - long1 * (PI() / 180))
+        ) * 6371 AS scenario1_distance,
+        SQRT(
+            POWER((lat2 - lat1), 2) + POWER((long2 - long1), 2)
+        ) * 111 AS scenario2_distance
+    FROM LatitudeLongitudeRadian
+)
+SELECT
+    ROUND(
+        AVG(scenario1_distance)
+    , 2) AS average_scenario_distance1,
+    ROUND(
+        AVG(scenario2_distance)
+    , 2) AS average_scenario_distance2,
+    ROUND(
+        AVG(scenario1_distance) - AVG(scenario2_distance)
+    , 2) AS difference
+FROM ScenarioDistances;
+
+-- Result:
+WITH UserSessionDayStepCountAltitudeRank AS (
+    SELECT 
+        user_id,
+        session_id,
+        day,
+        step_id,
+        latitude,
+        longitude,
+        altitude,
+        -- 1. Rank the biggest altitude steps for each user_id, session_id, day in desending order
+        DENSE_RANK() OVER(
+            PARTITION BY user_id, session_id, day 
+            ORDER BY altitude DESC
+        ) AS biggest_step_desc,
+        -- 2. Rank the smallest altitude steps for each user_id, session_id, day in ascending order
+        DENSE_RANK() OVER(
+            PARTITION BY user_id, session_id, day 
+            ORDER BY altitude ASC
+        ) AS smallest_step_asc,
+        -- 3. Count the number of step_id per user_id, session_id, day
+        COUNT(step_id) OVER(
+            PARTITION BY user_id, session_id, day
+        ) AS step_id_count
+    FROM 
+        google_fit_location
+),
+LatitudeLongitudeRadian AS (
+    SELECT
+        usdscar1.latitude AS lat1,
+        usdscar1.longitude AS long1,
+        usdscar2.latitude AS lat2,
+        usdscar2.longitude as long2,
+        -- 7. Calculate radians for each session, radians = latitude * (PI / 180)
+        usdscar1.latitude * (PI() / 180) AS radian1,
+        usdscar2.latitude * (PI() / 180) AS radian2
+    FROM 
+        UserSessionDayStepCountAltitudeRank AS usdscar1
+    JOIN 
+        -- 6. Self inner join with UserSessionDayStepCountAltitudeRank table to pivot the data
+        UserSessionDayStepCountAltitudeRank AS usdscar2
+        ON usdscar1.user_id = usdscar2.user_id
+        AND usdscar1.session_id = usdscar2.session_id
+        AND usdscar1.day = usdscar2.day
+    WHERE 
+        -- 4. Filter for sessions with more than one step_id count
+        usdscar1.step_id_count > 1
+        -- 5. Filter for biggest step and smallest step rows
+        AND usdscar1.biggest_step_desc = 1
+        AND usdscar2.smallest_step_asc = 1
+),
+ScenarioDistances AS (
+    SELECT
+        -- 8. Calculate distance with curvature of the earth, R = 6371
+        -- d = arccos(sinϕ1 × sinϕ2 + cosϕ1 × cosϕ2 × cos(longitude2 × (π/180) - longitude1 × (π/180))) × R
+        ACOS(
+            SIN(radian1) * SIN(radian2)
+            + COS(radian1) * COS(radian2) * COS(long2 * (PI() / 180) - long1 * (PI() / 180))
+        ) * 6371 AS scenario1_distance,
+        -- 9. Calculate distance on a flat surface, D = 111
+        --    d = sqrt((lat2 - lat1)^2 + (lon2 - lon1)^2) × D
+        SQRT(
+            POWER((lat2 - lat1), 2) + POWER((long2 - long1), 2)
+        ) * 111 AS scenario2_distance
+    FROM 
+        LatitudeLongitudeRadian
+)
+SELECT
+    -- 10. Calculate average session distance for each scenario
+    ROUND(
+        AVG(scenario1_distance)
+    , 2) AS average_scenario_distance1,
+    ROUND(
+        AVG(scenario2_distance)
+    , 2) AS average_scenario_distance2,
+    -- 11. Calculate the difference between average session distances from both scenarios
+    ROUND(
+        AVG(scenario1_distance) - AVG(scenario2_distance)
+    , 2) AS difference
+FROM 
+    ScenarioDistances;
+
+Notes:
+- No duplicates, nulls, or abnormal value counts were found in the data quality check.
+- Had a lot of trouble trying to figure out how to interpret what the prompt was asking for when it 
+  mentioned "assume one session distance is the distance between the biggest and smallest step" ,
+  "if the seesion has only one step id, discard it" and "assume that session can't span over multiple days".
+  I ultimately settled upon an approach where I would rank, count, filter, join and pivot the data to get it
+  prepared for the necessary calculations for radians, distance, averages, and differences. 
+- My approach started with ranking the biggest altitude steps in descending order and the smallest altitude
+  steps in ascending order for each user_id, session_id, and day using the DENSE_RANK() function. Then I
+  counted the number of step_ids per user_id, session_id and day. These steps were placed into a common
+  table expression (CTE) called UserSessionDayStepCountAltitudeRank and subsequently queried to filter for
+  sessions with more than one step_id count and filter for biggest step and smallest step rows. In this same
+  query, I self inner joined with the first CTE created to pivot the data and calcualted the radians for
+  each session using the formula radians = latitude * (PI / 180). The entire query was placed into a second
+  CTE called LatitudeLongitudeRadian. Next, I calculated the distance with curvature of the earth and the
+  distance on a flat surface for each session using the given formulas respectively.
+  d = arccos(sinϕ1 × sinϕ2 + cosϕ1 × cosϕ2 × cos(longitude2 × (π/180) - longitude1 × (π/180))) × R
+  d = sqrt((lat2 - lat1)^2 + (lon2 - lon1)^2) × D
+  This involved using ACOS() for inverse cosine, SIN(), COS(), PI(), SQRT(), and POWER() functions.
+  The calculations for distances were placed into a third CTE named ScenarioDistances and queried afterwards
+  to calculate the average session distance for each scenario and calculating the difference between the
+  average session distances from both scenarios. The last step used ROUND() and AVG() functions.
+
+Suggestions and Final Thoughts:
+- The prompt doesn't really clarify what it means by "biggest and smallest steps". Using an identifier
+  column like "step_id" wouldn't really make much sense compared to using the altitude column which shows
+  a measurable maximum and minimum value. However, if I were to follow the instructions to a tee then the
+  step_id column would be the only thing that would be available to point to "step".
+- To circumvent having to use COUNT() with a window function, it's possible to use MAX() and MIN() to find
+  start and end values in a CTE. The CTE can then be queried to find matching values using a join and 
+  MAX(CASE WHEN) statements.
+  ex.
+      WITH SessionEndPoints AS (
+           SELECT
+               user_id,
+               session_id,
+               day,
+               MAX(altitude) AS max_altitude_step,
+               MIN(altitude) AS min_altitude_step
+           FROM
+               google_fit_location
+           GROUP BY 
+               user_id, session_id, day
+           HAVING 
+               MIN(altitude) != MAX(altitude)
+      )
+      SELECT
+          sep.user_id,
+          sep.session_id,
+          sep.day,
+          MAX(CASE WHEN sep.min_altitude_step = gfl.altitude THEN gfl.latitude END) AS lat1,
+          MAX(CASE WHEN sep.min_altitude_step = gfl.altitude THEN gfl.longitude END) AS lon1,
+          MAX(CASE WHEN sep.max_altitude_step = gfl.altitude THEN gfl.latitude END) AS lat2,
+          MAX(CASE WHEN sep.max_altitude_step = gfl.altitude THEN gfl.longitude END) AS long2
+      FROM 
+          SessionEndPoints AS sep
+      JOIN google_fit_location AS gfl
+          ON sep.session_id = gfl.session_id
+          AND sep.user_id = gfl.user_id
+          AND sep.day = gfl.day
+      GROUP BY
+          sep.user_id, 
+          sep.session_id, 
+          sep.day;
+- It took 2 hours to solve this problem but I am glad I stuck through it to get creative with SQL. I decided
+  to stick with my current Solution #1 since it is my interpretation of what the problem could be. Most likely
+  the true solution uses step_id rather than using altitude which would be a simple fix given my approach.
+- Didn't know that distance of curvature of the earth formula was the Harvesine formula and the distance of
+  the curvature of the earth as a flat surface was the Pythagorean formula.
+- Realized that after checking over multiple attempts and solutions, I had misattributed one of the columns
+  as lat2, I used usdcar1.latitude instead of usdcar2.latitude which threw off the calculation. Turns out
+  you can use step_id or altitude column and you'll still arrive at the same answer. I came to this epiphany
+  when I started looking up Haversian and Pythagorean formulas and the fact that Haversian distances should
+  generally less than the Pythagorean distances, it made sense to have values of 0.08 and 0.09 respectively.
+
+Solve Duration:
+120 minutes
+
+Notes Duration:
+20 minutes
+
+Suggestions and Final Thoughts Duration:
+30 minutes
+
+###########################################################################################################
