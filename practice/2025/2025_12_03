@@ -1,0 +1,576 @@
+Date: 12/03/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2143
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Chase - Invalid Bank Transaction
+Bank of Ireland has requested that you detect invalid transactions in December 2022.
+An invalid transaction is one that occurs outside of the bank's normal business hours.
+The following are the hours of operation for all branches:
+Monday - Friday 09:00 - 16:00
+Saturday & Sunday Closed
+Irish Public Holidays 25th and 26th December
+Determine the transaction ids of all invalid transactions.
+
+Data Dictionary:
+Table name = 'boi_transactions'
+transaction_id: numeric (num)
+time_stamp: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1
+## Question:
+# Bank of Ireland has requested that you detect invalid transactions in December 2022.
+# An invalid transaction is one that occurs outside of the bank's normal business hours.
+# The following are the hours of operation for all branches:
+# Monday-Friday: 09:00 - 16:00
+# Saturday-Sunday: Closed
+# Irish Public Holidays: December 25th/26th
+# Determine the transaction ids of all invalid transactions.
+
+## Output:
+# transaction_id
+
+## Import packages
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#boi_transactions <- read_csv("boi_transactions.csv")
+transactions_df <- data.frame(boi_transactions)
+head(transactions_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 251 x 2
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - transaction_id
+data.frame(lapply(transactions_df, class))
+
+dim(transactions_df)
+
+sum(duplicated(transactions_df))
+
+enframe(colSums(is.na(transactions_df)), name="index", value="na_count")
+
+enframe(table(transactions_df$transaction_id), name="index", value="frequency")
+
+## Iteration:
+# 1. Define variables to create filter variables for invalid transactions
+start_time <- format("09:00:00", format="%H:%M:%S")
+end_time <- format("16:00:00", format="%H:%M:%S")
+holidays <- as.POSIXct(as.Date(c("2022-12-25", "2022-12-26")))
+weekends <- as.character(c("Saturday", "Sunday"))
+
+result_df <- transactions_df %>%
+    mutate(
+        # 2. Extract date, time, and day of week from time_stamp column
+        date = as.POSIXct(as.Date(time_stamp)),
+        day_of_week = weekdays(time_stamp),
+        time = format(time_stamp, format="%H:%M:%S")
+    ) %>%
+    filter(
+        # 3. Filter for dates in December 2022, not between 09:00 and 16:00, on holidays, and on weekends
+        (year(time_stamp) == 2022 & month(time_stamp) == 12) &
+        (time < start_time | time >= end_time) |
+        (date %in% holidays) |
+        (day_of_week %in% weekends)
+    ) %>%
+    select(
+        # 4. Select relevant columns
+        transaction_id
+    ) %>%
+    arrange(transaction_id)
+
+## Result:
+result_df
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts in the data quality check.
+- I started my approach by defining the variables start_time, end_time, holidays, and weekends to create
+  filter variables for invalid transactions using the format(), as.POSIXct(), as.Date(), and as.character()
+  functions. After assigning variables, I extracted the date, time, and day of week from the time_stamp 
+  column using the mutate(), as.POSIXCt(), as.Date(), weekdays(), and format() functions. Next, I filtered
+  for dates in December 2022, times not between 09:00 and 16:00, on holidays, and on weekends using the
+  filter(), year(), month(), and %in% functions. Lastly, I selected the relevant output columns and arranged
+  in ascending order using the select() and arrange() functions.
+- Had to look up how to convert a character time string into hour/minute/second format, how to convert a
+  character to the character datatype, and the inverse of %in% which is !(col %in% col).
+  ex.
+      format("09:00:00", format="%H:%M:%S")
+      as.character(c("Saturday", "Sunday"))
+      !(date %in% holidays)
+      
+Suggestions and Final Thoughts:
+- Using R in the Python environment prevents having the date being in the YYYY-MM-DD format so the use of
+  as.Date() and as.POSIXct() are necessary for converting a character string to a date then to a POSIXct
+  datatype. The time isn't included in the rows this way either.
+  ex.
+      holidays <- as.POSIXct(as.Date(c("2022-12-25", "2022-12-26")))
+      date = as.POSIXct(as.Date(time_stamp))
+- For time cutoffs, the prompt says 09:00 to 16:00 for valid hours, I went by those start and end times
+  and used the operators of time < 09:00 and time > 16:00 because if it were an equality operator = then
+  it would fall as not invalid. I decided not to use 15:59:59 for the end time because that would mean that
+  the bank is still open and the same with 16:00:00 technically.
+  ex.
+      start_time <- format("09:00:00", format="%H:%M:%S")
+      end_time <- format("16:00:00", format="%H:%M:%S")
+      filter(
+           (time < start_time | time >= end_time)
+      )
+- An alternative approach to extracting values from the time_stamp column and filtering them is to create
+  logical boolean columns that perform the filters in the mutate() function and define whether or not
+  transactions are valid the same way. Then the invalid transactions are filtered using the filter() function.
+  In addition, using seconds instead of a time with hours/minutes/seconds is a lot more accurate for time
+  comparisons. The wday() function has the paramaters (col, week_start) and is part of lubridate package.
+  ex.
+      HOLIDAYS <- c(25, 26)
+      OPEN_HOUR_SEC <- 9 * 3600 # 9:00:00 AM in seconds from midnight
+      CLOSE_HOUR_SEC <- 16 * 3600 # 4:00:00 PM in seconds from midnight
+
+      invalid_transactions <- boi_transactions %>%
+      mutate(
+          seconds_from_midnight = hour(time_stamp) * 3600 + 
+                                  minute(time_stamp) * 60 + 
+                                  second(time_stamp),
+          day_of_week = wday(time_stamp, week_start = 1), # week_start=1 sets Monday as 1
+          is_weekday = day_of_week %in% 1:5,
+          is_within_hours = seconds_from_midnight >= OPEN_HOUR_SEC & 
+                            seconds_from_midnight < CLOSE_HOUR_SEC,
+          is_holiday = month(time_stamp) == 12 & mday(time_stamp) %in% HOLIDAYS
+      ) %>%
+      mutate(
+          is_valid = is_weekday & is_within_hours & !is_holiday
+      ) %>%
+      filter(is_valid == FALSE)
+- I took more of a Pythonic approach to this problem than the built-in R work arounds. For efficiency there
+  is a better method than the one I took most likely but I went for step by step clarity with helper columns
+  and filtering directly.
+      
+Solve Duration:
+44 minutes
+
+Notes Duration:
+8 minutes
+
+Suggestions and Final Thoughts Duration:
+20 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9610
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+General Assembly - Find Students At Median Writing
+Identify the IDs of students who scored exactly at the median for the SAT writing section.
+
+Data Dictionary:
+Table name = 'sat_scores'
+school: object (str)
+teacher: object (str)
+student_id: float64 (flt)
+sat_writing: float64 (flt)
+sat_verbal: float64 (flt)
+sat_math: float64 (flt)
+hrs_studied: float64 (flt)
+id: int64 (int)
+average_sat: float64 (flt)
+love: datetime64 (dt)
+
+Code:
+Solution #1
+## Question:
+# Identify the IDs of the students who scored exactly at the median for the SAT writing section.
+
+## Output:
+# student_id
+
+# Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#sat_scores = pd.read_csv("sat_scores.csv")
+scores_df = pd.DataFrame(sat_scores)
+scores_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 135 x 10
+# Duplicates - 0
+# Nulls - hrs_studied(7), love(135)
+# Value Counts - school, teacher, student_id, id
+#scores_df.info()
+
+scores_df.shape
+
+scores_df.duplicated().sum()
+
+scores_df.isna().sum().reset_index(name="na_count")
+
+scores_df["school"].value_counts().reset_index(name="frequency")
+scores_df["teacher"].value_counts().reset_index(name="frequency")
+scores_df["student_id"].value_counts().reset_index(name="frequency")
+scores_df["id"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# 1. Assign the median writing score to a variable
+median = scores_df["sat_writing"].quantile(0.50)
+
+# 2. Filter for students who scored the median for SAT writing
+result_df = scores_df[
+    scores_df["sat_writing"] == median
+].copy()
+
+# 3. Select relevant columns
+result_df = result_df[
+    ["student_id"]
+]
+
+# 4. Arrange output by student_id in ascending order
+result_df = result_df.sort_values(
+    by="student_id",
+    ascending=True
+)
+
+## Result:
+print("IDs of students who scored exactly at the median for the SAT writing section:")
+result_df
+
+Notes:
+- None of the duplicates, nulls, or abnormal value counts found in the data quality check were necesary
+  for the problem at hand.
+- I began my approach to this problem by assigning the median writing score to a variable using the 
+  quantile() function. Then I filtered for students who scored the median for SAT writing. Finally, I selected
+  for the relevant output columns and sorted the results by student_id in ascending order.
+- When using the quantile() function have to remember it's a value between 0 and 1, not the exact percentage.
+
+Suggestions and Final Thoughts:
+- An alternative to using the quantile() function is the median() function which obtains the 50% of the data
+  distribution directly.
+  ex.
+      scores_df["sat_writing"].median()
+- There is a way to chain most of the steps together and show compactness. I opted for step by step clarity.
+  ex.
+      median = scores_df["sat_writing"].median()
+      result_df = (
+          scores_df[scores_df["sat_writing"] == median]
+          .copy()
+          .sort_values(by="student_id", ascending=True)
+          [["student_id"]]
+      )
+
+Solve Duration:
+10 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10081
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Dell - Find the number of employees who received the bonus and who didn't
+Find the number of employees who received the bonus and who didn't. 
+Bonus values in employee table are corrupted so you should use  values from the bonus table. 
+Be aware of the fact that employee can receive more than one bonus.
+Output value inside has_bonus column (1 if they had bonus, 0 if not) along with the corresponding number of employees for each.
+
+Data Dictionary:
+Table name = 'employee'
+address: varchar (str)
+age: bigint (int)
+bonus: bigint (int)
+city: varchar (str)
+department: varchar (str)
+email: varchar (str)
+employee_title: varchar (str)
+first_name: varchar (str)
+id: bigint (int)
+last_name: varchar (str)
+manager_id: bigint (int)
+salary: bigint (int)
+sex: varchar (str)
+target: bigint (int)
+
+Table name = 'bonus'
+bonus_amount: bigint (int)
+bonus_date: date (dt)
+worker_ref_id: bigint (int)
+
+Code:
+**Attempt #1
+WITH EmployeeBonuses AS (
+    -- 3. Return employee ids that receieved a bonus only once even if more than one bonus
+    SELECT DISTINCT
+        e.id,
+        -- 2. Categorize employees on whether they had a bonus as 1, if not then 0
+        CASE 
+            WHEN b.bonus_amount IS NOT NULL 
+            THEN 1 
+            ELSE 0 
+        END AS has_bonus
+    FROM 
+        employee AS e
+    LEFT JOIN 
+        -- 1. Left join employee and bonus tables by id and worker_ref_id respectively
+        bonus AS b
+        ON e.id = b.worker_ref_id
+)
+SELECT 
+    has_bonus,
+    -- 4. Count the number of employees with bonus(1) and no bonus(0)
+    COUNT(has_bonus) AS employee_count
+FROM 
+    EmployeeBonuses
+GROUP BY 
+    has_bonus;
+
+
+**Solution #1
+-- Question:
+-- Find the number of employees who received the bonus and who didn't.
+-- Bonus values in employee table are corrupted so you should use values from the bonus table.
+-- Be aware of the fact that employee can receive more than one bonus.
+-- Output value inside has_bonus column (1 if they had bonus, 0 if not) along with the corresponding
+-- number of employees for each.
+
+-- Output:
+-- has_bonus, employee_count
+
+-- Preview data:
+SELECT TOP 5* FROM employee;
+SELECT TOP 5* FROM bonus;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - employee: 30 x 14
+--            - bonus: 5 x 3
+-- Duplicates - employee: 0
+--            - bonus: 0
+-- Nulls - employee: address(9)
+--         bonus: 0
+-- Value Counts - employee: address, city, department, email, employee_title, first_name,
+--                          id, last_name, manager_id, sex
+--              - bonus: worker_ref_id
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN address IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN age IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN bonus IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN city IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN department IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN email IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN employee_title IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN first_name IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN last_name IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN manager_id IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN salary IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN sex IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN target IS NULL THEN 1 ELSE 0 END) AS col14,
+    COUNT(*) AS total_rows
+FROM employee;
+
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN bonus_amount IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN bonus_date IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN worker_ref_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    COUNT(*) AS total_rows
+FROM bonus;
+
+SELECT -- Duplicates
+    address, age, bonus, city, department, email, employee_title, first_name, id, last_name, manager_id, salary, sex, target,
+    COUNT(*) AS duplicate_count
+FROM employee
+GROUP BY
+    address, age, bonus, city, department, email, employee_title, first_name, id, last_name, manager_id, salary, sex, target
+HAVING COUNT(*) > 1;
+
+SELECT -- Duplicates
+    bonus_amount, bonus_date, worker_ref_id,
+    COUNT(*) AS duplicate_count
+FROM bonus
+GROUP BY
+    bonus_amount, bonus_date, worker_ref_id
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    address,
+    COUNT(*) AS frequency
+FROM employee
+GROUP BY address
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    city,
+    COUNT(*) AS frequency
+FROM employee
+GROUP BY city
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    department,
+    COUNT(*) AS frequency
+FROM employee
+GROUP BY department
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    email,
+    COUNT(*) AS frequency
+FROM employee
+GROUP BY email
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    first_name,
+    COUNT(*) AS frequency
+FROM employee
+GROUP BY first_name
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    id,
+    COUNT(*) AS frequency
+FROM employee
+GROUP BY id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    last_name,
+    COUNT(*) AS frequency
+FROM employee
+GROUP BY last_name
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    manager_id,
+    COUNT(*) AS frequency
+FROM employee
+GROUP BY manager_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    sex,
+    COUNT(*) AS frequency
+FROM employee
+GROUP BY sex
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    worker_ref_id,
+    COUNT(*) AS frequency
+FROM bonus
+GROUP BY worker_ref_id
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Return employee ids that receieved a bonus only once even if more than one bonus
+-- 2. Left join employee and bonus tables by id and worker_ref_id respectively
+-- 3. Categorize employees on whether they had a bonus as 1, if not then 0
+-- 4. Count the number of employees with bonus(1) and no bonus(0)
+WITH DistinctEmployeeBonuses AS (
+    SELECT DISTINCT
+        worker_ref_id
+    FROM bonus AS b
+),
+EmployeeCategories AS (
+    SELECT 
+        e.id,
+        CASE WHEN deb.worker_ref_id IS NOT NULL THEN 1 ELSE 0 END AS has_bonus
+    FROM employee AS e
+    LEFT JOIN DistinctEmployeeBonuses AS deb
+        ON e.id = deb.worker_ref_id
+)
+SELECT
+    has_bonus,
+    COUNT(id) AS employee_count
+FROM EmployeeCategories
+GROUP BY has_bonus;
+
+-- Result:
+WITH DistinctEmployeeBonuses AS (
+    -- 1. Return employee ids that receieved a bonus only once even if more than one bonus
+    SELECT DISTINCT
+        worker_ref_id
+    FROM 
+        bonus AS b
+),
+EmployeeCategories AS (
+    SELECT 
+        e.id,
+        -- 3. Categorize employees on whether they had a bonus as 1, if not then 0
+        CASE WHEN deb.worker_ref_id IS NOT NULL THEN 1 ELSE 0 END AS has_bonus
+    FROM 
+        employee AS e
+    LEFT JOIN 
+        -- 2. Left join employee and bonus tables by id and worker_ref_id respectively
+        DistinctEmployeeBonuses AS deb
+        ON e.id = deb.worker_ref_id
+)
+SELECT
+    has_bonus,
+    -- 4. Count the number of employees with bonus(1) and no bonus(0)
+    COUNT(id) AS employee_count
+FROM 
+    EmployeeCategories
+GROUP BY 
+    has_bonus;
+
+Notes:
+- The data quality check revealed no duplicates, nulls, or abnormal value counts that were needed for solving
+  the question.
+- My approach to this problem started by left joining employee and bonus tables by id and worker_ref_id
+  columns respectively. Next, I categorized employees on whether they had a bonus as 1, if not then 0 into a
+  column named has_bonus using a CASE WHEN statement. These steps were placed into a common table expression
+  (CTE) called EmployeeBonuses then subsequently queried to count the number of employees per has_bonus column
+  group category.
+- For a while I couldn't quite figure out if the prompt was asking for the bonus_amount, has_bonus and the
+  employee_count as the final output columns. I kept rereading the part of the question that said 
+  "output value inside has_bonus column (1 if they had bonus, 0 if not) with corresponding number of employees 
+  for each." and eventually I determined the 0 and 1 are the categories and they simply just needed to be
+  counted for the number of employees for each.
+
+Suggestions and Final Thoughts:
+- Attempt #1 had the correct solution and approach but the problem came down to using the DISTINCT function
+  and duplication of values in the EmployeeBonuses CTE from the left join. DISTINCT doesn't always apply to a
+  CASE WHEN statement in the same query as a JOIN apparently. Solution #1 corrects for this mistake by using 
+  DISTINCT on the original bonus table to obtain the distinct worker_ref_id values that correspond to the
+  id values in the employee table. Then separating the CASE WHEN categorization statement into a separate
+  CTE from the final query that aggregates by count. This method avoids having to a use a subquery.
+
+Solve Duration:
+48 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+20 minutes
+
+############################################################################################################
