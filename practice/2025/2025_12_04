@@ -1,0 +1,513 @@
+Date: 12/04/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2144
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Tata Consultancy - Flight Satisfaction Query
+A major airline has enlisted Tata Consultancy's help to improve customer satisfaction on its flights. 
+Their goal is to increase customer satisfaction among people between the ages of 30 and 40.
+You've been tasked with calculating the customer satisfaction average for this age group across all three flight classes.
+Return the class with the average of satisfaction rounded to the nearest whole number.
+
+Data Dictionary:
+Table name = 'survey_results'
+cust_id: numeric (num)
+satisfaction: numeric (num)
+flight_distance: numeric (num)
+departure_delay_min: numeric (num)
+arrival_delay_min: numeric (num)
+type_of_travel: character (str)
+class: character (str)
+
+Table name = 'loyalty_customers'
+cust_id: numeric (num)
+age: numeric (num)
+gender: character (str)
+
+Code:
+Solution #1
+## Question:
+# A major airline has enlisted Tata Consultancy's help to improve customer satisfaction on its flights.
+# Their goal is to increase customer satisfaction among people between the ages of 30 and 40.
+# You've been tasked with calculating the customer satisfaction average for this age group across all
+# three flight classes.
+# Return the class with the average of satisfaction rounded to the nearest whole number.
+
+## Output:
+# class, average_satisfaction
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#survey_results <- read_csv("survey_results.csv")
+#loyalty_customers <- read_csv("loyalty_customers.csv")
+surveys_df <- data.frame(survey_results)
+customers_df <- data.frame(loyalty_customers)
+head(surveys_df, 5)
+head(customers_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - surveys: 200 x 7
+#            - customers: 95 x 3
+# Duplicates - surveys: 0
+#            - customers: 0
+# Nulls - surveys: 0
+#       - customers: 0
+# Value Counts - surveys: cust_id, type_of_travel, class
+#              - customers: cust_id, gender
+data.frame(lapply(surveys_df, class))
+data.frame(lapply(customers_df, class))
+
+dim(surveys_df)
+dim(customers_df)
+
+sum(duplicated(surveys_df))
+sum(duplicated(customers_df))
+
+enframe(colSums(is.na(surveys_df)), name="index", value="na_count")
+enframe(colSums(is.na(customers_df)), name="index", value="na_count")
+
+enframe(table(surveys_df$cust_id), name="index", value="frequency")
+enframe(table(surveys_df$type_of_travel), name="index", value="frequency")
+enframe(table(surveys_df$class), name="index", value="frequency")
+enframe(table(customers_df$cust_id), name="index", value="frequency")
+enframe(table(customers_df$gender), name="index", value="frequency")
+
+## Iteration:
+result_df <- customers_df %>%
+    filter(
+        # 1. Filter for customers between ages 30 and 40
+        (age >= 30) &
+        (age <= 40)
+    ) %>%
+    inner_join(
+        # 2. Inner join customers and surveys DataFrames by cust_id
+        surveys_df, 
+        by="cust_id"
+    ) %>%
+    group_by(class) %>%
+    summarise(
+        # 3. Calculate the average customer satisfaction across all classes
+        average_satisfaction = round(mean(satisfaction, na.rm=TRUE), digits=0),
+        .groups="drop"
+    ) %>%
+    arrange(class)
+
+## Result:
+print("Average satisfaction among customers between 30 and 40 across all flight classes:")
+print(result_df)
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts found in the data quality check.
+- I started my approach to this problem by filtering for customers between ages 30 and 40 in the customers
+  DataFrame using the filter() function. From there, I inner joined customers and surveys DataFrames by 
+  cust_id column using the inner_join() function. Next, I calculated the average customer satisfaction
+  across all classes using the group_by(), summarise(), mean(), and round() functions. Lastly, I sorted the
+  results by the class column in ascending order.
+
+Suggestions and Final Thoughts:
+- Since this is an aggregation type question, I decided to manipulate the separate DataFrames first before 
+  joining them together to lessen the amount of rows that need to be joined.
+- The prompt asks for calculating the customer satisfaction average for the age group across all three
+  flight classes and rounding the results to the nearest whole number. The average satisfaction for all
+  classes ends up being the same value. To differentiate each class average, it would have been more concise
+  to have at least 2 decimal places to see any differences between satisfaction.
+
+Solve Duration:
+19 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+6 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9611
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+General Assembly - Find the 80th percentile of hours studied
+Find the 80th percentile of hours studied. 
+Output hours studied value at specified percentile.
+
+Data Dictionary:
+Table name = 'sat_scores'
+school: object (str)
+teacher: object (str)
+student_id: float64 (flt)
+sat_writing: float64 (flt)
+sat_verbal: float64 (flt)
+sat_math: float64 (flt)
+hrs_studied: float64 (flt)
+id: int64 (int)
+average_sat: float64 (flt)
+love: datetime64 (dt)
+
+Code:
+Solution #1
+## Question:
+# Find the 80th percentile of hour studied.
+# Output hours studied value at specified percentile.
+
+## Output:
+# hrs_studied
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#sat_scores = pd.read_csv("sat_scores.csv")
+scores_df = pd.DataFrame(sat_scores)
+scores_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 135 x 10
+# Duplicates - 0
+# Nulls - hrs_studied(7), love(135)
+# Value Counts - school, teacher, student_id, id 
+#scores_df.info()
+
+scores_df.shape
+
+scores_df.duplicated().sum()
+
+scores_df.isna().sum().reset_index(name="na_count")
+
+scores_df["school"].value_counts().reset_index(name="frequency")
+scores_df["teacher"].value_counts().reset_index(name="frequency")
+scores_df["student_id"].value_counts().reset_index(name="frequency")
+scores_df["id"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+result_df = (
+    pd.Series(    
+        scores_df["hrs_studied"]
+        .dropna()                     # 1. Drop null values from hrs_studied column
+        .quantile(0.80)               # 2. Calculate the 80th percentile of hrs_studied
+    ).to_frame(name="hrs_studied")    # 3. Convert to Series then DataFrame
+)
+
+## Result:
+print("80th percentile of hours studied:")
+result_df
+
+Notes:
+- In the data quality check, 7 null values were found in the hrs_studied column that were relevant for
+  solving the problem.
+- I began my approach to this problem by dropping null values from the hrs_studied column using the dropna()
+  function. Next, I calculated the 80th percentile of hours studied using the quantile() function. The results
+  were then placed into a Series, converted to a Dataframe and renamed using the pd.Series() and to_frame()
+  functions.
+- I spent some extra time trying to figure out the best format for this problem in terms of how to structure
+  the code in a readable manner and when printing the results, show the appropriate description and column
+  name.
+
+Suggestions and Final Thoughts:
+- When looking at observed data points and descriptive statistics, it is best to drop the null values to
+  prevent any biases or skewed distributions using the dropna() function. For predictive models, using the
+  imputation method of providing the median or mean for numeric values or the mode for categorical values
+  would be preferred.
+- Instead of using pd.DataFrame() on a series to convert to a DataFrame, the to_frame() function works more
+  directly and can specify a name as a parameter.
+  ex.
+      pd.Series().to_frame(name="col")
+
+Solve Duration:
+18 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10131
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server) (PostgreSQL)
+
+Question:
+City of San Francisco - Business Name Lengths
+Find the number of words in each business name. 
+Avoid counting special symbols as words (e.g. &). 
+Output the business name and its count of words.
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_address: varchar (str)
+business_city: varchar (str)
+business_id: bigint (int)
+business_latitude: float (flt)
+business_location: varchar (str)
+business_longitude: float (flt)
+business_name: varchar (str)
+business_phone_number: float (flt)
+business_postal_code: float (flt)
+business_state: varchar (str)
+inspection_date: date (dt)
+inspection_id: varchar (str)
+inspection_score: float (flt)
+inspection_type: varchar (str)
+risk_category: varchar (str)
+violation_description: varchar (str)
+violation_id: varchar (str)
+
+Code:
+**Solution #1 (PostgreSQL)
+-- Question:
+-- Find the number of words in each business name.
+-- Avoid counting special symbols as words (e.g. &).
+-- Output the business name and its count of words.
+
+-- Output:
+-- business_name, word_count
+
+-- Preview data:
+SELECT * FROM sf_restaurant_health_violations LIMIT 5;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 297 x 17
+-- Duplicates - 0
+-- Nulls - business_latitude(133), business_location(133), business_longitude(133),
+--         business_phone_number(214), business_postal_code(10), inspection_score(73),
+--         risk_category(72), violation_description(72), violation_id(72)
+-- Value Counts - business_address, business_city, business_id, business_location,
+--                business_name, business_state, inspection_id, inspection_type,
+--                risk_category, violation_description, violation_id
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN business_address IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN business_city IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN business_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN business_latitude IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN business_location IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN business_longitude IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN business_name IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN business_phone_number IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN business_postal_code IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN business_state IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN inspection_date IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN inspection_id IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN inspection_score IS NULL THEN 1 ELSE 0 END) AS col13,
+    SUM(CASE WHEN inspection_type IS NULL THEN 1 ELSE 0 END) AS col14,
+    SUM(CASE WHEN risk_category IS NULL THEN 1 ELSE 0 END) AS col15,
+    SUM(CASE WHEN violation_description IS NULL THEN 1 ELSE 0 END) AS col16,
+    SUM(CASE WHEN violation_id IS NULL THEN 1 ELSE 0 END) AS col17,
+    COUNT(*) AS total_rows
+FROM sf_restaurant_health_violations;
+
+SELECT -- Duplicates
+    business_address, business_city, business_id, business_latitude, business_location, business_longitude, business_name, business_phone_number, business_postal_code, business_state, inspection_date, inspection_id, inspection_score, inspection_type, risk_category, violation_description, violation_id,
+    COUNT(*) AS duplicate_count
+FROM sf_restaurant_health_violations
+GROUP BY
+    business_address, business_city, business_id, business_latitude, business_location, business_longitude, business_name, business_phone_number, business_postal_code, business_state, inspection_date, inspection_id, inspection_score, inspection_type, risk_category, violation_description, violation_id
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts, remove characters (&, #, @ ) , digits
+    business_name,
+    COUNT(*) AS frequency
+FROM sf_restaurant_health_violations
+GROUP BY business_name
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Display only one instance of each business_name
+-- 2. Remove special symbols and replace with an empty string ''
+-- 3. Convert string to array then unnest to split business_name into words 
+-- 4. Filter out any NULL or empty strings in words
+-- 5. Count the number of words for each business_name
+WITH DistinctBusinessesCleaned AS (
+    SELECT DISTINCT
+        business_name,
+        TRIM(REGEXP_REPLACE(business_name, '[^a-zA-Z0-9 ]', '', 'g')) AS cleaned_business_name
+    FROM sf_restaurant_health_violations
+),
+BusinessesWords AS (
+    SELECT
+        business_name,
+        UNNEST(STRING_TO_ARRAY(cleaned_business_name, ' ')) AS words
+    FROM DistinctBusinessesCleaned
+)
+SELECT 
+    business_name,
+    COUNT(words) AS word_count
+FROM BusinessesWords
+WHERE words IS NOT NULL
+    AND words != ''
+GROUP BY business_name;
+
+-- Result:
+WITH DistinctBusinessesCleaned AS (
+    -- 1. Display only one instance of each business_name
+    SELECT DISTINCT
+        business_name,
+        -- 2. Remove special symbols and replace with an empty string ''
+        TRIM(
+            REGEXP_REPLACE(business_name, '[^a-zA-Z0-9 ]', '', 'g')
+        ) AS cleaned_business_name
+    FROM 
+        sf_restaurant_health_violations
+),
+BusinessesWords AS (
+    SELECT
+        business_name,
+        -- 3. Convert string to array then unnest to split business_name into words 
+        UNNEST(STRING_TO_ARRAY(cleaned_business_name, ' ')) AS words
+    FROM 
+        DistinctBusinessesCleaned
+)
+SELECT 
+    business_name,
+    -- 5. Count the number of words for each business_name
+    COUNT(words) AS word_count
+FROM 
+    BusinessesWords
+WHERE 
+    -- 4. Filter out any NULL or empty strings in words
+    words IS NOT NULL
+    AND words != ''
+GROUP BY 
+    business_name;
+    
+
+**Solution #2 (SQL Server)
+WITH DistinctBusinessesCleaned AS (
+    -- 1. Display only one instance of each business_name
+    SELECT DISTINCT
+        business_name,
+        -- 2. Remove special symbols and replace with an empty string ''
+        TRIM(
+            TRANSLATE(business_name, '!@#$%^&*()_+=-`~,.<>/?;:', '                        ')
+        ) AS cleaned_business_name
+    FROM 
+        sf_restaurant_health_violations
+)
+SELECT 
+    dbc.business_name,
+    -- 5. Count the number of words for each business_name
+    COUNT(Words.value) AS word_count
+FROM 
+    DistinctBusinessesCleaned AS dbc
+CROSS APPLY
+    STRING_SPLIT(dbc.cleaned_business_name, ' ') AS Words
+WHERE 
+    -- 4. Filter out any NULL or empty strings in words
+    Words.value IS NOT NULL
+    AND Words.value != ''
+GROUP BY 
+    dbc.business_name;
+
+Notes:
+- There were no duplicates or nulls that were needed to be considered for the problem but I did use the
+  unique value counts frequencies from the data quality check to determine that the DISTINCT function needed
+  to be used to find unique business names.
+- My approach initially began with using the MS SQL Server dialect but when I started diving more into the
+  problem, I realized that this version on StrataScratch did not have the STRING_SPLIT() function. So from
+  there I tried to use TRANSLATE() to remove special symbols and then combine that with CHARINDEX(), LEN(),
+  and SUBSTRING() functions but that seemed to be way too cumbersome and unnecessary. I decided to just solve
+  this problem in PostgreSQL to create a solution and then later try to formulate a solution using a similar
+  approach but with subsituted functions like STRING_SPLIT() and TRANSLATE() in Microsoft SQL Server. 
+- For my PostgreSQL approach, I displayed one instance of each business name using DISTINCT. Then removed
+  the special symbols and replaced them with an empty string using the REGEXP_REPLACE() function. These steps
+  were placed into a common table expression (CTE) called DistinctBusinessesCleaned and subsequently queried
+  to convert the strings to arrays then unnest to split the business_name into words to be placed in another
+  CTE named BusinessesWords using the UNNEST() and STRING_TO_ARRAY() functions. The second CTE was queried 
+  to filter out any NULL or empty strings in words and then the number of words was counted for each grouped
+  business_name using the COUNT() function.
+      
+Suggestions and Final Thoughts:
+- The MS SQL Server version in StrataScratch is before 2016, so it does not support STRING_SPLIT() function.
+  It is much more tedious to separate a string to into separate words without a built-in function. It requires
+  using SUBSTRING(), CHARINDEX(), and LEN() combined with a CASE WHEN statement to find each word instance. 
+  Also SQL Server's equivalent to regular expressions is the TRANSLATE() function.
+  ex.
+      SELECT DISTINCT
+          business_name,
+          SUBSTRING(
+          business_name,
+          1,
+          CASE
+              WHEN CHARINDEX(' ', business_name) = 0
+                  THEN LEN(business_name)
+              ELSE CHARINDEX(' ', business_name) - 1
+          END
+          ) AS ExtractedWord,
+          TRANSLATE(business_name, '!@#$%^&*', '        ') AS cleaned_business_name
+      FROM sf_restaurant_health_violations
+- Much easier to use PostgreSQL's REGEXP_REPLACE(), STRING_TO_ARRAY(), and UNNEST() functions to perform
+  pattern searching, replacements and converting strings to words.
+- If STRING_SPLIT() was an option for the problem then the parameters are STRING_SPLIT(string, seperator).
+  This is similar to UNNEST() function from PostgreSQL.
+  ex.
+      STRING_SPLIT(business_name, ' ')
+- The REGEXP_REPLACE() function in PostgreSQL has parameters REGEXP_REPLACE(string, replacement, occurences).
+  String refers to the column, replacement is the regular expression, and occurences can be set to global
+  for all occurences. The ^ character specifies NOT and so the regular expression looks for patterns that
+  are not letters or numbers and replaces them with an empty string in the example. The 'g' for occurences is
+  meant for all occurences in the column.
+- When replacing strings with different values like empty strings, using the TRIM() function is good to
+  prevent any possible extra spaces that may affect subsequent queries and filtering for edge cases for
+  WHERE col IS NOT NULL and WHERE col != '' is a good safety precaution as well.
+  ex.
+      REGEXP_REPLACE(business_name, '[^a-zA-z0-9 ]', '', 'g') AS cleaned_business_name
+- When I constructed the hypothetical MS SQL Server in Solution #2, I realized that I used STRING_SPLIT()
+  in the wrong statement, it was supposed to be in CROSS APPLY and StrataScratch does indeed support the
+  STRING_SPLIT() function. The CROSS APPLY is a JOIN operation that invokes table-valued functions to query
+  every single row of the outer table. It allows the right-side table to reference columns from the left-side
+  table then executes right side expression once per row in left table. Only returns rows where right side
+  expression returns at least one row similar to an inner join. The alias applied in CROSS APPLY is the new
+  table alias name and the column that was calculated is .value. The value alias cannot be changed.
+  ex.
+      SELECT 
+          dbc.business_name,
+          COUNT(Words.value) AS word_count
+      FROM 
+          DistinctBusinessesCleaned AS dbc
+      CROSS APPLY
+          STRING_SPLIT(dbc.cleaned_business_name, ' ') AS Words
+      WHERE 
+          Words.value IS NOT NULL
+          AND Words.value != ''
+      GROUP BY 
+          dbc.business_name;
+- The TRANSLATE() function in MS SQL Server requires replacing characters to have the same number of spaces
+  as the number of characters to replace. So if I used 24 characters to replace, then I need 24 spaces.
+  ex.
+      TRANSLATE(business_name, '!@#$%^&*()_+=-`~,.<>/?;:', '                        ') AS cleaned_column
+      
+Solve Duration:
+63 minutes
+
+Notes Duration:
+20 minutes
+
+Suggestions and Final Thoughts Duration:
+30 minutes
+
+############################################################################################################
