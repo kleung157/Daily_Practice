@@ -1,0 +1,517 @@
+Date: 12/05/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2145
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Tiktok - Date of Highest User Activity
+Tiktok want to find out what were the top two most active user days during an advertising campaign they ran in the first week of August 2022 (between the 1st to the 7th).
+Identify the two days with the highest user activity during the advertising campaign.
+They've also specified that user activity must be measured in terms of unique users.
+Output the day, date, and number of users. 
+Be careful that some function can add a padding (whitespaces) around the string, for a solution to be correct you should trim the extra padding.
+
+Data Dictionary:
+Table name = 'user_streaks'
+user_id: character (str)
+date_visited: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1
+## Question:
+# Tiktok wants to find out what were the top two most active user days during an advertising campaign
+# they ran in the first week of August 2022 (between the 1st to the 7th)
+# Identify the two days with the highest user activity during the advertising campaign.
+# They've also specified that user activity must be measured in terms of unique users.
+# Output the day, date, and number of users.
+# Be careful that some functions can add a padding (whitespaces) around the string,
+# for a solution to be correct you should trim the extra padding.
+
+## Output:
+# day, date, unique_user_count
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#user_streaks <- read_csv("user_streaks.csv")
+streaks_df <- data.frame(user_streaks)
+head(streaks_df, 5)
+
+## Check datatypes, dimensions, duplicates, null, and unique value counts:
+# Dimensions - 65 x 2
+# Duplicates - 19
+# Nulls - 0
+# Value Counts - user_id
+data.frame(lapply(streaks_df, class))
+
+dim(streaks_df)
+
+sum(duplicated(streaks_df))
+
+enframe(colSums(is.na(streaks_df)), name="index", value="na_count")
+
+enframe(table(streaks_df$user_id), name="index", value="frequency")
+
+## Iteration:
+# 1. Remove duplicate rows
+streaks_df_cleaned <- unique(streaks_df)
+dim(streaks_df_cleaned)
+
+start_date <- as.POSIXct(as.Date("2022-08-01"))
+end_date <- as.POSIXct(as.Date("2022-08-07"))
+
+result_df <- streaks_df_cleaned %>%
+    filter(
+        # 2. Filter for first week of August 2022
+        (date_visited >= start_date) &
+        (date_visited <= end_date)
+    ) %>%
+    mutate(
+        # 3. Extract the day from date_visited column
+        day = weekdays(date_visited)
+    ) %>%
+    group_by(day, date_visited) %>%
+    summarise(
+        # 4. Count the number of distinct users for each day and date_visited combination
+        unique_user_count = n_distinct(user_id),
+        .groups="drop"
+    ) %>%
+    mutate(
+        # 5. Rank the unique user count in descending order, include ties
+        rank = dense_rank(desc(unique_user_count))
+    ) %>%
+    filter(
+        # 6. Filter for top two active user days using rank
+        rank <= 2
+    ) %>%
+    select(
+        # 7. Select relevant columns
+        day, date=date_visited, number_of_users=unique_user_count
+    ) %>%
+    arrange(
+        # 8. Sort by number_of_users in descending order
+        desc(number_of_users)
+    )
+
+## Result:
+result_df
+
+
+** Solution #2 (Revised for R Environment, not Python with R)
+# 1. Remove duplicate rows
+streaks_df_cleaned <- unique(streaks_df)
+dim(streaks_df_cleaned)
+
+start_date <- as.Date("2022-08-01")
+end_date <- as.Date("2022-08-07")
+
+result_df <- streaks_df_cleaned %>%
+    mutate(
+        # 2. Extract the date and day from date_visited column and trim white spaces
+        date = as.Date(date_visited),
+        day = str_trim(weekdays(date_visited))
+    ) %>%
+    filter(
+        # 3. Filter for first week of August 2022
+        (date >= start_date) &
+        (date <= end_date)
+    ) %>%
+    group_by(date, day) %>%
+    summarise(
+        # 4. Count the number of distinct users for each day and date_visited combination
+        unique_user_count = n_distinct(user_id),
+        .groups="drop"
+    ) %>%
+    mutate(
+        # 5. Rank the unique user count in descending order, include ties
+        rank = dense_rank(desc(unique_user_count))
+    ) %>%
+    filter(
+        # 6. Filter for top two active user days using rank
+        rank <= 2
+    ) %>%
+    select(
+        # 7. Select relevant columns
+        day, date, number_of_users=unique_user_count
+    ) %>%
+    arrange(
+        # 8. Sort by number_of_users in descending order
+        desc(number_of_users)
+    )
+
+Notes:
+- There were 19 duplicates found in the data quality check that were removed using the unique() function and
+  placed into a new DataFrame named streaks_df_cleaned.
+- I started my approach with removing duplicate rows and checking the outcome using unique() and dim() 
+  functions. Next, I filtered for dates in the first week of August 2022 using the filter() function. From
+  there, I extracted the day of the week from the date_visited column using mutate() and weekdays() functions.
+  Then, I counted the number of distinct users for each day and date_visited combination using group_by(),
+  summarise(), and n_distinct() functions. Afterwards, I ranked the unique user counts in descending order
+  and included ties using the mutate() and dense_rank() functions. Once ranked, I filtered for top two
+  active user days using the filter() function. Lastly, I selected the relevant output columns, renamed them,
+  and sorted by the number_of_users column in descending order using the select() and arrange() functions.
+- The prompt had mentioned that some functions can add padding or whitespaces around the string but none of
+  the functions I used had not done so and did not affect my final output.
+
+Suggestions and Final Thoughts:
+- The as.POSIXct() function generally has date and time but for the R environment that uses Python on
+  StrataScratch, I have to use as.Date() and as.POSIXct() in combination to extract the date without the time.
+  Using just as.Date() shows the wrong format for the date. For an actual R environment like in R Studio then
+  I would generally just use the as.Date() function instead of both functions.
+- In the event that padding or white spaces occur around the string when using a function, the str_trim()
+  function from the stringr package could be used to alleviate any of those discrepancies.
+  ex.
+      day = str_trim(weekdays(date_visited))
+- Even though the question asks for unique users, it is still best to remove duplicates as part of the data
+  cleaning process before performing any analysis or aggregations.
+
+Solve Duration:
+22 minutes
+
+Notes Duration:
+8 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9614
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Airbnb - Find the average difference between booking and check-in dates
+Find the average number of days between the booking and check-in dates for AirBnB hosts. 
+Order the results based on the average number of days in descending order.
+avg_days_between_booking_and_checkin DESC
+
+Data Dictionary:
+Table name = 'airbnb_contacts'
+id_guest: object (str)
+id_host: object (str)
+id_listing: object (str)
+ts_contact_at: datetime64 (dt)
+ts_reply_at: datetime64 (dt)
+ts_accepted_at: datetime64 (dt)
+ts_booking_at: datetime64 (dt)
+ds_checkin: datetime64 (dt)
+ds_checkout: datetime64 (dt)
+n_guests: int64 (int)
+n_messages: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# Find the average number of days between the booking and check-in dates for AirBnB hosts.
+# Order the results based on the average number of days in descending order.
+
+## Output:
+# average_number_of_days_between
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#airbnb_contacts = pd.read_csv("airbnb_contacts.csv")
+contacts_df = pd.DataFrame(airbnb_contacts)
+contacts_df.head(5)
+
+## Check datatypes, dimensions, duplicates, null, and unique value counts:
+# Dimensions - 100 x 11
+# Duplicates - 0
+# Nulls - ts_reply_at(6), ts_accepted_at(61), ts_booking_at(77)
+# Value Counts - id_guest, id_host, id_listing
+#contacts_df.info()
+
+contacts_df.shape
+
+contacts_df.duplicated().sum()
+
+contacts_df.isna().sum().reset_index(name="na_count")
+
+contacts_df["id_guest"].value_counts().reset_index(name="frequency")
+contacts_df["id_host"].value_counts().reset_index(name="frequency")
+contacts_df["id_listing"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# 1. Filter for booking date rows that are not null
+filtered_df = contacts_df[
+    contacts_df["ts_booking_at"].notna()    
+].copy()
+
+# 2. Extract the date from the ts_booking_at and ds_checkin columns
+filtered_df["booking_date"] = pd.to_datetime(filtered_df["ts_booking_at"].dt.date)
+filtered_df["checkin_date"] = pd.to_datetime(filtered_df["ds_checkin"].dt.date)
+
+# 3. Calculate the days between booking and check in dates
+filtered_df["number_of_days_between"] = (
+    filtered_df["checkin_date"] - filtered_df["booking_date"]
+).dt.days
+
+# 4. Calculate the average number of days between booking and checkin days for hosts
+# 5. Order results based on average_number_of_days_between in descending order
+result_df = (
+    filtered_df
+    .groupby("id_host")["number_of_days_between"].mean()
+    .reset_index(name="average_number_of_days_between")
+    .sort_values(by="average_number_of_days_between", ascending=False)
+)
+
+## Result:
+print("Average number of days between the booking and check-in dates for AirBnB hosts:")
+result_df
+
+Notes:
+- The data quality checks revealed 77 null values in the ts_booking_at column that were filtered out from the
+  original dataset and the non-null rows were placed into a new DataFrame named filtered_df.
+- I began my approach by filtering for booking date rows that were not null using the notna() and copy()
+  functions. Then I extracted the date from the ts_booking_at and ds_checkin columns using the 
+  pd.to_datetime() and dt.date functions. Next, I calculated the days between booking and check in dates
+  using the dt.days function. From there, I calculated the average number of days between booking and checkin
+  days for hosts and ordered the results based on average_number_of_days_between in descending order using the
+  groupby(), mean(), reset_index(), and sort_values() functions.
+  
+Suggestions and Final Thoughts:
+- The dates needed to be extracted from the datetime columns because if there were any hours, minutes, or
+  seconds in the number_of_days_between calculation then it create a negative value. In this case, the
+  dt.days function is better than using dt.total_seconds() and dividing by (60*60*24).
+- When extracting the date, additional dt accessors cannot be used on those columns that already had a dt
+  accessor, it needs to be converted using pd.to_datetime() then it can be used again with a dt accessor.
+
+Solve Duration:
+30 minutes
+
+Notes Duration:
+8 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10145
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+City of San Francisco - Highest Payment
+Make a pivot table to find the highest payment in each year for each employee.
+Find payment details for 2011, 2012, 2013, and 2014.
+Output payment details along with the corresponding employee name.
+Order records by the employee name in ascending order
+
+Data Dictionary:
+Table name = 'sf_public_salaries'
+agency: varchar (str)
+basepay: float (flt)
+benefits: float (flt)
+employeename: varchar (str)
+id: bigint (int)
+jobtitle: varchar (str)
+notes: float (flt)
+otherpay: float (flt)
+overtimepay: float (flt)
+status: varchar (str)
+totalpay: float (flt)
+totalpaybenefits: float (flt)
+year: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Make a pivot table to find the highest payment in each year for each employee.
+-- Find payment details for 2011, 2012, 2013, 2014.
+-- Output payment details along with the corresponding employee name.
+-- Order records by the employee name in ascending order.
+
+-- Output:
+-- employeename, max_2011, max_2012, max_2013, max_2014
+
+-- Preview data:
+SELECT TOP 5* FROM sf_public_salaries;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 200 x 13
+-- Duplicates - 0
+-- Nulls - basepay(8), benefits(9), notes(200), status(131)
+-- Value Counts - agency, employeename, id, jobtitle, status
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN agency IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN basepay IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN benefits IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN employeename IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN jobtitle IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN notes IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN otherpay IS NULL THEN 1 ELSE 0 END) AS col8,
+    SUM(CASE WHEN overtimepay IS NULL THEN 1 ELSE 0 END) AS col9,
+    SUM(CASE WHEN status IS NULL THEN 1 ELSE 0 END) AS col10,
+    SUM(CASE WHEN totalpay IS NULL THEN 1 ELSE 0 END) AS col11,
+    SUM(CASE WHEN totalpaybenefits IS NULL THEN 1 ELSE 0 END) AS col12,
+    SUM(CASE WHEN year IS NULL THEN 1 ELSE 0 END) AS col13,
+    COUNT(*) AS total_rows
+FROM sf_public_salaries;
+
+SELECT -- Duplicates
+    agency, basepay, benefits, employeename, id, jobtitle, notes, otherpay, overtimepay, status, totalpay, totalpaybenefits, year,
+    COUNT(*) AS duplicate_count
+FROM sf_public_salaries
+GROUP BY
+    agency, basepay, benefits, employeename, id, jobtitle, notes, otherpay, overtimepay, status, totalpay, totalpaybenefits, year
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    agency,
+    COUNT(*) AS frequency
+FROM sf_public_salaries
+GROUP BY agency
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    employeename,
+    COUNT(*) AS frequency
+FROM sf_public_salaries
+GROUP BY employeename
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    id,
+    COUNT(*) AS frequency
+FROM sf_public_salaries
+GROUP BY id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    jobtitle,
+    COUNT(*) AS frequency
+FROM sf_public_salaries
+GROUP BY jobtitle
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    status,
+    COUNT(*) AS frequency
+FROM sf_public_salaries
+GROUP BY status
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Calculate highest totalpay in each year for each employee
+-- 2. Pivot the different years in the year column in to separate columns,
+--    fill any missing year values with 0 
+-- 3. Sort by employee name in ascending order
+WITH EmployeeYearHighestPay AS (
+    SELECT 
+        employeename,
+        year,
+        MAX(totalpay) AS max_totalpay
+    FROM sf_public_salaries
+    GROUP BY
+        employeename,
+        year
+)
+SELECT
+    employeename,
+    MAX(CASE WHEN year = 2011 THEN max_totalpay ELSE 0 END) AS max_2011,
+    MAX(CASE WHEN year = 2012 THEN max_totalpay ELSE 0 END) AS max_2012,
+    MAX(CASE WHEN year = 2013 THEN max_totalpay ELSE 0 END) AS max_2013,
+    MAX(CASE WHEN year = 2014 THEN max_totalpay ELSE 0 END) AS max_2014
+FROM EmployeeYearHighestPay 
+GROUP BY employeename
+ORDER BY employeename ASC;
+
+-- Result:
+WITH EmployeeYearHighestPay AS (
+    SELECT 
+        employeename,
+        year,
+        -- 1. Calculate highest totalpay in each year for each employee
+        MAX(totalpay) AS max_totalpay
+    FROM 
+        sf_public_salaries
+    GROUP BY
+    employeename,
+    year
+)
+SELECT
+    employeename,
+    -- 2. Pivot the different years in the year column in to separate columns,
+    --    fill any missing year values with 0 
+    MAX(CASE WHEN year = 2011 THEN max_totalpay ELSE 0 END) AS max_2011,
+    MAX(CASE WHEN year = 2012 THEN max_totalpay ELSE 0 END) AS max_2012,
+    MAX(CASE WHEN year = 2013 THEN max_totalpay ELSE 0 END) AS max_2013,
+    MAX(CASE WHEN year = 2014 THEN max_totalpay ELSE 0 END) AS max_2014
+FROM 
+    EmployeeYearHighestPay 
+GROUP BY 
+    employeename
+ORDER BY
+    -- 3. Sort by employee name in ascending order
+    employeename ASC;
+
+Notes:
+- The data quality checks revealed only two employee names that had multiple rows and all other names were
+  considered to be unique.
+- My approach to this problem was beginning with calculating the highest totalpay in each year for each
+  employee using the MAX() function and placing this step into common table expression (CTE) called
+  EmployeeYearHighestPay. From there, I queried the CTE to pivot the different years in the year column in
+  order to make them separate columns and filled any missing year values with 0 using the MAX() function and
+  CASE WHEN conditional statement. Finnally, I sorted the results by employeename in ascending order.
+- The prompt did not say payments with benefits so I went with the totalpay column for my aggregation
+  calculations instead of totalpaybenefits.
+
+Suggestions and Final Thoughts:
+- To limit the number of rows processed in the initial aggregation, using a filter in the CTE for years 
+  specifically in 2011, 2012, and 2013, and 2014 would be helpful for efficiency and optimization.
+  ex.
+      WHERE year IN (2011, 2012, 2013, 2014);
+- Instead of creating a CTE, all the steps could have been done in one query and the CASE WHEN statement
+  could say ELSE NULL aside from ELSE 0.
+  ex.
+      SELECT
+          employeename,
+          MAX(CASE WHEN year = 2011 THEN totalpay ELSE NULL END) AS max_2011,
+          MAX(CASE WHEN year = 2012 THEN totalpay ELSE NULL END) AS max_2012,
+          MAX(CASE WHEN year = 2013 THEN totalpay ELSE NULL END) AS max_2013,
+          MAX(CASE WHEN year = 2014 THEN totalpay ELSE NULL END) AS max_2014
+      FROM 
+          sf_public_salaries
+      WHERE
+          year IN (2011, 2012, 2013, 2014)
+      GROUP BY 
+          employeename
+      ORDER BY
+          employeename ASC;
+  
+Solve Duration:
+22 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+8 minutes
+
+############################################################################################################
