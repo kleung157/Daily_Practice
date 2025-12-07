@@ -1,0 +1,180 @@
+C Practice Exercises
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - Implement a Python str class
+
+Question:
+You will a set of supporting functions using the following structure to implement a subset of the Python str class in C. 
+Some code and method signatures have been provided for you as well as a main() program and some support routines from the lecture slides. 
+In the constructor, you will allocate a 10 character buffer. 
+If as data is added, it exceeds the length of the buffer use realloc() to expand the buffer by 10. T
+here is a good deal of discussion of this application in the lecture materials associated with this assignment.
+
+Python Code:
+x = str()
+x = x + 'H'
+print(x)
+x = x + 'ello world'
+print(x)
+x = 'A completely new string'
+print("String = ", x)
+print("Length = ", len(x))
+
+C Code:
+#include <stdio.h>
+#include <stdlib.h>
+
+struct pystr
+{
+    int length;
+    int alloc; /* the length of *data */
+    char *data;
+};
+
+/* Constructor - x = str() */
+struct pystr * pystr_new() {
+    struct pystr *p = malloc(sizeof(*p));
+    p->length = 0;
+    p->alloc = 10;
+    p->data = malloc(10);
+    p->data[0] = '\0';
+    return p;
+}
+
+/* Destructor - del(x) */
+void pystr_del(const struct pystr* self) {
+    free((void *)self->data); /* free string first */
+    free((void *)self);
+}
+
+void pystr_dump(const struct pystr* self)
+{
+    printf("Pystr length=%d alloc=%d data=%s\n",
+            self->length, self->alloc, self->data);
+}
+
+int pystr_len(const struct pystr* self)
+{
+    return self->length;
+}
+
+char *pystr_str(const struct pystr* self)
+{
+    return self->data;
+}
+
+int main(void)
+{
+    setvbuf(stdout, NULL, _IONBF, 0);  /* Internal */
+
+    struct pystr * x = pystr_new();
+    pystr_dump(x);
+
+    pystr_append(x, 'H');
+    pystr_dump(x);
+
+    pystr_appends(x, "ello world");
+    pystr_dump(x);
+
+    pystr_assign(x, "A completely new string");
+    printf("String = %s\n", pystr_str(x));
+    printf("Length = %d\n", pystr_len(x));
+    pystr_del(x);
+}
+
+#include <string.h>
+/* x = x + 'h'; */
+
+void pystr_append(struct pystr* self, char ch) {
+    /* Need about 10 lines of code here */
+    self->data[self->length] = self->data[self->length] + ch;
+    self->length++;
+    if ( self->length >= (self->alloc - 2) ) {
+        self->alloc = self->alloc + 10;
+        self->data = (char *)
+            realloc(self->data, self->alloc);
+    }
+}
+
+/* x = x + "hello"; */
+
+void pystr_appends(struct pystr* self, char *str) {
+    /* Need a line or two of code here */
+    int alloc = self->alloc;
+    for (self->length=1; self->length <= alloc; ) {
+         pystr_append(self, str[self->length-1]);
+    }
+}
+
+/* x = "hello"; */
+
+void pystr_assign(struct pystr* self, char *str) {
+    /* Need about three lines of code here */
+    self->alloc = 22;
+    pystr_appends(self, str);
+    strcpy(self->data, str);
+}
+
+Input:
+N/A
+
+Output:
+Pystr length=0 alloc=10 data=
+Pystr length=1 alloc=10 data=H
+Pystr length=11 alloc=20 data=Hello world
+String = A completely new string
+Length = 23
+
+Notes:
+
+############################################################################################################
+
+Source:
+
+Question:
+
+Python Code:
+
+C Code:
+
+Input:
+
+Output:
+
+Notes:
+
+############################################################################################################
+
+Source:
+
+Question:
+
+Python Code:
+
+C Code:
+
+Input:
+
+Output:
+
+Notes:
+
+############################################################################################################
+
+Source:
+
+Question:
+
+Python Code:
+
+C Code:
+
+Input:
+
+Output:
+
+Notes:
+
+############################################################################################################
