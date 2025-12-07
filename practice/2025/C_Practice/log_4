@@ -23,6 +23,43 @@ print("String = ", x)
 print("Length = ", len(x))
 
 C Code:
+**Attempt #1
+#include <string.h>
+/* x = x + 'h'; */
+
+void pystr_append(struct pystr* self, char ch) {
+    /* Need about 10 lines of code here */
+    self->data[self->length] = self->data[self->length] + ch;
+    self->length++;
+    if ( self->length >= (self->alloc - 2) ) {
+        self->alloc = self->alloc + 10;
+        self->data = (char *)
+            realloc(self->data, self->alloc);
+    }
+}
+
+/* x = x + "hello"; */
+
+void pystr_appends(struct pystr* self, char *str) {
+    /* Need a line or two of code here */
+    int alloc = self->alloc;
+    for (self->length=0; self->length <= alloc; ) {
+         pystr_append(self, str[self->length-1]);
+    }
+}
+
+/* x = "hello"; */
+
+void pystr_assign(struct pystr* self, char *str) {
+    /* Need about three lines of code here */
+    self->data[0] = '\0';
+    self->alloc = 22;
+    pystr_appends(self, str);
+    strcpy(self->data, str);
+}
+
+
+** Solution #1
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -84,37 +121,41 @@ int main(void)
     pystr_del(x);
 }
 
-#include <string.h>
 /* x = x + 'h'; */
 
 void pystr_append(struct pystr* self, char ch) {
-    /* Need about 10 lines of code here */
-    self->data[self->length] = self->data[self->length] + ch;
-    self->length++;
-    if ( self->length >= (self->alloc - 2) ) {
+    // Check if reallocation is needed
+    if ( self->length + 1 >= self->alloc ) {
         self->alloc = self->alloc + 10;
         self->data = (char *)
             realloc(self->data, self->alloc);
     }
+    // Append the character
+    self->data[self->length] = ch; 
+    // Increment the length
+    self->length++;
+    // Ensure string is null-terminated
+    self->data[self->length] = '\0';
 }
 
 /* x = x + "hello"; */
 
 void pystr_appends(struct pystr* self, char *str) {
-    /* Need a line or two of code here */
-    int alloc = self->alloc;
-    for (self->length=1; self->length <= alloc; ) {
-         pystr_append(self, str[self->length-1]);
+    int i;
+    // Iterate through the string using a counter
+    for (i=0; str[i] != '\0'; i++) {
+         pystr_append(self, str[i]);
     }
 }
 
 /* x = "hello"; */
 
 void pystr_assign(struct pystr* self, char *str) {
-    /* Need about three lines of code here */
-    self->alloc = 22;
+    // Clear existing string and reset length
+    self->data[0] = '\0';
+    self->length = 0;
+    // Copy the new string
     pystr_appends(self, str);
-    strcpy(self->data, str);
 }
 
 Input:
@@ -128,6 +169,42 @@ String = A completely new string
 Length = 23
 
 Notes:
+- The lecture provided the code for increasing the allocation. If the length started to exceed the allocation
+  then the realloc() function was used to add 10 more to the allocated memory amount. I used that to initially
+  start writing the pystar_append() function. The pystar_append() function involved using numerous pointers 
+  and incrementing. 
+- For the pystr_appends() function, I used a for loop and had to make sure the alloc was an integer and 
+  assigned to a variable or else the for loop condition would not recognize self->alloc as the value 10. 
+  Only when I assigned int alloc = self->alloc did it recognize it as 10. This for loop also ran the 
+  pystr_append() function repeatedly to affix the string to the variable. 
+- The pystar_assign() was a lot trickier and I couldn't quite figure out how to do it without using the 
+  string.h library and the dedicated strcpy() function. My end result was assigning the self->data to the 
+  null terminator '\0' then reallocating manually for the allocation to the string size. After that, I called
+  the pystr_appends() function and finally the strcpy() function. When I used pystr_dump() in the
+  pystr_assign() function to check the printed length, alloc and data it had extra allocation by 2 and the
+  allocation assignment that I needed for self->alloc was off by 1. Tried a while to look through the code
+  and troubleshoot but couldn't quite figure out what was causing this discrepancy.
+
+Suggestions and Final Thoughts:
+- In the if statement for checking if reallocation is needed, another way to check if the new length will
+   meet or exceed the allocation size is to use "if (self-> length + 1 >= self->alloc)".
+- Rather than performing arithmetic for assigning the appending of characters in the line
+  "self->data[self->length] = self->data[self->length] + ch;", it is best to just assign the character to
+  the variable using "self->data[self->length] = ch;". 
+- When strings are modified, it is best to ensure the string is null-terminated using '\0' as in the line
+  "self->data[self->length] = '\0'
+- Initially, I created a for loop by using an initializer integer variable i but for some reason had tried
+  to incorporate the self->length variable into the for loop which ended up being too complicated. Sticking
+  with the variable i ensures there's no mix up in the function itself. The for loop ended up being a 
+  traversal through a string until the end of the string itself, or the null terminator and incremented each
+  time. It also called the pystr_append() function multiple times to carry out the appending operation.
+- For the pystr_assign() function, I had the correct logic when I made my first few attempts but my
+  pystr_appends() and pystr_append() functions did not correspond correctly so it would throw off the 
+  final result. I did use the null terminator for self->data[0] and self->length = 0 along with calling the
+  pystr_appends() function within pystr_assign() function.
+- Seems like overall, I made the problem a little more difficult than I needed to by trying to incorporate
+  all the pointers that I could but some functions didn't need to have the pointers. Still was good practice
+  and challenge in the end.
 
 ############################################################################################################
 
