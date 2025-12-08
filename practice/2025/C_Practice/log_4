@@ -209,18 +209,214 @@ Suggestions and Final Thoughts:
 ############################################################################################################
 
 Source:
+C Programming for Everybody - Implement a Python list class
 
 Question:
+You will a set of supporting functions using the following structures to implement a subset of the Python list class in C. 
+Some code and method signatures have been provided for you as well as a main() program and some support routines from the lecture slides. 
+There is a good deal of discussion of this application in the lecture materials associated with this assignment.
 
 Python Code:
+lst = list();
+lst.append("Hello world");
+print(lst)
+lst.append("Catch phrase");
+print(lst)
+lst.append("Brian");
+print(lst)
+print("Length =", len(lst);
+
+print("Brian?", lst.index("Brian"));
+
+if "Bob" in lst:
+    print("Bob?", lst.index("Bob"));
+else:
+    print("Bob? 404");
 
 C Code:
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct lnode {
+    char *text;
+    struct lnode *next;
+};
+
+struct pylist {
+  struct lnode *head;
+  struct lnode *tail;
+  int count;
+};
+
+/* Constructor - lst = list() */
+struct pylist * pylist_new() {
+    struct pylist *p = malloc(sizeof(*p));
+    p->head = NULL;
+    p->tail = NULL;
+    p->count = 0;
+    return p;
+}
+
+/* Destructor - del(lst) */
+void pylist_del(struct pylist* self) {
+    struct lnode *cur, *next;
+    cur = self->head;
+    while(cur) {
+        free(cur->text);
+        next = cur->next;
+        free(cur);
+        cur = next;
+    }
+    free((void *)self);
+}
+
+int main(void)
+{
+    setvbuf(stdout, NULL, _IONBF, 0);  /* Internal */
+
+    struct pylist * lst = pylist_new();
+    pylist_append(lst, "Hello world");
+    pylist_print(lst);
+    pylist_append(lst, "Catch phrase");
+    pylist_print(lst);
+    pylist_append(lst, "Brian");
+    pylist_print(lst);
+    printf("Length = %d\n", pylist_len(lst));
+    printf("Brian? %d\n", pylist_index(lst, "Brian"));
+    printf("Bob? %d\n", pylist_index(lst, "Bob"));
+    pylist_del(lst);
+}
+
+/* print(lst) */
+void pylist_print(struct pylist* self)
+{
+    int i;
+    struct lnode *cur;
+    printf("[");
+    /* Loop until the current pointer reaches NULL, 
+    NULL signifies end of list */
+    for(i=0, cur=self->head; cur != NULL; cur=cur->next, i++) { 
+        printf("'%s'", cur->text);
+        /* Place commas only between list entries */
+        if ( i < self->count-1 ) {
+            printf(", ");
+        }
+    }
+    printf("]\n");
+}
+
+/* len(lst) */
+int pylist_len(const struct pylist* self)
+{
+    return self->count;
+}
+
+/* lst.append("Hello world") */
+void pylist_append(struct pylist* self, char *str) {
+    /* Allocate space for save variable
+       Copy string to "save"
+       increment count by 1 */
+    char *save = (char *) malloc(strlen(str)+1);
+    strcpy(save, str);
+    self->count++;
+  
+    /* Allocate space only for the new node */
+    struct lnode *new = (struct lnode *)
+        malloc(sizeof(struct lnode));
+ 
+    /* Check if allocation failed */
+    if ( new == NULL ) {
+        return;
+    }
+  
+    /* List is not empty.
+       Append new node by updating current tail's 'next' pointer.
+       Update the list's 'tail' pointer to be the new node. */
+    if ( self->tail != NULL ) {
+        self->tail->next = new;
+        new->text = save;
+        new->next = NULL;
+        self->tail = new;
+    }
+   
+    /* List is empty. 
+       Head and tail point to the new node */
+    if ( self->head == NULL ) {
+        new->text = save;
+        self->head = new;
+        self->tail = new;
+    }    
+}
+
+/* lst.index("Hello world") - if not found -1 */
+int pylist_index(struct pylist* self, char *str)
+{
+    struct lnode *cur;
+    int i;
+    /* Loop until the current pointer reaches NULL, 
+       NULL signifies end of list */
+    for(i=0, cur=self->head; cur != NULL; cur=cur->next, i++) {
+        /* Check if the current node contains the target value
+           If value found, return the index */
+        if ( strcmp(cur->text, str) == 0 ) {
+            return i;
+        }
+    }
+    /* If the loop finishes without finding the value, return -1*/
+    return -1;
+}
 
 Input:
+N/A
 
 Output:
+['Hello world']
+['Hello world', 'Catch phrase']
+['Hello world', 'Catch phrase', 'Brian']
+Length = 3
+Brian? 2
+Bob? -1
 
 Notes:
+- I started this problem with working on the pylist.append() function first. As the lecture had hinted, one
+  of the chapter 6 problems that I had done on linked lists had the code necessary to create this function.
+  The modifications made were to allocate space for a save variable, copy the string to save and increment
+  the list count by 1 each time it was called. Also, since this was a character string instead of a integer
+  value, I had to change some of the pointer values to 'save' for situations where if the list was or was not
+  empty such as with "new->text = save;"
+- The pylist_len() function was straightforward, since I incremented the self->count each time I called
+  pylist_append(), it was a matter of returning "self->count" to get the length of the list. 
+- The next function I worked on was the pylist_print(), this was pretty tricky as it was like another
+  problem I was working on before where I didn't use a counter variable and tried to use a pointer variable. 
+  It helped tremendously to use i as a counter variable. Once I created a for loop to traverse a list, it was 
+  a matter of where to put each individual printf() function to simulate the Python list output like [ , , ]. 
+  The trickiest part was how to get the commas to be within entries and not on the outsides of entries. That's
+  where the i counter variable really helped.
+- The pylist_index() function was another function that was used before in Chapter 6 problems for scanning
+  through a list. I took my existing for loop from the pylist_print() function and added a conditional if
+  statement that compared the pointer values to the string being called using the strcmp() function. If the
+  strings were the same then it would be 0, and the index i was returned when calling the function. If there
+  was not a match after the loop finished then the function returned -1.
+
+Suggestions and Final Thoughts:
+- The lines "new->text = save;" and "new->next = NULL;" can be placed outside of the if statements for the
+  lists being empty or not. It sets the new node's peropeties and prevents duplication.
+- The conditional statements could be unified using if/else instead of two if statements since they both
+  deal with NULL situations.
+  ex.
+      if (self->head == NULL) {
+          self->head = new;    // List is EMPTY: The new node is the head
+      } 
+      else {
+          self->tail->next = new;     // List is NOT empty: Link the old tail to the new node
+      }
+      self->tail = new;         // Update the list's tail 
+- There is a check to see if allocation failed for new. There should also be one for save as well.
+  ex. 
+      if (save == NULL) { 
+          return 
+      }
 
 ############################################################################################################
 
