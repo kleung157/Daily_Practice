@@ -1,0 +1,587 @@
+Date: 12/08/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2148
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Amazon - Monthly Sales Rolling Average
+You have been asked to calculate the rolling average for book sales in 2022.
+A rolling average continuously updates a data set's average to include all data in the set up to that point. 
+For example, the rolling average for February would be calculated by adding the book sales from January and February and dividing by two; the rolling average for March would be calculated by adding the book sales from January, February, and March and dividing by three; and so on.
+Output the month, the sales for that month, and an extra column containing the rolling average rounded to the nearest whole number.
+
+Data Dictionary:
+Table name = 'amazon_books'
+unit_price: numeric (num)
+book_id: character (str)
+book_title: character (str)
+
+Table name = 'book_orders'
+order_id: numeric (num)
+quantity: numeric (num)
+order_date: POSIXct, POSIXt (dt)
+book_id: character (str)
+
+Code:
+**Solution #1
+## Question:
+# You have been asked to calculate the rolling average for book sales in 2022.
+# A rolling average continuously updates a data set's average to include all data in the set up
+# to that point.
+# For example, the rolling average for February would be calculated by adding the book sales from
+# January and February and dividing by two;
+# the rolling average for March would be calculated by adding the book sales from January, February,
+# March and dividing by three; and so on.
+# Output the month, the sales for that month, and an extra column containing the rolling average to the
+# nearest whole number.
+
+## Output:
+# month, total_sales, rolling_average
+
+## Import libraries
+#install.packages(tidyverse)
+library(tidyverse)
+library(lubridate)
+
+## Load and preview data:
+#amazon_books <- read_csv("amazon_books.csv")
+#book_orders <- read_csv("book_orders.csv")
+books_df <- data.frame(amazon_books)
+orders_df <- data.frame(book_orders)
+head(books_df, 5)
+head(orders_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - books: 20 x 3
+#            - orders: 74 x 4
+# Duplicates - books: 0
+#            - orders: 0
+# Nulls - books: 0
+#       - orders: 0
+# Value Counts - books: book_id, book_title
+#              - orders: order_id, book_id
+data.frame(lapply(books_df, class))
+data.frame(lapply(orders_df, class))
+
+dim(books_df)
+dim(orders_df)
+
+sum(duplicated(books_df))
+sum(duplicated(orders_df))
+
+enframe(colSums(is.na(books_df)), name="index", value="na_count")
+enframe(colSums(is.na(orders_df)), name="index", value="na_count")
+
+enframe(table(books_df$book_id), name="index", value="frequency")
+enframe(table(books_df$book_title), name="index", value="frequency")
+enframe(table(orders_df$order_id), name="index", value="frequency")
+enframe(table(orders_df$book_id), name="index", value="frequency")
+
+## Iteration:
+result_df <- orders_df %>%
+    filter(
+        # 1. Filter for order dates in 2022
+        year(order_date) == 2022
+    ) %>%
+    inner_join(
+        # 2. Inner join orders and books DataFrames by book_id
+        books_df, by="book_id"
+    ) %>%
+    mutate(
+        # 3. Extract the month and month_name from order_date column
+        month = month(order_date),
+        month_name = month(order_date, label = TRUE, abbr = FALSE),
+        # 4. Calculate sales for each order, sales = quantity x unit_price
+        sales = quantity * unit_price
+    ) %>%
+    group_by(month, month_name) %>%
+    summarise(
+        # 5. Calculate total sales for each month
+        total_sales = sum(sales, na.rm=TRUE),
+        .groups="drop"
+    ) %>%
+    arrange(
+        # 6. Arrange months in ascending order
+        month
+    ) %>%
+    mutate(
+        # 7. Calculate the rolling average, average = cumulative sales / cumulative row number
+        rolling_average = round(
+            cumsum(total_sales) / row_number(),
+            digits=0
+        )
+    ) %>%
+    select(
+        # 8. Select relevant columns
+        month=month_name, total_sales, rolling_average
+    )
+    
+## Result:
+result_df
+
+
+**Solution #2 (revised approach)
+result_df <- orders_df %>%
+    filter(
+        # 1. Filter for order dates in 2022
+        year(order_date) == 2022
+    ) %>%
+    inner_join(
+        # 2. Inner join orders and books DataFrames by book_id
+        books_df, by="book_id"
+    ) %>%
+    mutate(
+        # 3. Extract the month from order_date column
+        month_floor = floor_date(order_date, "month"),
+        # 4. Calculate sales for each order, sales = quantity x unit_price
+        sales = quantity * unit_price
+    ) %>%
+    group_by(month_floor) %>%
+    summarise(
+        # 5. Calculate total sales for each month
+        total_sales = sum(sales, na.rm=TRUE),
+        .groups="drop"
+    ) %>%
+    arrange(
+        # 6. Arrange months in ascending order
+        month_floor
+    ) %>%
+    mutate(
+        # 7. Calculate the rolling average, average = cumulative sales / cumulative row number
+        rolling_average = round(
+            cumsum(total_sales) / row_number(),
+            digits=0
+        ),
+        month_name = month(month_floor, label=TRUE, abbr=FALSE)
+    ) %>%
+    select(
+        # 8. Select relevant columns
+        month=month_name, total_sales, rolling_average
+    )
+
+Notes:
+- There were no duplicates, null, or abnormal value counts in the data quality checks.
+- I started my approach to this problem by filtering for order dates in 2022 for the orders DataFrame using
+  the filter() and year() functions. From there, I inner joined the orders and books DataFrames by book_id
+  using the inner_join() function. Next, I extracted the month and month_name from the order_date column
+  and calculated the sales for each order with quantity and unit price columns using the mutate() and
+  month() functions. Afterwards, I calculated the total sales for each month using group_by(), summarise()
+  and sum() functions. The resulting aggregation was arranged by the month column in ascending order using
+  the arrange() function. Then, I calculated the rolling average for each row by finding the cumulative
+  total sales as the numerator and cumulative row number as the denominator then rounding to a whole number
+  using the mutate(), cumsum(), row_number() and round() functions. Lastly, I selected and renamed the
+  relevant output columns using the select() function.
+- Took a while to figure out which function to use for cumulative aggregated values and cumulative counts.
+  I eventually remembered Python's cumsum() function for calculating the numerator but the denominator was
+  more difficult to figure out. I tried to create a counter and use cumsum() for denominator but it isn't
+  as sturdy as using row_number() which increments automatically as a function.
+- I went back to extract the month name for a cleaner output rather than just having the numerical value
+  of each month.
+
+Suggestions and Final Thoughts:
+- To extract the month name from a date, use the month() function from the lubridate package and specify
+  the parameters label=TRUE and abbr=FALSE. Alternatively, you can use the format() function with "%B" too
+  which is part of Base R.
+  ex.
+      month_name = month(order_date, label=TRUE, abbr=FALSE)
+      month_name = format(order_date, "%B")
+- Instead of extracting the month number and month name and grouping by the combination of both, it is better
+  to use the floor_date() function to set each datetime row to it's proper start month and time. The month
+  name can then be extracted at the end of the query rather than early on where it would create too many
+  extra rows that could affect performance. This can be seen in the revised Solution #2.
+  ex.
+      month_floor = floor_date(order_date, "month")
+- Learned a lot of new functions and reviewed some old ones. Overall a pretty good question that probably 
+  leans more towards hard than medium.
+
+Solve Duration:
+61 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9624
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Airbnb - Accommodates-To-Bed Ratio
+Find the average accommodates-to-beds ratio for shared rooms in each city. 
+Sort your results by listing cities with the highest ratios first.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+id: int64 (int)
+price: float64 (flt)
+property_type: object (str)
+room_type: object (str)
+amenities: object (str)
+accommodates: int64 (int)
+bathrooms: int64 (int)
+bed_type: object (str)
+cancellation_policy: object (str)
+cleaning_fee: bool (bool)
+city: object (str)
+host_identity_verified: object (str)
+host_response_rate: object (str)
+host_since: datetime64 (dt)
+neighbourhood: object (str)
+number_of_reviews: int64 (int)
+review_scores_rating: float64 (flt)
+zipcode: int64 (int)
+bedrooms: int64 (int)
+beds: int64 (int)
+
+Code:
+**Attempt #1
+# 1. Calculate the ratio between accommodates and beds
+#    If denominator is 0 or NULL then replace with 0, otherwise perform ratio calculation as is
+searches_df["accommodates_to_beds_ratio"] = np.where(
+    (searches_df["beds"] == 0 | searches_df["beds"].isna()),
+    0,
+    round(searches_df["accommodates"] / searches_df["beds"], 2)
+)
+
+# 2. Calculate the average acommodates to beds ratio for each city and sort in descending order
+result_df = (
+    searches_df
+    .groupby("city")["accommodates_to_beds_ratio"].mean()
+    .reset_index(name="average_accommodates_to_beds_ratio")
+    .sort_values(by="average_accommodates_to_beds_ratio", ascending=False)
+)
+
+## Result:
+print("Average accommodates-to-beds ratio for shared rooms in each city: ")
+result_df
+
+
+**Solution #1 (revised)
+# 1. Filter for shared room in the room_type column
+filtered_df = searches_df[
+    searches_df["room_type"].str.lower() == "shared room"     
+].copy()
+
+# 2. Calculate the ratio between accommodates and beds
+#    If denominator is 0 or NULL then replace with NaN, otherwise perform ratio calculation as is
+filtered_df["accommodates_to_beds_ratio"] = np.where(
+    ( (filtered_df["beds"] == 0 ) | (filtered_df["beds"].isna()) ),
+    np.nan,
+    round(filtered_df["accommodates"] / filtered_df["beds"], 2)
+)
+
+# 2. Calculate the average acommodates to beds ratio for each city and sort in descending order
+result_df = (
+    filtered_df
+    .groupby("city")["accommodates_to_beds_ratio"].mean()
+    .reset_index(name="average_accommodates_to_beds_ratio")
+    .sort_values(by="average_accommodates_to_beds_ratio", ascending=False)
+)
+
+## Result:
+print("Average accommodates-to-beds ratio for shared rooms in each city: ")
+result_df
+
+Notes:
+- None of the duplicates, nulls, or abnormal value counts found in the data quality check were needed to be 
+  considered for this particular problem.
+- I began my approach by calculating the ratio between the accommodates and beds columns for each row and 
+  considering edge cases for if the denominator was 0 or NULL then replace with 0, otherwise perform ratio 
+  calculation as is. I used the np.where(), isna(), and round() functions for this step. Next, I calculated
+  the average accommodates to beds ratio for each city and sorted in descending order by the ratio using
+  the groupby(), mean(), reset_index(), and sort_values() functions.
+- I couldn't quite discern what the prompt meant by "shared rooms". None of the column values had anything
+  that was pertaining to that so I ended up ignoring it in my solution.
+
+Suggestions and Final Thoughts:
+- During the data quality check, I missed one unique value counts column called room_type. It was the missing
+  piece that I was wondering about in my previous notes. The revised approach is to filter for rows that have
+  "shared room" in their room_type columns.
+  ex.
+      searches_df["room_type"].value_counts().reset_index(name="frequency")
+      filtered_df = searches_df[
+          searches_df["room_type"].str.lower() == "shared room"     
+      ].copy()
+- When using the (|) OR operator, make sure to place each condition in parantheses rather than trying to
+  place a single parantheses around all conditions. This ensures proper comparisons and makes sure the OR
+  operator is considered in terms of operation order. A single parantheses around all conditions is good
+  as long as the conditions are in their own parantheses too.
+  ex. 
+      ( (filtered_df["beds"] == 0 ) | (filtered_df["beds"].isna()) )
+- For dealing with denominators with 0 or NULL, it is best to replace them with NaN using np.nan so that it
+  is excluded from an aggregation calculation.
+  ex.
+      filtered_df["accommodates_to_beds_ratio"] = np.where(
+          ( (filtered_df["beds"] == 0 ) | (filtered_df["beds"].isna()) ),
+          np.nan,
+          round(filtered_df["accommodates"] / filtered_df["beds"], 2)
+      )
+      
+Solve Duration:
+18 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+15 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10171
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Netflix - Find the genre of the person with the most number of oscar winnings
+Find the genre of the person with the most number of oscar winnings.
+If there are more than one person with the same number of oscar wins, return the first one in alphabetic order based on their name. 
+Use the names as keys when joining the tables.
+
+Data Dictionary:
+Table name = 'oscar_nominees'
+category: varchar (str)
+id: bigint (int)
+movie: varchar (str)
+nominee: varchar (str)
+winner: bit (bool)
+year: bigint (int)
+
+Table name = 'nominee_information'
+amg_person_id: varchar (str)
+birthday: date (dt)
+id: bigint (int)
+name: varchar (str)
+top_genre: varchar (str)
+
+Code:
+Solution #1
+-- Question:
+-- Find the genre of the person with the most number of oscar winnings.
+-- If there are more than one person with the same number of oscar wins,
+-- return the first one in alphabetic order based on their name.
+-- Use the names as keys when joining the tables.
+
+-- Output:
+-- top_genre
+
+-- Preview data:
+SELECT TOP 5* FROM oscar_nominees;
+SELECT TOP 5* FROM nominee_information;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - nominees: 1540 x 6
+--            - information: 127 x 5
+-- Duplicates - nominees: 0
+--            - information: 0
+-- Nulls - nominees: 0
+--       - information: 0
+-- Value Counts - nominees: category, id, movie, nominee, winner
+--              - information: amg_person_id, id, name, top_genre
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN category IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN movie IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN nominee IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN winner IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN year IS NULL THEN 1 ELSE 0 END) AS col6,
+    COUNT(*) AS total_rows
+FROM oscar_nominees;
+
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN amg_person_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN birthday IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN name IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN top_genre IS NULL THEN 1 ELSE 0 END) AS col5,
+    COUNT(*) AS total_rows
+FROM nominee_information;
+
+SELECT -- Duplicates
+    category, id, movie, nominee, winner, year,
+    COUNT(*) AS duplicate_count
+FROM oscar_nominees
+GROUP BY
+    category, id, movie, nominee, winner, year
+HAVING COUNT(*) > 1;
+
+SELECT -- Duplicates
+    amg_person_id, birthday, id, name, top_genre,
+    COUNT(*) AS duplicate_count
+FROM nominee_information
+GROUP BY
+    amg_person_id, birthday, id, name, top_genre
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    category,
+    COUNT(*) AS frequency
+FROM oscar_nominees
+GROUP BY category
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    id,
+    COUNT(*) AS frequency
+FROM oscar_nominees
+GROUP BY id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    movie,
+    COUNT(*) AS frequency
+FROM oscar_nominees
+GROUP BY movie
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    nominee,
+    COUNT(*) AS frequency
+FROM oscar_nominees
+GROUP BY nominee
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    winner,
+    COUNT(*) AS frequency
+FROM oscar_nominees
+GROUP BY winner
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    amg_person_id,
+    COUNT(*) AS frequency
+FROM nominee_information
+GROUP BY amg_person_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    id,
+    COUNT(*) AS frequency
+FROM nominee_information
+GROUP BY id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    name,
+    COUNT(*) AS frequency
+FROM nominee_information
+GROUP BY name
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    top_genre,
+    COUNT(*) AS frequency
+FROM nominee_information
+GROUP BY top_genre
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Count the number of oscar wins for each person
+-- 2. Rank the oscar wins in descending order and nominee in ascending order for each nominee
+-- 3. Inner join OscarWinsNamesRank and nominee_information tables by nominee and name columns 
+-- 4. Filter for person with most number of oscar winnings based on rank
+WITH OscarWinsNamesRank AS (
+    SELECT 
+        nominee,
+        SUM(CASE WHEN winner = 1 THEN 1 ELSE 0 END) AS oscar_wins_total,
+        DENSE_RANK() OVER(
+            ORDER BY SUM(CASE WHEN winner = 1 THEN 1 ELSE 0 END) DESC, nominee ASC
+        ) AS dense_rank
+    FROM oscar_nominees
+    GROUP BY nominee
+)
+SELECT
+    ni.top_genre
+FROM OscarWinsNamesRank AS ownr
+JOIN nominee_information AS ni
+    ON ownr.nominee = ni.name
+WHERE ownr.dense_rank = 1
+
+-- Result:
+WITH OscarWinsNamesRank AS (
+    SELECT 
+        nominee,
+        -- 1. Count the number of oscar wins for each person
+        SUM(CASE WHEN winner = 1 THEN 1 ELSE 0 END) AS oscar_wins_total,
+        -- 2. Rank the oscar wins in descending order and nominee in ascending order for each nominee
+        DENSE_RANK() OVER(
+            ORDER BY 
+                SUM(CASE WHEN winner = 1 THEN 1 ELSE 0 END) DESC, 
+                nominee ASC
+        ) AS dense_rank
+    FROM 
+        oscar_nominees
+    GROUP BY 
+        nominee
+)
+SELECT
+    ni.top_genre
+FROM 
+    OscarWinsNamesRank AS ownr
+JOIN 
+    -- 3. Inner join OscarWinsNamesRank and nominee_information tables by nominee and name columns
+    nominee_information AS ni
+    ON ownr.nominee = ni.name
+WHERE 
+    -- 4. Filter for person with most number of oscar winnings based on rank
+    ownr.dense_rank = 1
+
+Notes:
+- The data quality check revealed no relevant duplicates, null, or abnormal value counts that were necessary
+  for solving the problem.
+- My approach began with counting the number of oscar wins for each nominee using the SUM() function and CASE
+  WHEN statement. Next, I ranked the total oscar wins in descending order and nominees in ascending order
+  for each nominee using the DENSE_RANK() and SUM() functions. These steps were placed into a common table
+  expression (CTE) called OscarWinsNamesRank and subsequently queried to inner join the OscarWinsNamesRank 
+  and nominee_information tables by nominee and name columns respectively. Lastly, the final query was filtered
+  for persons with the most number of oscar winnings based on rank and selected for the genre column.
+- Originally I had joined the nominees and information tables first then tried to query it afterwards but it
+  didn't make sense to join them first compared to performing the calculations and rankings first then joining
+  to filter afterwards.
+- In MS SQL Server, the winner column is a bit datatype that is similar to a boolean but TRUE is represented
+  as 1 and FALSE is represented as 0 when filtering. In PostgreSQL the winner column is a boolean datatype
+  where TRUE is represented as TRUE and FALSE is represented as FALSE when filtering.
+  ex.
+      SUM(CASE WHEN winner = 1 THEN 1 ELSE 0 END) AS oscar_wins_total
+      SUM(CASE WHEN winner = TRUE THEN 1 ELSE 0 END) AS oscar_wins_total
+
+Suggestions and Final Thoughts:
+- For determining tie-breakers, it is best to use a rank function with order conditions then filtering for
+  the rank as opposed to using order by and limit functions. This considers a lot of edge cases in the event
+  that the query needs to be reproduced.
+- This question was a lot easier than I thought, more leaning towards medium than a hard difficulty. The
+  best part of it was practicing multiple ORDER BY conditions in the DENSE_RANK() function to break ties.
+
+Solve Duration:
+38 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+3 minutes
+
+############################################################################################################
