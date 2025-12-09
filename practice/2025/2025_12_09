@@ -260,6 +260,7 @@ result_df = (
                  "f": "unverified_count"}
     )
 )
+
 ## Result:
 print("Number of hosts that are verified and not verified by the Airbnb staff:")
 result_df
