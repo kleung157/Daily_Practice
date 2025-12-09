@@ -1,0 +1,581 @@
+Date: 12/09/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2149
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Meta - Customer Consumable Sales Percentages
+Following a recent advertising campaign, you have been asked to compare the sales of consumable products across all brands.
+A consumable product is defined as any product where product_family = 'CONSUMABLE'.
+Do the comparison of the brands by finding the percentage of unique customers (among all customers in the dataset) who purchased consumable products of some brand and then do the calculation for each brand.
+Your output should contain the brand_name and percentage_of_customers rounded to the nearest whole number and ordered in descending order.
+
+Data Dictionary:
+Table name = 'online_orders'
+product_id: numeric (num)
+promotion_id: numeric (num)
+cost_in_dollars: numeric (num)
+customer_id: numeric (num)
+units_sold: numeric (num)
+date_sold: POSIXct, POSIXt (dt)
+
+Table name = 'online_products'
+product_id: numeric (num)
+product_category: numeric (num)
+product_class: character (str)
+brand_name: character (str)
+is_low_fat: character (str)
+is_recyclable: character (str)
+product_family: character (str)
+
+Code:
+Solution #1
+## Question:
+# Following a recent advertising campaign, you have been asked to compare the sales of
+# consumable products across all brands.
+# A consumable product is defined as any product where product_family = 'CONSUMABLE'.
+# Do the comparison of the brands by finding the percentage of unique customers
+# (among all customers in the dataset) who purchased consumable products of some brand
+# and then do the calculation for each brand.
+# Your output should contain the brand_name and percentage_of_customers rounded to
+# the nearest whole number and ordered in descending order.
+
+## Output:
+# brand_name, percentage_of_customers
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#online_orders <- read_csv("online_orders.csv")
+#online_products <- read_csv("online_products.csv")
+orders_df <- data.frame(online_orders)
+products_df <- data.frame(online_products)
+head(orders_df, 5)
+head(products_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - orders: 29 x 6
+#            - products: 12 x 7
+# Duplicates - orders: 0
+#            - products: 0
+# Nulls - orders: 0
+#       - products: 0
+# Value Counts - orders: product_id, promotion_id, customer_id
+#              - products: product_id, product_class, brand_name, is_low_fat, is_recyclable, product_family
+data.frame(lapply(orders_df, class))
+data.frame(lapply(products_df, class))
+
+dim(orders_df)
+dim(products_df)
+
+sum(duplicated(orders_df))
+sum(duplicated(products_df))
+
+enframe(colSums(is.na(orders_df)), name="index", value="na_count")
+enframe(colSums(is.na(products_df)), name="index", value="na_count")
+
+enframe(table(orders_df$product_id), name="index", value="frequency")
+enframe(table(orders_df$promotion_id), name="index", value="frequency")
+enframe(table(orders_df$customer_id), name="index", value="frequency")
+enframe(table(products_df$product_id), name="index", value="frequency")
+enframe(table(products_df$product_class), name="index", value="frequency")
+enframe(table(products_df$brand_name), name="index", value="frequency")
+enframe(table(products_df$is_low_fat), name="index", value="frequency")
+enframe(table(products_df$is_recyclable), name="index", value="frequency")
+enframe(table(products_df$product_family), name="index", value="frequency")
+
+## Iteration:
+# 1. Calculate the unique customers total in orders DataFrame
+unique_customers_total <- orders_df %>% distinct(customer_id) %>% nrow()
+
+result_df <- products_df %>%
+    filter(
+        # 2. Filter for products where product family is 'CONSUMABLE'
+        product_family == 'CONSUMABLE'
+    ) %>%
+    inner_join(
+        # 3. Inner join filtered products and orders DataFrame by product_id
+        orders_df, by="product_id"
+    ) %>%
+    group_by(brand_name) %>%
+    summarise(
+        # 4. Calculate unique customer count for each brand name
+        unique_customer_count = n_distinct(customer_id),
+        .groups="drop"
+    ) %>%
+    mutate(
+        # 5. Calculate percentage of unique customers and round to nearest whole number,
+        #    percentage = 100.0 * unique__count / unique_total
+        percentage_of_customers = round(
+            100.0 * unique_customer_count / unique_customers_total,
+            digits=0)
+    ) %>%
+    arrange(
+        # 6. Arrange in descending order by percentage_of_customers
+        desc(percentage_of_customers)
+    ) %>%
+    select(
+        # 7. Select relevant columns
+        brand_name, percentage_of_customers
+    )
+
+## Result:
+result_df
+
+Notes:
+- The data quality check revealed no duplicates, nulls, or abnormal value counts for solving the problem.
+- I started my approach to this problem by calculating the unique customer total in the orders DataFrame
+  by using distinct() and nrow() functions. Next, I created a separate results DataFrame where I filtered
+  for products where product family was 'CONSUMABLE' from the products DataFrame using the filter() function.
+  From there, I inner joined the filtered products and orders DataFrames by product_id using the inner_join()
+  function. After merging, the combined dataset was used to calculate the unique customer count for each 
+  brand name using the group_by(), summarise(), and n_distinct() functions. Then I calculated the percentage
+  of unique customers and rounded to the nearest whole number with the unique_customers_count as the numerator
+  and unique_customers_total as the denominator times 100.0 using the mutate() and round() functions. Lastly,
+  I arranged the output in descending order by percentage_of_customer and selected the relevant output columns
+  using the arrange(), desc(), and select() functions.
+- For a while I was stuck on the line "percentage of unique customers (among all customers in the dataset)".
+  My interpretation kept going to total customers in the dataset. I decided in the end to make sure the
+  customer count for each brand name was unique and the total customers in the dataset was unique as well
+  when calculating the percentage.
+
+Suggestions and Final Thoughts:
+- Sorting before selecting is a better approach to maintain clarity and for debugging purposes.
+- Generally, the larger fact table would be called first then joined to the smaller dimension table but in
+  this case I called the products DataFrame first to filter for specific categories that could reduce the
+  number of rows being called by the orders DataFrame when performing the inner join. The subsequent
+  group by aggregation step would be a lot more optimized as a result of this approach.
+- Glad that I stuck to my intuition for the interpretation of the problem.
+
+Solve Duration:
+35 minutes
+
+Notes Duration:
+15 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9629
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Airbnb - Find the count of verified and non-verified Airbnb hosts
+Find how many hosts are verified by the Airbnb staff and how many aren't. 
+Assume that in each row you have a different host.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+id: int64 (int)
+price: float64 (flt)
+property_type: object (str)
+room_type: object (str)
+amenities: object (str)
+accommodates: int64 (int)
+bathrooms: int64 (int)
+bed_type: object (str)
+cancellation_policy: object (str)
+cleaning_fee: bool (bool)
+city: object (str)
+host_identity_verified: object (str)
+host_response_rate: object (str)
+host_since: datetime64 (dt)
+neighbourhood: object (str)
+number_of_reviews: int64 (int)
+review_scores_rating: float64 (flt)
+zipcode: int64 (int)
+bedrooms: int64 (int)
+beds: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# Find how many hosts are verified by the Airbnb staff and how many aren't.
+# Assume that in each row you have a different host.
+
+## Output:
+# verified_count, unverified_count
+
+## Import libraries
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#airbnb_search_details = pd.read_csv("airbnb_search_details.csv")
+searches_df = pd.DataFrame(airbnb_search_details)
+searches_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 160 x 20
+# Duplicates - 0
+# Nulls - host_response_rate(32), neighbourhood(15), review_scores_rating(37)
+# Value Counts - id, property_type, room_type, amenities, bed_type, cancellation_policy,
+#              - cleaning_fee, city, host_identity_verified, host_response_rate, neighbourhood
+#searches_df.info()
+
+searches_df.shape
+
+searches_df.duplicated().sum()
+
+searches_df.isna().sum().reset_index(name="na_count")
+
+searches_df["id"].value_counts().reset_index(name="frequency")
+searches_df["property_type"].value_counts().reset_index(name="frequency")
+searches_df["room_type"].value_counts().reset_index(name="frequency")
+searches_df["amenities"].value_counts().reset_index(name="frequency")
+searches_df["bed_type"].value_counts().reset_index(name="frequency")
+searches_df["cancellation_policy"].value_counts().reset_index(name="frequency")
+searches_df["cleaning_fee"].value_counts().reset_index(name="frequency")
+searches_df["city"].value_counts().reset_index(name="frequency")
+searches_df["host_identity_verified"].value_counts().reset_index(name="frequency")
+searches_df["host_response_rate"].value_counts().reset_index(name="frequency")
+searches_df["neighbourhood"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+result_df = (
+    searches_df["host_identity_verified"]
+    .value_counts()                         # 1. Count the number of verified and unverified hosts 
+    .to_frame()                             # 2. Convert counts to a DataFrame 
+    .T                                      # 3. Transpose (pivot) the rows to separate columns
+    .rename(                                # 4. Rename the columns, "t" = verified, "f" = unverified
+        columns={"t": "verified_count", 
+                 "f": "unverified_count"}
+    )
+)
+## Result:
+print("Number of hosts that are verified and not verified by the Airbnb staff:")
+result_df
+
+Notes:
+- The data quality check revealed that the host_identity_verified column contains two types of values "t" for
+  verified and "f" for unverified.
+- My initial approach was trying to use groupby aggregation to filter for "t" and "f" values then counting 
+  them for the host_identity_verified columns but that didn't seem to work as well since it's calling an 
+  aggregation on the same grouping column.
+  ex.
+      result_df = (
+          searches_df.groupby("host_identity_verified")
+          .agg(
+                   verified_count = ("host_identity_verified", lambda x: np.sum(x == "t")),
+                   unverified_count = ("host_identity_verified", lambda x: np.sum(x == "f"))
+           )
+       )
+- The alternative approach I used was counting the number of verified and unverified hosts using the
+  value_counts() function. Then converting the counts to a DataFrame using the to_frame() function. From
+  there, I transposed or pivoted the rows to separate columns using the T function. Lastly, I renamed the
+  columns for "t" = verified and "f" = unverified using the rename() function.
+
+Suggestions and Final Thoughts:
+- While the value_counts() function already shows the number of verified and unverified counts in a Series
+  format with the indexes of "t" and "f", it is best to reformat the data in a presentable manner that 
+  addresses the business problem. The extra functions to_frame(), T, and rename() help create a DataFrame 
+  output that is in a single row with multiple columns rather than multiple rows and columns.
+- If there was a category to group by then I would have still stuck with my aggregation approach using
+  the groupby() and agg() functions. It is good practice for using the lambda function and np.sum() functions
+  to count for specific filtered categories in a column.
+
+Solve Duration:
+23 minutes
+
+Notes Duration:
+10 minutes
+  
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10172
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Find the best-selling item for each month (no need to separate months by year). 
+The best-selling item is determined by the highest total sales amount, calculated as: total_paid = unitprice * quantity. 
+A negative quantity indicates a return or cancellation (the invoice number begins with 'C'. 
+To calculate sales, ignore returns and cancellations. 
+Output the month, description of the item, and the total amount paid.
+
+Data Dictionary:
+Table name = 'online_retail'
+country: varchar (str)
+customerid: float (flt)
+description: varchar (str)
+invoicedate: date (dt)
+invoiceno: varchar (str)
+quantity: bigint (int)
+stockcode: varchar (str)
+unitprice: float (flt)
+
+Code:
+Solution #1
+-- Question:
+-- Find the best-selling item for each month (no need to separate month by year).
+-- The best-selling item is determined by the highest total sales amount,
+-- calculated as: total_paid = unitprice * quantity.
+-- A negative quantity indicates a return or cancellation (the invoice number begins with 'C').
+-- To calculate sales, ignore returns and cancellations.
+-- Output the month, description of the item, and the total amount paid.
+
+-- Output:
+-- month, description, total_amount_paid
+
+-- Preview data:
+SELECT TOP 5* FROM online_retail;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 108 x 8
+-- Duplicates - 0
+-- Nulls - customerid(40)
+-- Value Counts - country, customerid, description, invoiceno, quantity, varchar
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN country IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN customerid IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN description IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN invoicedate IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN invoiceno IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN quantity IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN stockcode IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN unitprice IS NULL THEN 1 ELSE 0 END) AS col8,
+    COUNT(*) AS total_rows
+FROM online_retail;
+
+SELECT -- Duplicates
+    country, customerid, description, invoicedate, invoiceno, quantity, stockcode, unitprice,
+    COUNT(*) AS duplicate_count
+FROM online_retail
+GROUP BY
+    country, customerid, description, invoicedate, invoiceno, quantity, stockcode, unitprice
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    country,
+    COUNT(*) AS frequency
+FROM online_retail
+GROUP BY country
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    customerid,
+    COUNT(*) AS frequency
+FROM online_retail
+GROUP BY customerid
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    description,
+    COUNT(*) AS frequency
+FROM online_retail
+GROUP BY description
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    invoiceno,
+    COUNT(*) AS frequency
+FROM online_retail
+GROUP BY invoiceno
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    quantity,
+    COUNT(*) AS frequency
+FROM online_retail
+GROUP BY quantity
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    stockcode,
+    COUNT(*) AS frequency
+FROM online_retail
+GROUP BY stockcode
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Extract the month from invoicedate
+-- 2. Filter out cancelled invoice numbers and negative quantities
+-- 3. Calculate the total_paid, total_paid = unitprice x quantity
+-- 4. Calculate the total amount paid for each month and item description
+-- 5. Rank the total_amount_paid in descending order for each month
+-- 6. Filter for best selling item for each month using rank
+WITH MonthItemDescriptionTotalSalesRank AS (
+    SELECT
+        DATEPART(month, invoicedate) AS month,
+        description,
+        ROUND(SUM(1.0 * unitprice * quantity), 2) AS total_amount_paid,
+        DENSE_RANK() OVER(
+            PARTITION BY DATEPART(month, invoicedate)
+            ORDER BY SUM(1.0 * unitprice * quantity) DESC 
+        ) AS dense_rank
+    FROM online_retail
+    WHERE invoiceno NOT LIKE 'C%'
+        AND quantity > 0
+    GROUP BY 
+        DATEPART(month, invoicedate), 
+        description
+)
+SELECT
+    month,
+    description,
+    total_amount_paid
+FROM MonthItemDescriptionTotalSalesRank
+WHERE dense_rank = 1
+ORDER BY
+    month ASC;
+
+-- Result:
+WITH MonthItemDescriptionTotalSalesRank AS (
+    SELECT
+        -- 1. Extract the month from invoicedate
+        DATEPART(month, invoicedate) AS month,
+        description,
+        -- 4. Calculate the total amount paid for each month and item description
+        ROUND(
+            SUM(
+                -- 3. Calculate the total_paid, total_paid = unitprice x quantity
+                1.0 * unitprice * quantity
+            )
+        , 2) AS total_amount_paid,
+        -- 5. Rank the total_amount_paid in descending order for each month
+        DENSE_RANK() OVER(
+            PARTITION BY 
+                DATEPART(month, invoicedate)
+            ORDER BY 
+                SUM(1.0 * unitprice * quantity) DESC 
+        ) AS dense_rank
+    FROM 
+        online_retail
+    WHERE 
+        -- 2. Filter out cancelled invoice numbers and negative quantities
+        invoiceno NOT LIKE 'C%'
+        AND quantity > 0
+    GROUP BY 
+        DATEPART(month, invoicedate), 
+        description
+)
+SELECT
+    month,
+    description,
+    total_amount_paid
+FROM 
+    MonthItemDescriptionTotalSalesRank
+WHERE 
+    -- 6. Filter for best selling item for each month using rank
+    dense_rank = 1
+ORDER BY
+    month ASC;
+
+Notes:
+- The data quality check revealed 3 rows where there were negative values for the quantity column and
+  the letter 'C' in the beginning of a value for the invoiceno column.
+- My approach for this problem started with extracting the month from the invoice date using the DATEPART()
+  function. From there, I filtered out cancelled invoice numbers and negative quantities using the NOT LIKE
+  statement and > operator. Next, I calculated the total paid for each item using unit price and quantity
+  columns and subsequently calculated the total amount paid for each month and item description using the
+  SUM() and ROUND() functions. Afterwards, I ranked the total amount paid column in descending order for 
+  each month using the DENSE_RANK() function. All of these steps were placed into a common table expression
+  (CTE) called MonthItemDescriptionTotalSalesRank. This CTE was then queried to filter for the best selling 
+  item for each month using the top rank.
+- The equivalent of EXTRACT() from PostgreSQL is DATEPART() in MS SQL Server. DATENAME() extracts the month
+  name. GETDATE() obtains the date from a column.
+- The equivalent of LIMIT from PostgreSQL is TOP * in MS SQL Server.
+- If an integer column contains negative values, the values can be filtering using a > operator rather than
+  casting it as a string and pattern matching with LIKE.
+
+Suggestions and Final Thoughts:
+- Originally I had used the function DATENAME() instead of DATEPART() but ordering by a string instead of
+  a numerical index was more intensive and less eficient. The problem didn't specifically state the month
+  name either. However, if I were to implement DATENAME() throughout Solution #1, then the additional 
+  step to add in the final query would be to create a CASE WHEN statement and address the month names as
+  numerical values.
+  ex.
+      ORDER BY
+          CASE month
+              WHEN 'January' THEN 1
+              WHEN 'February' THEN 2
+              WHEN 'March' THEN 3
+              WHEN 'April' THEN 4
+              WHEN 'May' THEN 5
+              WHEN 'June' THEN 6
+              WHEN 'July' THEN 7
+              WHEN 'August' THEN 8
+              WHEN 'September' THEN 9
+              WHEN 'October' THEN 10
+              WHEN 'November' THEN 11
+              WHEN 'December' THEN 12
+         END;
+- The MonthItemDescriptionTotalSalesRank CTE could have been split into two CTEs for more clarity and
+  possible debugging issues. I felt comfortable sticking to one CTE and making sure the indentations of
+  spaces were correct so that the code did not look too cluttered. A single pass CTE is generally more
+  optimal and concise.
+- In MS SQL Server, the OFFSET clause can be used to skip rows and the FETCH clause can print out the number
+  of rows that were after the skipped ones. The ORDER BY clause is required for using OFFSET/FETCH
+  ex.
+      SELECT
+          CustomerID, OrderDate
+      FROM
+          CustomerOrders
+      ORDER BY 
+          OrderDate, CustomerID
+      OFFSET 10 ROWS
+      FETCH NEXT 10 ROWS ONLY;
+- When using the LIKE statement in the WHERE clause, % matches any string of zero or more characters,
+  _ matches any single character, and [] matches any single character within the specified set. Adding NOT
+  to the LIKE gives the opposite of what is asked for when pattern matching.
+  ex.
+      WHERE column LIKE 'wildcard';
+          '%A%'       -- Finds values that contain the letter 'A' anywhere
+          'B__'       -- Finds values that are exactly three characters long starting with 'B'
+          '[C-F]%'    -- Finds values that begin with letters C, D, E, or F
+- With my current Solution #1 using DATEPART(), if I wanted to change the month numbers to the month names
+  then a CASE WHEN statement in the SELECT statement for the final output could be used. This is more efficent
+  than using DATENAME() and then using a CASE WHEN statement in the ORDER BY clause for the month number.
+  ex.
+      SELECT
+          CASE
+             WHEN month_num = 1 THEN 'January'
+             WHEN month_num = 2 THEN 'February'
+             WHEN month_num = 3 THEN 'March'
+             WHEN month_num = 4 THEN 'April'
+             WHEN month_num = 5 THEN 'May'
+             WHEN month_num = 6 THEN 'June'
+             WHEN month_num = 7 THEN 'July'
+             WHEN month_num = 8 THEN 'August'
+             WHEN month_num = 9 THEN 'September'
+             WHEN month_num = 10 THEN 'October'
+             WHEN month_num = 11 THEN 'November'
+             WHEN month_num = 12 THEN 'December'
+          END AS month;
+          
+Solve Duration:
+35 minutes
+
+Notes Duration:
+15 minutes
+
+Suggestions and Final Thoughts Duration:
+25 minutes
+
+############################################################################################################
