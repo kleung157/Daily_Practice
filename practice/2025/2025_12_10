@@ -1,0 +1,465 @@
+Date: 12/10/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2150
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Meta - Customers Who Purchased The Same Product
+In order to improve customer segmentation efforts for users interested in purchasing furniture, you have been asked to find customers who have purchased the same items of furniture.
+Output the product_id, brand_name, unique customer ID's who purchased that product, and the count of unique customer ID's who purchased that product. 
+Arrange the output in descending order with the highest count at the top.
+
+Data Dictionary:
+Table name = 'online_orders'
+product_id: numeric (num)
+promotion_id: numeric (num)
+cost_in_dollars: numeric (num)
+customer_id: numeric (num)
+date_sold: POSIXct, POSIXt (dt)
+units_sold: numeric (num)
+
+Table name = 'online_products'
+product_id: numeric (num)
+product_category: numeric (num)
+product_class: character (str)
+brand_name: character (str)
+is_low_fat: character (str)
+is_recyclable: character (str)
+product_family: character (str)
+
+Code:
+**Attempt #1
+result_df <- products_df %>%
+    filter(
+        # 1. Filter for 'FURNITURE' in product class
+        product_class == 'FURNITURE'
+    ) %>%
+    inner_join(
+        # 2. Inner join filtered products and orders Dataframe by product_id
+        orders_df, by="product_id"
+    ) %>%
+    group_by(product_id, brand_name) %>%
+    summarise(
+        # 3. Display unique customer ids for each product_id and brand_name combination
+        unique_customer_id = unique(customer_id),
+        # 4. Calculate the number of unique customer ids for each product_id and brand_name combination
+        unique_customer_count = n_distinct(unique_customer_id),
+        .groups="drop"
+    ) %>%
+    arrange(
+        # 5. Sort by unique customer count in descending order
+        desc(unique_customer_count)
+    )
+
+
+**Solution #1 (revised)
+result_df <- products_df %>%
+    filter(
+        # 1. Filter for 'FURNITURE' in product class
+        product_class == 'FURNITURE'
+    ) %>%
+    inner_join(
+        # 2. Inner join filtered products and orders Dataframe by product_id
+        orders_df, by="product_id"
+    ) %>%
+    group_by(product_id, brand_name) %>%
+    summarise(
+        # 3. Display unique customer ids for each product_id and brand_name combination
+        unique_customer_id = paste(sort(unique(customer_id)), collapse =", "),
+        # 4. Calculate the number of unique customer ids for each product_id and brand_name combination
+        unique_customer_count = n_distinct(customer_id),
+        .groups="drop"
+    ) %>%
+    arrange(
+        # 5. Sort by unique customer count in descending order
+        desc(unique_customer_count)
+    )
+
+Notes:
+- The data quality check revealed that the value 'FURNITURE' is in the product_class column of the products 
+  DataFrame which is relevant for the problem at hand.
+- I started my approach to this problem by filtering for rows with 'FURNITURE' in the product_class column 
+  from the products DataFrame using the filter() function. Next, I inner joined the filtered products and
+  orders DataFrames by product_id using the inner_join() function. From there, I displayed the unique
+  customer ids and calculated the number of unique customer ids for each product_id and brand_name
+  combination using group_by(), summarise(), unique(), and n_distinct() functions. Lastly, I sorted the
+  results in descending order by unique customer count.
+
+Suggestions and Final Thoughts:
+- To avoid creating multiple rows when using unique() in the summarise() function, it is best to use a
+  combination of paste(), sort(), and unique() functions to achieve a list of arranged ids for a single row.
+  The collapse parameter specifies the delimiter between each list value. The end result becomes a single
+  string value in a single row when using the summarise() function.
+  ex.
+      unique_customer_id = paste(sort(unique(customer_id)), collapse =", ")
+
+Solve Duration:
+19 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+8 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9632
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+You are given a table named airbnb_host_searches that contains listings shown to users during Airbnb property searches. 
+Each record represents a property listing (not the user's search query). 
+Determine the minimum, average, and maximum rental prices for each host popularity rating based on the property's number_of_reviews.
+The host’s popularity rating is defined as below:
+•   0 reviews: "New"
+•   1 to 5 reviews: "Rising"
+•   6 to 15 reviews: "Trending Up"
+•   16 to 40 reviews: "Popular"
+•   More than 40 reviews: "Hot"
+Tip: The id column in the table refers to the listing ID.
+Output host popularity rating and their minimum, average and maximum rental prices. 
+Order the solution by the minimum price.
+
+Data Dictionary:
+Table name = 'airbnb_host_searches'
+id: int64 (int)
+price: float64 (flt)
+property_type: object (str)
+room_type: object (str)
+amenities: object (str)
+accommodates: int64 (int)
+bathrooms: int64 (int)
+bed_type: object (str)
+cancellation_policy: object (str)
+cleaning_fee: bool (bool)
+city: object (str)
+host_identity_verified: object (str)
+host_response_rate: object (str)
+host_since: datetime64 (dt)
+neighbourhood: object (str)
+number_of_reviews: int64 (int)
+review_scores_rating: float64 (flt)
+zipcode: int64 (int)
+bedrooms: int64 (int)
+beds: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# You are given a table named airbnb_host_searches that contains listings shown to users
+# during Airbnb property searches.
+# Each record represents a property listing (not the user's search query).
+# Determine the minimum, average, and maximum rental prices for each host popularity rating based
+# on the property's number of reviews.
+# The host's popularity is defined as below:
+# - 0 reviews: "New"
+# - 1 to 5 reviews: "Rising"
+# - 6 to 15 reviews: "Trending Up"
+# - 16 to 40 reviews: "Popular"
+# - More than 40 reveiws: "Hot"
+# Tip - The id column in the table refers to the listing ID.
+# Output host popularity rating and their minimum, average, and maximum rental price.
+# Order the solution by the minimum price.
+
+## Output:
+# host_popularity_rating, min_price, avg_price, max_price
+
+## Import libraries
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#airbnb_host_searches = pd.read_csv("airbnb_host_searches.csv")
+searches_df = pd.DataFrame(airbnb_host_searches)
+searches_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 167 x 20
+# Duplicates - 0
+# Nulls - host_response_rate(32), neighbourhood(15), review_scores_rating(40)
+# Value Counts - id, property_type, room_type, amenities, bed_type, cancellation_policy, cleaning_fee,
+#              - city, host_identity_verified, host_response_rate, neighbourhood, number_of_reviews
+#searches_df.info()
+
+searches_df.shape
+
+searches_df.duplicated().sum()
+
+searches_df.isna().sum().reset_index(name="na_count")
+
+searches_df["id"].value_counts().reset_index(name="frequency")
+searches_df["property_type"].value_counts().reset_index(name="frequency")
+searches_df["room_type"].value_counts().reset_index(name="frequency")
+searches_df["amenities"].value_counts().reset_index(name="frequency")
+searches_df["bed_type"].value_counts().reset_index(name="frequency")
+searches_df["cancellation_policy"].value_counts().reset_index(name="frequency")
+searches_df["cleaning_fee"].value_counts().reset_index(name="frequency")
+searches_df["city"].value_counts().reset_index(name="frequency")
+searches_df["host_identity_verified"].value_counts().reset_index(name="frequency")
+searches_df["host_response_rate"].value_counts().reset_index(name="frequency")
+searches_df["neighbourhood"].value_counts().reset_index(name="frequency")
+searches_df["number_of_reviews"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# 1. Categorize host popularity rating based on number of reviews 
+conditions = ([
+    searches_df["number_of_reviews"] == 0,     # 0 = "New"
+    searches_df["number_of_reviews"] <= 5,     # 1-5 = "Rising"
+    searches_df["number_of_reviews"] <= 15,    # 6-15 = "Trending Up"
+    searches_df["number_of_reviews"] <= 40,    # 16-40 = "Popular"
+    searches_df["number_of_reviews"] > 40      # >40 = "Hot"
+])
+
+choices = ["New", "Rising", "Trending Up", "Popular", "Hot"]
+
+searches_df["host_popularity_rating"] = np.select(
+    conditions,
+    choices,
+    default="uncategorized"
+)
+
+# 2. Calculate the minimum, average, and maximum price for each host popularity rating
+# 3. Sort by minimum price in ascending order
+result_df = (
+    searches_df
+    .groupby("host_popularity_rating")
+    .agg(
+        min_price = ('price', 'min'),
+        avg_price = ('price', 'mean'),
+        max_price = ('price', 'max')
+    )
+    .reset_index()
+    .sort_values(
+        by="min_price", 
+        ascending=True
+    )
+)
+## Result:
+print("The minimum, average, and maximum rental prices for each host popularity rating:")
+result_df
+
+Notes:
+- The data quality check revealed different frequency of values that correspond to the categorization of the 
+  number_of_reviews column.
+- I began my approach to this problem by categorizing host popularity rating based on number of reviews using
+  the np.select() function. For conditions and choices, if the number of reviews was equal to 0 then "New",
+  if the number of reviews was less than or equal to 5 then "Rising", if the number of reviews was less than 
+  or equal to 15 then "Trending Up", if the number of reviews was less than or equal to 40 then "Popular",
+  and if the number of reviews was greater than 40 then "Hot". Next, I calculated the minimum, average, and
+  maximum prices for each host popularity rating and sorted the results by minimum price in ascending order
+  using the groupby(), agg(), min(), mean(), max(), reset_index(), and sort_values() functions.
+  
+Suggestions and Final Thoughts:
+- To be slightly more concise and cleaner with ranges of the categorization of host popularity rating, the
+  conditions could have a few more logical conditions and placed in parentheses.
+  ex.
+      conditions = [
+          (searches_df["number_of_reviews"] == 0),
+          (searches_df["number_of_reviews"] >= 1) & (searches_df["number_of_reviews"] <= 5),
+          (searches_df["number_of_reviews"] >= 6) & (searches_df["number_of_reviews"] <= 15),
+          (searches_df["number_of_reviews"] >= 16) & (searches_df["number_of_reviews"] <= 40),
+          (searches_df["number_of_reviews"] > 40)
+      ]
+- The agg() function can use aggregation functions in quotations like 'min', 'max', 'mean' or use NumPy
+  functions like np.min, np.max. np.mean
+  ex.
+      result_df = airbnb_host_searches.groupby('host_popularity_rating')['price'].agg(
+          min_price=('min', np.min),        # Calculate minimum price
+          avg_price=('mean', np.mean),      # Calculate average price
+          max_price=('max', np.max)         # Calculate maximum price
+      ).reset_index()
+      
+Solve Duration:
+20 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10284
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Meta - Popularity Percentage
+Find the popularity percentage for each user on Meta/Facebook. 
+The dataset contains two columns, user1 and user2, which represent pairs of friends. 
+Each row indicates a mutual friendship between user1 and user2, meaning both users are friends with each other. 
+A user's popularity percentage is calculated as the total number of friends they have (counting connections from both user1 and user2 columns) divided by the total number of unique users on the platform. 
+Multiply this value by 100 to express it as a percentage.
+Output each user along with their calculated popularity percentage. T
+he results should be ordered by user ID in ascending order.
+
+Data Dictionary:
+Table name = 'facebook_friends'
+user1: bigint (int)
+user2: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Find the popularity percentage for each user on Meta/Facebook.
+-- The dataset contains two columns, user1 and user2, which represent pairs of friends.
+-- Each row indicates a mutual friendship between user1 and user2, 
+-- meaning both users are friends with each other.
+-- A user's popularity percentage is calculated as the total number of friends they have
+-- (counting connections from both user1 and user2 columns)
+-- divided by the total number of unique users on the platform.
+-- Multiply this value by 100 to express it as a percentage.
+-- Output each user along with their calculated popularity percentage.
+-- The results should be ordered by user ID in ascending order.
+
+-- Output:
+-- user_id, popularity_percentage
+
+-- Preview data:
+SELECT TOP 5* FROM facebook_friends;
+
+-- Check datatypes, dimensions, duplicates, nulls, and value counts:
+-- Dimensions - 9 x 2
+-- Duplicates - 0
+-- Nulls - 0
+-- Value Counts - user1, user2
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN user1 IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN user1 IS NULL THEN 1 ELSE 0 END) AS col2,
+    COUNT(*) AS total_rows
+FROM facebook_friends;
+
+SELECT -- Duplicates
+    user1, user2,
+    COUNT(*) AS duplicate_count
+FROM facebook_friends
+GROUP BY 
+    user1, user2
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    user1,
+    COUNT(*) AS frequency
+FROM facebook_friends
+GROUP BY user1
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    user2,
+    COUNT(*) AS frequency
+FROM facebook_friends
+GROUP BY user2
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Find all distinct combinations of friendships between user1 and user2
+-- 2. Count the number of friends for each user
+-- 3. Count the total users on the platform
+-- 4. Calculate popularity percentage, percentage = 100.0 * friend_count / total_users
+-- 5. Sort by user_id in ascending order
+WITH DistinctUserCombinations AS (
+    SELECT
+        user1 AS user_id,
+        user2 AS friend
+    FROM facebook_friends
+
+    UNION
+
+    SELECT
+       user2 AS user_id,
+       user1 AS friend
+    FROM facebook_friends
+)
+SELECT
+    user_id,
+    ROUND(
+        100.0 * COUNT(friend) / COUNT(user_id) OVER()
+    , 2) AS popularity_percentage
+FROM DistinctUserCombinations
+GROUP BY user_id
+ORDER BY user_id ASC;
+
+-- Result:
+WITH DistinctUserCombinations AS (
+    -- 1. Find all distinct combinations of friendships between user1 and user2
+    SELECT
+        user1 AS user_id,
+        user2 AS friend
+    FROM facebook_friends
+
+    UNION
+
+    SELECT
+       user2 AS user_id,
+       user1 AS friend
+    FROM facebook_friends
+)
+SELECT
+    user_id,
+    -- 4. Calculate popularity percentage, percentage = 100.0 * friend_count / total_users
+    ROUND(
+        100.0 
+        * COUNT(friend)  -- 2. Count the number of friends for each user
+        / COUNT(user_id) OVER() -- 3. Count the total users on the platform
+    , 2) AS popularity_percentage
+FROM 
+    DistinctUserCombinations
+GROUP BY 
+    user_id
+ORDER BY 
+    -- 5. Sort by user_id in ascending order
+    user_id ASC;
+    
+Notes:
+- There were no duplicates, nulls, or abnormal unique value counts found in the data quality check.
+- My approach to this problem was first finding all distinct combinations of friendships between user1 and 
+  user2 columns using separate SELECT queries and combining them using a UNION. The results of this query
+  were placed into a common table expression (CTE) named "DistinctUserCombinations". From there, I queried the
+  CTE to count the number of friends for each user using the COUNT() function. Next, I counted the total users
+  on the platform using the COUNT() and OVER() functions. Afterwards, I calculated the popularity percentage
+  for each user_id by percentage = 100.0 * friend_count / total_users and rounding it to 2 decimal places using
+  the ROUND() function. Finally, I ordered the results by user_id in ascending order.
+- Initially, I had tried to find the combinations of users and their friends using JOINs but it ended up 
+  seeming a little redundant. Using UNION with two separate queries with rearranged column orders seemed to 
+  work best and more directly.
+
+Suggestions and Final Thoughts:
+- While I could have separated the counts for number of friends and count of total users on the platforms
+  in separate CTEs, it would have also required using a cross join between the user friend count as the first
+  table and the second table being the total unique users. To avoid multiple CTEs and a join, I used my
+  Solution #1 approach to find all distinct combinations in the single CTE that I had created and then since 
+  I knew all user_id's were distinct, it was a matter of grouping by user_id and using COUNT() in different 
+  ways with a window function. Window functions don't allow COUNT DISTINCT combinations. This method is in
+  a way similar to COUNT DISTINCT without having to call it exactly.
+
+Solve Duration:
+32 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
