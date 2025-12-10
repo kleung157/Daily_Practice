@@ -449,7 +449,7 @@ Suggestions and Final Thoughts:
   in separate CTEs, it would have also required using a cross join between the user friend count as the first
   table and the second table being the total unique users. To avoid multiple CTEs and a join, I used my
   Solution #1 approach to find all distinct combinations in the single CTE that I had created and then since 
-  I knew all user_id's were distinct, it was a matter of grouping by user_id and using COUNT() in different 
+  all user_id's were distinct, it was a matter of grouping by user_id and using COUNT() in different 
   ways with a window function. Window functions don't allow COUNT DISTINCT combinations. This method is in
   a way similar to COUNT DISTINCT without having to call it exactly.
 
