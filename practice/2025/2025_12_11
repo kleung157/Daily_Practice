@@ -1,0 +1,607 @@
+Date: 12/11/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2152
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Amazon - Successful Customer Sign Up Responses
+It's time to find out who is the top employee. 
+You've been tasked with finding the employee (or employees, in the case of a tie) who have received the most votes.
+A vote is recorded when a customer leaves their 10-digit phone number in the free text customer_response column of their sign up response (occurrence of any number sequence with exactly 10 digits is considered as a phone number)
+Output the top employee and the number of customer responses that left a number.
+
+Data Dictionary:
+Table name = 'customer_responses'
+employee_id: numeric (num)
+response_date: POSIXct, POSIXt (dt)
+customer_response: character (str)
+
+Code:
+**Attempt #1
+result_df <- responses_df %>%
+    mutate(
+        # 1. Count the number of digits in the customer response column
+        digit_count = str_count(customer_response, "\\d")
+    ) %>%
+    filter(
+        # 2. Filter for customer responses where digit count is 10
+        digit_count == 10
+    ) %>%
+    group_by(employee_id) %>%
+    summarise(
+        # 3. Count the number of customer responses for each employee_id
+        customer_response_count = n(),
+        .groups="drop"
+    ) %>%
+    slice_max(
+        # 4. Filter for top employee based on highest customer response count, include ties
+        customer_response_count
+    ) %>%
+    arrange(employee_id)
+
+
+**Solution #1 (revised)
+## Question:
+# It's time to find out who is the top employee.
+# You've been tasked with finding the employee (or employees, in case of a tie)
+# who have received the most votes.
+# A vote is recorded when a customer leaves their 10-digit phone number in the free text
+# customer_response column of their sign up response (occurence of any number sequence
+# with exactly 10 digits is considered as a phone number).
+# Ouiput the top employee and the number of customer responses that left a number.
+
+## Output:
+# employee_id, customer_response_count
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+# Load and preview data:
+#customer_responses <- read_csv("customer_responses.csv")
+responses_df <- data.frame(customer_responses)
+head(responses_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 16 x 3
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - employee_id, customer_response
+data.frame(lapply(responses_df, class))
+
+dim(responses_df)
+
+sum(duplicated(responses_df))
+
+enframe(colSums(is.na(responses_df)), name="index", value="na_count")
+
+enframe(table(responses_df$employee_id), name="index", value="frequency")
+enframe(table(responses_df$customer_response), name="index", value="frequency")
+
+## Iteration:
+result_df <- responses_df %>%
+    mutate(
+        # 1. Find votes as 10 digit number sequences in customer response column 
+        is_vote = str_detect(customer_response, "\\d{10}")
+    ) %>%
+    filter(
+        # 2. Filter for customer responses where a 10 digit number sequence is present
+        is_vote == TRUE
+    ) %>%
+    group_by(employee_id) %>%
+    summarise(
+        # 3. Count the number of customer responses for each employee_id
+        customer_response_count = n(),
+        .groups="drop"
+    ) %>%
+    slice_max(
+        # 4. Filter for top employee based on highest customer response count, include ties
+        customer_response_count
+    ) %>%
+    arrange(employee_id)
+
+## Result:
+result_df
+
+Notes:
+- The data quality check revealed multiple values in the customer_response column that contained 10 digit
+  numbers and a few that did not.
+- I started my approach to this problem by counting the number of digits in the customer_response column
+  using the str_count() function. Next, I filtered for customer responses where digit count was 10 using
+  the filter() function. From there, I counted the number of customer responses for each employee_id using
+  the groupby(), summarise(), and n() functions. After aggregation, I filtered for top employee based on
+  highest customer response count and included ties using the slice_max() function. Lastly, I arranged the
+  results in ascending order by employee_id.
+
+Suggestions and Final Thoughts:
+- In my original approach Attempt #1, I had used str_count() to count the number of digits present in the
+  rows of each customer_response column. This scans through the whole string value but does not consider
+  whether the digits were in a sequential order. It is more correct to use str_detect() to find a sequence
+  of numbers. The parameters for str_detect() are str_detect(column, pattern). The brackets in the pattern
+  expression represent the number of digits to find.
+  ex.
+      mutate(
+           str_detect(customer_response, "\\d{10}")
+      )
+- When using str_count(), counting digits can be obtained with either the parameter "[0-9]" or "\\d". The
+  str_count() function counts the frequency of a pattern but not the order.
+  ex.
+      str_count(customer_response, "[0-9]")
+      str_count(customer_response, "\\d")
+- For str functions from the stringr package, regex symbols that can be used are ^, $, [], and .
+  The ^ for strings that start with. The $ for strings that end with. The [] for strings that contain,
+  whether it be letters or numbers. The . for strings with any single character.
+  ex.
+      str_detect(words, "^H")
+      str_detect(words, "$o")
+      str_detect(words, "[aeiou]")
+      str_detect(words, "l.l")
+
+Solve Duration:
+19 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9634
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Airbnb - Host Response Rates With Cleaning Fees
+Find the average host response rate with a cleaning fee for each zipcode. 
+Present the results as a percentage along with the zip code value.
+Convert the column 'host_response_rate' from TEXT to NUMERIC using type casts and string processing (take missing values as NULL).
+Order the result in ascending order based on the average host response rater after cleaning.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+id: int64 (int)
+price: float64 (flt)
+property_type: object (str)
+room_type: object (str)
+amenities: object (str)
+accommodates: int64 (int)
+bathrooms: int64 (int)
+bed_type: object (str)
+cancellation_policy: object (str)
+cleaning_fee: bool (bool)
+city: object (str)
+host_identity_verified: object (str)
+host_response_rate: object (str)
+host_since: datetime64 (dt)
+neighbourhood: object (str)
+number_of_reviews: int64 (int)
+review_scores_rating: float64 (flt)
+zipcode: int64 (int)
+bedrooms: int64 (int)
+beds: int64 (int)
+
+Code:
+**Attempt #1
+# 1. Clean the host_response_column and convert to numeric data type
+#    Remove special characters, trim whitespaces, and convert NULLS to NaNs
+searches_df["host_response_rate_numeric"] = pd.to_numeric(
+    searches_df["host_response_rate"]
+    .str.replace("%", "")
+    .str.strip(),
+    errors="coerce"
+)
+
+# 2. Filter for hosts that have a cleaning fee
+filtered_df = searches_df[
+    searches_df["cleaning_fee"] == True
+].copy()
+
+# 3. Calculate the average host response rate for each zip code
+result_df = filtered_df.groupby("zipcode")["host_response_rate_numeric"].mean().reset_index(name="average_host_response_rate")
+
+# 5. Arrange in ascending order by average_host_response_rate
+result_df = result_df.sort_values(by="average_host_response_rate", ascending=True)
+
+# 6. Convert back to string datatype, nulls replaced with 0, and present as percentage
+result_df["average_host_response_rate"] = (
+    result_df["average_host_response_rate"]
+    .round(2)
+    .astype(str)
+    .str.replace(nan, 0)
+    + "%"
+)
+
+print("Average host response rate with a cleaning fee for each zipcode:")
+result_df
+
+
+**Solution #1 (revised)
+## Question:
+# Find the average host response rate with a cleaning fee for each zipcode.
+# Present the results as a percentage along with the zip code value.
+# Convert the column 'host_response_rate' from TEXT to NUMERIC using type casts and string processing
+# (take missing values as NULL)
+# Order the result in ascending order based on the average host response rater after cleaning.
+
+## Output:
+# zipcode, average_host_response_rate
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#airbnb_search_details = pd.read_csv("airbnb_search_details.csv")
+searches_df = pd.DataFrame(airbnb_search_details)
+searches_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 160 x 20
+# Duplicates - 0
+# Nulls - host_response_rate(32), neighbourhood(15), review_scores_rating(37)
+# Value Counts - id, property_type, room_type, amenities, bed_type, cancellation_policy, cleaning_fee,
+#              - city, host_identity_verified, host_response_rate, neighbourhood, zipcode
+#searches_df.info()
+
+searches_df.shape
+
+searches_df.duplicated().sum()
+
+searches_df.isna().sum().reset_index(name="na_count")
+
+searches_df["id"].value_counts().reset_index(name="frequency")
+searches_df["property_type"].value_counts().reset_index(name="frequency")
+searches_df["room_type"].value_counts().reset_index(name="frequency")
+searches_df["amenities"].value_counts().reset_index(name="frequency")
+searches_df["bed_type"].value_counts().reset_index(name="frequency")
+searches_df["cancellation_policy"].value_counts().reset_index(name="frequency")
+searches_df["cleaning_fee"].value_counts().reset_index(name="frequency")
+searches_df["city"].value_counts().reset_index(name="frequency")
+searches_df["host_identity_verified"].value_counts().reset_index(name="frequency")
+searches_df["host_response_rate"].value_counts().reset_index(name="frequency")
+searches_df["neighbourhood"].value_counts().reset_index(name="frequency")
+searches_df["zipcode"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# 1. Clean the host_response_column and convert to numeric data type
+#    Remove special characters, trim whitespaces, and convert NULLS to NaNs
+searches_df["host_response_rate_numeric"] = pd.to_numeric(
+    searches_df["host_response_rate"]
+    .str.replace("%", "")
+    .str.strip(),
+    errors="coerce"
+)
+
+# 2. Filter for hosts that have a cleaning fee
+filtered_df = searches_df[
+    searches_df["cleaning_fee"] == True
+].copy()
+
+# 3. Calculate the average host response rate for each zip code
+result_df = filtered_df.groupby("zipcode")["host_response_rate_numeric"].mean().reset_index(name="average_host_response_rate")
+
+# 5. Arrange in ascending order by average_host_response_rate
+result_df = result_df.sort_values(by="average_host_response_rate", ascending=True)
+
+# 6. Convert back to string datatype and present as percentage
+result_df["average_host_response_rate"] = np.where(
+    result_df["average_host_response_rate"].isna(),
+    np.nan,
+    result_df["average_host_response_rate"]
+    .round(2)
+    .astype(str)
+    + "%"
+)
+
+## Result:
+print("Average host response rate with a cleaning fee for each zipcode:")
+result_df
+
+Notes:
+- The data quality check revealed the cleaning_fee column contained TRUE(1) or FALSE(0) values, 
+  the host_response_rate column had % special characters at the end of each number value and 32 null values 
+  present, and the zipcode column contained multiple values for each unique type.
+- I began my approach to this problem by cleaning the host_response_rate column and converting it to a 
+  numeric data type. This involved removing special characters, trimming white spaces, and converting NULLs
+  to NaN values using the pd.to_numeric(), str.replace(), and str.strip() functions. Next, I filtered for
+  rows where cleaning fee had TRUE(1) values and placed the results into a separate filtered DataFrame.
+  From there, I calculated the average host response rate for each zipcode in the filtered DataFrame using
+  the groupby(), mean(), and reset_index() functions. The aggregated result was converted back to a string
+  datatype, nulls were replaced with 0, and percentage signs were added to end of each row value using the
+  round(), astype(), and str.replace() functions. Finally, I arranged the output in ascending order by
+  the average_host_response_rate column.
+
+Suggestions and Final Thoughts:
+- For boolean data type columns, when filtering it is best to use True or False rather than 1 or 0.
+  ex.
+      filtered_df = searches_df[
+          searches_df["cleaning_fee"] == True
+      ].copy()
+- To keep null values in a final output, setting a condition with the np.where() function was used in
+  Solution #1 instead of filling nulls with 0 or replacing nan with 0. Also this prevents adding a %
+  character to a row that is null.
+  ex.
+      result_df["average_host_response_rate"] = np.where(
+          result_df["average_host_response_rate"].isna(),
+          np.nan,
+          result_df["average_host_response_rate"]
+          .round(2)
+          .astype(str)
+          + "%"
+      )
+- For formatting floats to strings, the map() function can be used along with format(). Formats to 2
+  decimal places and adds the % special character. Cleaner than having to round, convert, and add a character.
+  ex.
+      map('{:.2f}%'.format)
+- To strip any trailing zeros, str.replace() function can be used in an additional step.
+  ex.
+      str.replace('\.00%', '%', regex=False)
+- The pd.to_numeric() function has a parameter called errors that can be specified to "coerce" to convert 
+  NULL values from None to NaN. This keeps the null values in the column but aggregation steps will ignore 
+  the NaN values.
+  ex.
+      df['value'] = pd.to_numeric(df['value'], errors='coerce')
+- To convert between datatypes without considering null values. It is possible to use the .astype(dtype)
+  function but if null values are present then it may raise an error.
+  ex.
+      df['column_name'] = df['column_name'].astype(int)
+      df['column_name'] = df['column_name'].astype(float)
+- This was a great text manipulation problem to revisit old functions and learn new ones. Nulls were still
+  considered in the final output and were not removed.
+  
+Solve Duration:
+40 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+45 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10297
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Meta - Comments Distribution
+Write a query to calculate the distribution of comments by the count of users that joined Meta/Facebook between 2018 and 2020, for the month of January 2020.
+The output should contain a count of comments and the corresponding number of users that made that number of comments in Jan-2020. 
+For example, you'll be counting how many users made 1 comment, 2 comments, 3 comments, 4 comments, etc in Jan-2020. 
+Your left column in the output will be the number of comments while your right column in the output will be the number of users. 
+Sort the output from the least number of comments to highest.
+To add some complexity, there might be a bug where an user post is dated before the user join date. 
+You'll want to remove these posts from the result.
+
+Data Dictionary:
+Table name = 'fb_users'
+city_id: bigint (int)
+device: bigint (int)
+id: bigint (int)
+joined_at: date (dt)
+name: varchar (str)
+
+Table name = 'fb_comments'
+body: varchar (str)
+created_at: date (dt)
+user_id: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Write a query to calculate the distribution of comments by the count of users that joined
+-- Meta/Facebook between 2018 and 2020, for the month of January 2020.
+-- The output should contain a count of comments and the corresponding number of users that made
+-- that number of comments in Jan-2020.
+-- For example, you'll be counting how many users made 1 comment, 2 comments, 3 comments, 4 comments,
+-- etc in Jan-2020.
+-- Your left column in the output will be the number of comments while your right column in the output
+-- will be the number of users.
+-- Sort the output from the least number of comments to highest.
+-- To add some complexity, there might be a bug where an user post is dated before the user join date.
+-- You'll want to remove these posts from the result.
+
+-- Output:
+-- number_of_comments, number_of_users
+
+-- Preview data:
+SELECT TOP 5* FROM fb_users;
+SELECT TOP 5* FROm fb_comments;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - users: 24 x 5
+--            - comments: 100 x 3
+-- Duplicates - users: 0
+--            - comments: 0
+-- Nulls - users: 0
+--       - comments: 0
+-- Value Counts - users: city_id, joined_at, name
+--              - comments:  body, created_at, user_id
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN city_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN device IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN joined_at IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN name IS NULL THEN 1 ELSE 0 END) AS col5,
+    COUNT(*) AS total_rows
+FROM fb_users;
+
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN body IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN created_at IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    COUNT(*) AS total_rows
+FROM fb_comments;
+
+SELECT -- Duplicates
+    city_id, device, id, joined_at, name,
+    COUNT(*) AS duplicate_count
+FROM fb_users
+GROUP BY
+    city_id, device, id, joined_at, name
+HAVING COUNT(*) > 1;
+
+SELECT -- Duplicates
+    body, created_at, user_id,
+    COUNT(*) AS duplicate_count
+FROM fb_comments
+GROUP BY
+    body, created_at, user_id
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    city_id,
+    COUNT(*) AS frequency
+FROM fb_users
+GROUP BY city_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    joined_at,
+    COUNT(*) AS frequency
+FROM fb_users
+GROUP BY joined_at
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    name,
+    COUNT(*) AS frequency
+FROM fb_users
+GROUP BY name
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    body,
+    COUNT(*) AS frequency
+FROM fb_comments
+GROUP BY body
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    created_at,
+    COUNT(*) AS frequency
+FROM fb_comments
+GROUP BY created_at
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    user_id,
+    COUNT(*) AS frequency
+FROM fb_comments
+GROUP BY user_id
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Join users and comments tables by id and user_id
+-- 2. Filter for users that joined between 2018-2020
+-- 3. Filter for comments where the date posted is greater than the user join date
+-- 4. Filter for comments in Jan 2020
+-- 5. Count the number of comments for each user id
+-- 6. Count the number of users for each comment_count category
+-- 7. Sort by number_of_comments in ascending order
+WITH UsersCommentCountJan2020 AS (
+    SELECT 
+        u.id,
+        COUNT(c.created_at) AS comment_count
+    FROM fb_users AS u
+    JOIN fb_comments AS c
+        ON u.id = c.user_id
+    WHERE DATEPART(year, u.joined_at) IN (2018, 2019, 2020)
+        AND c.created_at > u.joined_at
+        AND (DATEPART(year, c.created_at) = 2020 AND DATEPART(month, c.created_at) = 1)
+    GROUP BY u.id
+)
+SELECT
+    comment_count AS number_of_comments,
+    COUNT(id) AS number_of_users
+FROM UsersCommentCountJan2020
+GROUP BY comment_count
+ORDER BY number_of_comments ASC;
+
+-- Result:
+WITH UsersCommentCountJan2020 AS (
+    SELECT 
+        u.id,
+        -- 5. Count the number of comments for each user id
+        COUNT(c.created_at) AS comment_count
+    FROM
+        fb_users AS u
+    JOIN 
+        -- 1. Join users and comments tables by id and user_id
+        fb_comments AS c
+        ON u.id = c.user_id
+    WHERE 
+        -- 2. Filter for users that joined between 2018-2020
+        DATEPART(year, u.joined_at) IN (2018, 2019, 2020)
+        -- 3. Filter for comments where the date posted is greater than the user join date
+        AND c.created_at > u.joined_at
+        -- 4. Filter for comments in Jan 2020
+        AND (DATEPART(year, c.created_at) = 2020 AND DATEPART(month, c.created_at) = 1)
+    GROUP BY 
+        u.id
+)
+SELECT
+    comment_count AS number_of_comments,
+    -- 6. Count the number of users for each comment_count category
+    COUNT(id) AS number_of_users
+FROM 
+    UsersCommentCountJan2020
+GROUP BY 
+    comment_count
+ORDER BY 
+    -- 7. Sort by number_of_comments in ascending order
+    number_of_comments ASC;
+
+Notes:
+- The data quality check revealed dates that were not in 2018-2020 for the joined_at column in the fb_users
+  table and several corresponding dates in the created_at column that were before the join date and not in
+  January 2020.
+- My approach to this problem started with inner joining the users and comments tables by id and user_id.
+  From there, I filtered for users that joined between 2018-2020, filtered for comments where the date posted
+  is greater than the user join date, and filtered for comments in January 2020 using the DATEPART() function.
+  Next, I counted the number of comments for each user id and placed all these aforementioned steps into a 
+  common table expression (CTE) called UsersCommentCountJan2020. This CTE was subsequently queried to count
+  the number of users for each comment_count category and sorted by number_of_comments in ascending order.
+
+Suggestions and Final Thoughts:
+- For a more optimized performance approach in the filtering steps, the filter for comments in January 2020
+  could use a direct date range comparison rather than having to use the DATEPART() function. This can also
+  be applied to the filter for users that joined between 2018-2020 step. I think I intuitively used the
+  DATEPART() function since it's similar to extract functions that I would use in R and Python.
+  ex.
+      WHERE
+          (u.joined_at >= '2018-01-01' AND u.joined_at <= '2020-12-31')
+          AND c.created_at > u.joined_at
+          AND (c.created_at >= '2020-01-01' AND c.created_at <= '2020-01-31')
+
+Solve Duration:
+39 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
