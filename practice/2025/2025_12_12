@@ -1,0 +1,518 @@
+Date: 12/12/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2153
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+DoorDash - Average On-Time Order Value
+The ideal time between when a customer places an order and when the order is delivered is below or equal to 45 minutes.
+You have been tasked with evaluating delivery driver performance by calculating the average order value for each delivery driver who has delivered at least once within this 45-minute period.
+Your output should contain the driver ID along with their corresponding average order value.
+
+Data Dictionary:
+Table name = 'delivery_details'
+driver_id: numeric (num)
+restaurant_id: numeric (num)
+consumer_id: numeric (num)
+customer_placed_order_datetime: POSIXct, POSIXt (dt)
+placed_order_with_restaurant_datetime: POSIXct, POSIXt (dt)
+driver_at_restaurant_datetime: POSIXct, POSIXt (dt)
+delivered_to_consumer_datetime: POSIXct, POSIXt (dt)
+is_new: logical (bool)
+delivery_region: character (str)
+is_asap: logical (bool)
+order_total: numeric (num)
+discount_amount: numeric (num)
+tip_amount: numeric (num)
+refunded_amount: numeric (num)
+
+Code:
+Solution #1
+## Question:
+# The ideal time between when a customer places an order and when the order is delivered
+# is below or equal to 45 minutes.
+# You have been tasked with evluating delivery driver performance by calculating the
+# average order value for each delivery driver who has delivered at least once within
+# this 45-minute period.
+# Your output shouldd contain the driver ID along with their corresponding average order value.
+
+## Output:
+# driver_id, average_order_value
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#delivery_details <- read_csv("delivery_details.csv")
+deliveries_df <- data.frame(delivery_details)
+head(deliveries_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 998 x 14
+# Duplicates - 0
+# Nulls - placed_order_with_restaurant_datetime(2), driver_at_restaurant_datetime(244), delivery_region(2)
+# Value Counts - driver_id, restaurant_id, consumer_id, is_new, delivery_region, is_asap
+data.frame(lapply(deliveries_df, class))
+
+dim(deliveries_df)
+
+sum(duplicated(deliveries_df))
+
+enframe(colSums(is.na(deliveries_df)), name="index", value="na_count")
+
+enframe(table(deliveries_df$driver_id), name="index", value="frequency")
+enframe(table(deliveries_df$restaurant_id), name="index", value="frequency")
+enframe(table(deliveries_df$consumer_id), name="index", value="frequency")
+enframe(table(deliveries_df$is_new), name="index", value="frequency")
+enframe(table(deliveries_df$delivery_region), name="index", value="frequency")
+enframe(table(deliveries_df$is_asap), name="index", value="frequency")
+
+## Iteration:
+ideal_time <- as.numeric(45)
+
+result_df <- deliveries_df %>%
+    mutate(
+        # 1. Calculate time difference between customer placed order and order delivered times
+        time_difference = difftime(
+            delivered_to_consumer_datetime, customer_placed_order_datetime, units="mins"
+        )
+    ) %>%
+    filter(
+        # 2. Filter for drivers with time_difference less than or equal to 45 minutes
+        as.numeric(time_difference) <= ideal_time
+    ) %>%
+    distinct(
+        # 3. Find distinct drivers that delivered at least once within ideal time period
+        driver_id
+    ) %>%
+    inner_join(
+        # 4. Inner join back to deliveries DataFrame by unique driver_id
+        deliveries_df, by="driver_id"
+    ) %>%
+    mutate(
+        # 5. Calculate order value, order value = order total - discount + tip - refund
+        order_value = (order_total - discount_amount + tip_amount - refunded_amount)
+    ) %>%
+    group_by(driver_id) %>%
+    summarise(
+        # 6. Calculate the average order value for each delivery driver
+        average_order_value = mean(order_value, na.rm=TRUE),
+        .groups="drop"
+    ) %>%
+    arrange(driver_id)
+
+## Result:
+result_df
+
+Notes:
+- None of the duplicates, nulls, or value counts found in the data quality check were necessary for solving
+  the problem at hand.
+- I started my approach to this problem by calculating the time difference between customer placed order and
+  order delivered times using the difftime() function. Next, I filtered for drivers with a time difference of
+  less than or equal to 45 minutes using the filter() function. From there, I found the distinct driver ids of
+  drivers that delivered at least once within the ideal time period using the distinct() function. Afterwards,
+  I inner joined back to the deliveries DataFrame by unique driver_id using the inner_join() function. Once
+  the DataFrames were merged, I calculated the order value on each row, order value = order total - discount
+  + tip - refund, using the mutate() function. Then I calculated the average order value for each delivery
+  driver using the group_by(), summarise(), and mean() functions. Finally, I sorted the results by driver_id
+  in ascending order.
+
+Suggestions and Final Thoughts:
+- The logic I went by for my approach was to filtering first then aggregate. It reduced the number of rows
+  that need to be joined and aggregated.
+- When using difftime() and making time comparisons, it is best to convert the difftime value into a numeric
+  datatype using the as.numeric() function.
+  ex.
+      ideal_time <- as.numeric(45)
+      result_df <- deliveries_df %>%
+          mutate(
+              time_difference = difftime(
+                  delivered_to_consumer_datetime, customer_placed_order_datetime, units="mins"
+          ) %>%
+          filter(
+              as.numeric(time_difference) <= ideal_time
+          )
+- The prompt doesn't really specify what the order value is but my interpretation is to account for all
+  columns related to the order value which were order_total, discount_amount, tip_amount, and refunded_amount.
+  If I were to stick to the ambiguity then it would simply be the order_total column being aggregated.
+  ex.
+      order_value = (order_total - discount_amount + tip_amount - refunded_amount)
+
+Solve Duration:
+34 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9636
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Airbnb - Cheapest Neighborhood With Real Beds And Internet
+Find a neighborhood where you can sleep on a real bed in a villa with internet while paying the lowest price possible.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+id: int64 (int)
+price: float64 (flt)
+property_type: object (str)
+room_type: object (str)
+amenities: object (str)
+accommodates: int64 (int)
+bathrooms: int64 (int)
+bed_type: object (str)
+cancellation_policy: object (str)
+cleaning_fee: bool (bool)
+city: object (str)
+host_identity_verified: object (str)
+host_response_rate: object (str)
+host_since: datetime64 (dt)
+neighbourhood: object (str)
+number_of_reviews: int64 (int)
+review_scores_rating: float64 (flt)
+zipcode: int64 (int)
+bedrooms: int64 (int)
+beds: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# Find a neighborhood where you can sleep on a real bed in a villa with internet
+# while paying the lowest price possible.
+
+## Output:
+# neighbourhood
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#airbnb_search_details = pd.read_csv("airbnb_search_details.csv")
+searches_df = pd.DataFrame(airbnb_search_details)
+searches_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 160 x 2
+# Duplicates - 0
+# Nulls - host_response_rate(32), neighbourhood(15), review_score_rating(37)
+# Value Counts - id, property_type, room_type, amenities, bed_type, cancellation_policy, cleaning_fee,
+#                city, host_identity_verified, host_response_rate, neighbourhood
+#searches_df.info()
+
+searches_df.shape
+
+searches_df.duplicated().sum()
+
+searches_df.isna().sum().reset_index(name="na_count")
+
+searches_df["id"].value_counts().reset_index(name="frequency")
+searches_df["property_type"].value_counts().reset_index(name="frequency")
+searches_df["room_type"].value_counts().reset_index(name="frequency")
+searches_df["amenities"].value_counts().reset_index(name="frequency")
+searches_df["bed_type"].value_counts().reset_index(name="frequency")
+searches_df["cancellation_policy"].value_counts().reset_index(name="frequency")
+searches_df["cleaning_fee"].value_counts().reset_index(name="frequency")
+searches_df["city"].value_counts().reset_index(name="frequency")
+searches_df["host_identity_verified"].value_counts().reset_index(name="frequency")
+searches_df["host_response_rate"].value_counts().reset_index(name="frequency")
+searches_df["neighbourhood"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# 1. Filter for real bed, villa, and internet
+filtered_df = searches_df[
+    (searches_df["bed_type"].str.lower() == "real bed") &
+    (searches_df["property_type"].str.lower() == "villa") &
+    (searches_df["amenities"].str.lower().str.contains("internet"))
+].copy()
+
+# 2. Calculate the lowest price for each neighbourhood
+result_df = filtered_df.groupby("neighbourhood")["price"].min().reset_index(name="min_price")
+
+# 3. Rank the minimum prices in ascending order, include ties
+result_df["rank"] = result_df["min_price"].rank(method="dense", ascending=True)
+
+# 4. Filter for lowest price neighbourhood based on rank
+result_df = result_df[
+    result_df["rank"] == 1
+]
+
+# 5. Select relevant columns and sort values by neighbourhood in ascending order
+result_df = result_df[["neighbourhood"]].sort_values(by="neighbourhood", ascending=True)
+
+## Result:
+print("Lowest price rental neighbourhood in a villa with a real bed and internet:")
+result_df
+
+Notes:
+- The data quality check revealed the value "real bed" in the bed_type column, "villa" in the property_type
+  column, and "internet" in the amenities column. There were also 15 nulls in the neighbourhood column.
+- I began my approach to this problem by filtering for columns that contained the criterias "real bed",
+  "villa", and "internet" using the str.lower(), str.contains(). and copy() functions. From there, I
+  calculated the lowest price for each neighbourhood using the groupby(), min(), and reset_index() functions.
+  Next, I ranked the minimum prices in ascending order and included ties using the rank() function. Then,
+  I filtered for lowest price neighbourhood based on rank. Lastly, I selected the relevant output columns
+  and sorted values by neighbourhood in ascending order using the sort_values() function.
+
+Suggestions and Final Thoughts:
+- For the filtered values "real bed", "villa", and "internet", it would be best to define them as separate
+  variables rather than hard coding them into the filter.
+  ex.
+      target_bed_type = "real bed"
+      target_property_type = "villa"
+      target_amenities = "internet"
+- An alternative to using rank for finding the lowest price neighbourhood would be the min() function in the
+  filter which skips having to rank the minimum prices. The min function also includes ties.
+  ex.
+      result_df = result_df[
+          result_df["min_price"] = result_df["min_price"].min()
+      ]
+- To find a single minimum value, the idxmin() function can be used on a column and subsequently with the
+  loc[] function to find the lowest value with the index. The to_frame() function converts the Series into
+  a DataFrame then the T function transposes the values into their respective column names.
+  ex.
+      lowest_price_index = result_df["min_price"].idxmin()
+      result_neighbourhood = result_df[["neighbourhood"]].loc[lowest_price_index].to_frame().T
+      
+Solve Duration:
+15 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10302
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Uber - Distance Per Dollar
+You’re given a dataset of Uber rides with the traveling distance (distance_to_travel) and cost (monetary_cost) for each ride. First, find the difference between the distance-per-dollar for each ride and the monthly distance-per-dollar for that year-month.
+Distance-per-dollar for each ride is defined as the distance traveled divided by the cost of the ride. Monthly distance-per-dollar is defined as the total distance traveled in that month divided by the total cost for that month.
+Use the calculated difference on each date to calculate absolute average difference in distance-per-dollar metric on monthly basis (year-month).
+The output should include the year-month (YYYY-MM) and the absolute average difference in distance-per-dollar (Absolute value to be rounded to the 2nd decimal).
+You should also count both success and failed request_status as the distance and cost values are populated for all ride requests. 
+Also, assume that all dates are unique in the dataset. Order your results by earliest request date first.
+
+Data Dictionary:
+Table name = 'uber_request_logs'
+distance_to_travel: float (flt)
+driver_to_client_distance: float (flt)
+monetary_cost: float (flt)
+request_date: date (dt)
+request_id: bigint (int)
+request_status: varchar (str)
+
+Code:
+Solution #1
+-- Question:
+-- You're given a dataset of Uber rides with the traveling distance (distance_to_travel) and 
+-- cost (monetary_cost) for each ride.
+-- First, find the difference between the distance-per-dollar for each ride and the monthly
+-- distance-per-dollar for that year-month.
+-- Distance-per-dollar for each ride is defined as the distance traveled divided by the cost
+-- of the ride.
+-- Monthly distance-per-dollar is defined as the total distance traveled in that month divided
+-- by the total cost for that month.
+-- Use the calculated difference on each date to calculate absolute average difference in
+-- distance-per-dollar metric on monthly basis (year-month).
+-- The output should include the year-month (YYYY-MM) and the absolute average difference in
+-- distance-per-dollar (Absolute value to be rounded to the 2nd decimal).
+-- You should also count both success and failed request_status as the distance and cost values
+-- are populated for all ride requests.
+-- Also, assume that all dates are unique in the dataset.
+-- Order your results by earliest request date first.
+
+-- Output:
+-- year_month, absolute_average_distance
+
+-- Preview data:
+SELECT TOP 5* FROM uber_request_logs;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 20 x 6
+-- Duplicates - 0
+-- Nulls - 0
+-- Value Counts - request_id, request_status
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN distance_to_travel IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN driver_to_client_distance IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN monetary_cost IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN request_date IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN request_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN request_status IS NULL THEN 1 ELSE 0 END) AS col6,
+    COUNT(*) AS total_rows
+FROM uber_request_logs;
+
+SELECT -- Duplicates
+    distance_to_travel, driver_to_client_distance, monetary_cost, request_date, request_id, request_status,
+    COUNT(*) AS duplicate_count
+FROM uber_request_logs
+GROUP BY
+    distance_to_travel, driver_to_client_distance, monetary_cost, request_date, request_id, request_status
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    request_id,
+    COUNT(*) AS frequency
+FROM uber_request_logs
+GROUP BY request_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    request_status,
+    COUNT(*) AS frequency
+FROM uber_request_logs
+GROUP BY request_status
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Extract the year and month from the date in 'YYYY-MM' format
+-- 2. Calculate distance per dollar for each ride, 
+--    distance_to_travel / monetary_cost
+-- 3. Calculate monthly distance per dollar for each ride, 
+--    monthly distance to travel / monthly monetary cost
+-- 4. Calculate the difference between distance_per_dollar and monthly_distance_per_dollar
+-- 5. Calculate absolute average difference and round to two decimals
+WITH YearMonthDistancePerDollarRides AS (
+    SELECT 
+        FORMAT(request_date, 'yyyy-MM') AS year_month,
+        1.0 * distance_to_travel / monetary_cost AS distance_per_dollar,
+        1.0 * SUM(distance_to_travel) OVER(PARTITION BY FORMAT(request_date, 'yyyy-MM')) /
+        SUM(monetary_cost) OVER(PARTITION BY FORMAT(request_date, 'yyyy-MM')) AS monthly_distance_per_dollar
+    FROM uber_request_logs
+)
+SELECT
+    year_month,
+    ROUND(AVG(ABS(distance_per_dollar - monthly_distance_per_dollar)), 2) AS absolute_average_difference
+FROM YearMonthDistancePerDollarRides
+GROUP BY year_month
+ORDER BY year_month ASC;
+
+-- Result:
+WITH YearMonthDistancePerDollarRides AS (
+    SELECT 
+        -- 1. Extract the year and month from the date in 'YYYY-MM' format
+        FORMAT(request_date, 'yyyy-MM') AS year_month,
+        -- 2. Calculate distance per dollar for each ride, 
+        --    distance_to_travel / monetary_cost
+        1.0 * distance_to_travel / NULLIF(monetary_cost, 0) AS distance_per_dollar,
+        -- 3. Calculate monthly distance per dollar for each ride, 
+        --    monthly distance to travel / monthly monetary cost
+        1.0 * SUM(distance_to_travel) OVER(
+            PARTITION BY 
+                FORMAT(request_date, 'yyyy-MM')
+        ) 
+        /
+        NULLIF(
+            SUM(monetary_cost) OVER(
+                PARTITION BY 
+                    FORMAT(request_date, 'yyyy-MM')
+            )
+        , 0) AS monthly_distance_per_dollar
+    FROM 
+        uber_request_logs
+)
+SELECT
+    year_month,
+    -- 5. Calculate absolute average difference and round to two decimals
+    ROUND(
+        AVG(
+            -- 4. Calculate the difference between distance_per_dollar and monthly_distance_per_dollar
+            ABS(distance_per_dollar - monthly_distance_per_dollar)
+        )
+    , 2) AS absolute_average_difference
+FROM 
+    YearMonthDistancePerDollarRides
+GROUP BY 
+    year_month
+ORDER BY 
+    year_month ASC;
+    
+Notes:
+- There were no duplicates, nulls, or abnormal value counts present in the data quality check.
+- Ny approach to this problem started with extracting the year and month from the request_date column and
+  converting it into a 'YYYY-MM' format using the FORMAT() function. From there, I calculated the distance
+  per dollar for each ride by dividing the distance_to_travel and monetary_cost columns. Next, I calculated
+  the monthly distance per dollar for each ride by dividng the monthly distance to travel and monthly
+  monetary cost which were calculated individually using the SUM(), OVER() and FORMAT() functions. These
+  steps were placed into a common table expression (CTE) called YearMonthDistancePerDollarRides. The CTE
+  was then subsequently queried to calculate the difference between distance_per_dollar and the
+  monthly_distance_per_dollar columns. This calculation was used to calculate the absolute average difference
+  for each year_month grouping and rounded to two decimal places using the ABS(), AVG() and ROUND() functions.
+  Lastly, the results were ordered by year_month in ascending order.
+- The prompt specified to include all rows in the dataset regardless of whether the value in the
+  request_status column was "success" or "fail". 
+
+Suggestions and Final Thoughts:
+- When calculating an absolute average difference, the absolute function ABS() should be used first before
+  performing the average aggregation with AVG(). Otherwise values could cancel out and become close to 0 in
+  the average calculation.
+  ex.
+      ROUND(
+          AVG(
+              ABS(distance_per_dollar - monthly_distance_per_dollar)
+          )
+      , 2) AS absolute_average_difference;
+- To account for division by 0, the NULLIF() function can be used to return NULL values in the denominator
+  if the value is equal to 0. The parameters are NULLIF(expression1, expression2). Most SQL dialects support
+  the NULLIF() function.
+  ex.
+      SELECT
+          numerator / NULLIF(denominator, 0) AS safe_ratio
+      FROM
+          calculations;
+- In contrast to the NULLIF() function, the COALESCE() function does also handle NULL values but returns
+  the first non-null value and if there aren't any then there is a fallback value that can be specified.
+  The parameters are COALESCE(epxression1, expression2).
+  ex.
+      SELECT
+          COALESCE(email_address, phone_number, 'Contact Info Unavailable') AS primary_contact
+      FROM
+          customers;
+- An alternative to NULLIF() is to use CASE WHEN statements to handle division by zero.
+  ex.
+      CASE
+          WHEN monetary_cost = 0 THEN 0 -- Handle division by zero gracefully
+          ELSE distance_to_travel / monetary_cost
+      END AS ride_dpd;
+  
+Solve Duration:
+48 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+15 minutes
+
+############################################################################################################
