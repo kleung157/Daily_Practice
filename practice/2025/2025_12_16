@@ -1,0 +1,478 @@
+Date: 12/16/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2154
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Tesla - Top 2 Sales Time Combinations
+The company you are working for wants to anticipate their staffing needs by identifying their top two busiest times of the week. 
+To find this, each day should be segmented into differents parts using following criteria:
+Morning: Before 12 p.m. (not inclusive)
+Early afternoon: 12 -15 p.m.
+Late afternoon: after 15 p.m. (not inclusive)
+Your output should include the day and time of day combination for the two busiest times, i.e. the combinations with the most orders, along with the number of orders (e.g. top two results could be Friday Late afternoon with 12 orders and Sunday Morning with 10 orders). 
+The company has also requested that the day be displayed in text format (i.e. Monday).
+Note: In the event of a tie in ranking, all results should be displayed.
+
+Data Dictionary:
+Table name = 'sales_log'
+order_id: numeric (num)
+product_id: numeric (num)
+timestamp: POSIXct, POSIXt (dt)
+
+Code:
+**Attempt #1
+start_time <- as.numeric(12 * 3600)
+end_time <- as.numeric(15 * 3600)
+
+result_df <- sales_df %>%
+    mutate(
+        # 1. Extract the day in numerical and text format, and time of day in seconds
+        day_num = wday(timestamp),
+        day_text = weekdays(timestamp),
+        time_in_seconds = as.numeric(
+            hour(timestamp) * 3600 + minute(timestamp) * 60 + second(timestamp)
+        ),
+        # 2. Categorize the time of day
+        time_of_day = case_when(
+            time_in_seconds < start_time ~ "Morning",
+            (time_in_seconds >= start_time) & (time_in_seconds <= end_time) ~ "Early afternoon",
+            time_in_seconds > end_time ~ "Late afternoon",
+            TRUE ~ "Uncategorized"
+        )
+    ) %>%
+    group_by(day_num, day_text, time_of_day) %>%
+    summarise(
+        # 3. Count the number of orders for each day and time of day combination
+        number_of_orders = n(),
+        .groups="drop"
+    ) %>%
+    slice_max(
+        # 4. Filter for top two busiest times of the week 
+        number_of_orders
+    ) %>%
+    arrange(
+        # 5. Arrange in ascending order by day number
+        day_num
+    ) %>%
+    select(
+        # 6. Select relevant columns
+        day=day_text, time_of_day, number_of_orders
+    )
+
+
+** Solution #1 (revised)
+## Question:
+# The company you are working for wants to anticipate their staffing needs by identifying their
+# top two busiest times of the week.
+# To find this, each day should be segmented into different parts using following criteria:
+# Morning - Before 12PM (not inclusive)
+# Early afternoon - 12-15PM
+# Late afternoon - After 15PM (not inclusive)
+# Output should include the day and time of day combination for the two busiest times,
+# i.e. the combinations with the most orders, along with the number of orders
+# (e.g. top two results could be Friday Late afternoon with 12 orders and Sunday Morning with 10 orders).
+# The company has also requested that the day be displayed in text format (i.e. Monday).
+# Note, in the event of a tie in ranking, all results should be displayed.
+
+## Output:
+# day, time_of_day, number_of_orders
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#sales_log <- read_csv("sales_log.csv")
+sales_df <- data.frame(sales_log)
+head(sales_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 15 x 3
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - order_id, product_id
+data.frame(lapply(sales_df, class))
+
+dim(sales_df)
+
+sum(duplicated(sales_df))
+
+enframe(colSums(is.na(sales_df)), name="index", value="na_count")
+
+enframe(table(sales_df$order_id), name="index", value="frequency")
+enframe(table(sales_df$product_id), name="index", value="frequency")
+
+## Iteration:
+start_time <- as.numeric(12 * 3600)
+end_time <- as.numeric(15 * 3600)
+
+result_df <- sales_df %>%
+    mutate(
+        # 1. Extract the day in numerical and text format, and time of day in seconds
+        day_num = wday(timestamp),
+        day_text = weekdays(timestamp),
+        time_in_seconds = as.numeric(
+            hour(timestamp) * 3600 + minute(timestamp) * 60 + second(timestamp)
+        ),
+        # 2. Categorize the time of day
+        time_of_day = case_when(
+            time_in_seconds < start_time ~ "Morning",
+            (time_in_seconds >= start_time) & (time_in_seconds <= end_time) ~ "Early afternoon",
+            time_in_seconds > end_time ~ "Late afternoon",
+            TRUE ~ "Uncategorized"
+        )
+    ) %>%
+    group_by(day_num, day_text, time_of_day) %>%
+    summarise(
+        # 3. Count the number of orders for each day and time of day combination
+        number_of_orders = n(),
+        .groups="drop"
+    ) %>%
+    mutate(
+        # 4. Rank the number of orders in descending order, include ties
+        rank = dense_rank(desc(number_of_orders))
+    ) %>%
+    filter(
+        # 5. Filter for top two busiest times of the week 
+        rank <= 2
+    ) %>%
+    arrange(
+        # 6. Arrange in ascending order by day number
+        day_num
+    ) %>%
+    select(
+        # 7. Select relevant columns
+        day=day_text, time_of_day, number_of_orders
+    )
+    
+## Result:
+result_df
+
+Notes:
+- The data quality check revealed that the order_id column values all contain distinct values with a frequency
+  of 1. The use of the n_distinct() function is not necessary for aggregation and n() can instead be used for
+  counting aggregations.
+- I started my approach to this problem by extracting the day in numerical and text format, and time of day
+  in seconds from the timestamp column using wday(), weekdays(), hour(), minute(), and second() functions.
+  Next, I categorized the time of day by comparing the time_in_seconds column to predefined variables for start
+  and end times. If time_in_seconds < start_time then "Morning", if time_in_seconds >= start_time and 
+  time_in_seconds <= end_time then "Early afternoon", and if time_in_seconds > end_time then "Late afternoon".
+  From there, I counted the number of orders for each day and time of day combination using group_by(),
+  summarise(), and n() functions. After aggregation, I filtered for top two busiest times of the week using
+  the slice_max() function. Lastly, I arranged the results in ascending order by the day_num column, renamed,
+  and selected relevant output columns using the arrange() and select() functions.
+- My original approach was to extract the time from the timestamp column using the strftime() function then
+  use that as a comparison to predined time variables in order to categorize the time of day. The problem I
+  ran into was making comparisons using strings rather than having comparisons in POSIXct or numeric datatypes.
+  I decided instead to go with converting all the times and predefined variables for times into seconds and
+  numeric datatypes to keep uniformity and allow for correct comparisons. I had tried to use the lubridate
+  package and the functions dhours(), dminutes(), and dseconds() to get the total seconds but the output was 
+  not correct compared to manually converting the extracting hours, minutes, and seconds.
+
+Suggestions and Final Thoughts:
+- The prompt had said "top two" meaning the first two ranks and include ties. The slice_max() function that
+  I used did not include the second rank. To be safer in terms of edge cases it is best to use dense_rank()
+  and then filter for top two rankings.
+  ex.
+      mutate(
+          rank = dense_rank(desc(number_of_orders))
+      ) %>%
+      filter(
+          rank <= 2
+      )
+- I wrote my approach in pseudocode first before proceeding to code for this problem. It actually helped to
+  have a preset mental plan for what the desired output and steps should be. Made me less likely to go back
+  and forth with decisions and not look up syntax until I needed it for the actual coding.
+- Make sure to double check that the output matches all the criterias of the problem after finishing the
+  coding process.
+
+Solve Duration:
+55 minutes
+
+Notes Duration:
+15 minutes
+
+Suggestions and Final Thoughts Duration:
+12 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9638
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Airbnb - Total Searches For Rooms
+Find the total number of searches for each room type (apartments, private, shared) by city.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+id: int64 (int)
+price: float64 (flt)
+property_type: object (str)
+room_type: object (str)
+amenities: object (str)
+accommodates: int64 (int)
+bathrooms: int64 (int)
+bed_type: object (str)
+cancellation_policy: object (str)
+cleaning_fee: bool (bool)
+city: object (str)
+host_identity_verified: object (str)
+host_response_rate: object (str)
+host_since: datetime64 (dt)
+neighbourhood: object (str)
+number_of_reviews: int64 (int)
+review_scores_rating: float64 (flt)
+zipcode: int64 (int)
+bedrooms: int64 (int)
+beds: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# Find the total number of searches for each room type (apartments, private, shared) by city.
+
+## Output:
+# city, room_type, number_of_searches
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#airbnb_search_details = pd.read_csv("airbnb_search_details.csv")
+searches_df = pd.DataFrame(airbnb_search_details)
+searches_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 160 x 20
+# Duplicates - 0
+# Nulls - host_response_rate(32), neighbourhood(15), review_scores_rating(37)
+# Value Counts - id, property_type, room_type, amenities, bed_type, cancellation_policy, city,
+#                cleaning_fee, host_identity_verified, host_response_rate, neighbourhood
+#searches_df.info()
+
+searches_df.shape
+
+searches_df.duplicated().sum()
+
+searches_df.isna().sum().reset_index(name="na_count")
+
+searches_df["id"].value_counts().reset_index(name="frequency")
+searches_df["property_type"].value_counts().reset_index(name="frequency")
+searches_df["room_type"].value_counts().reset_index(name="frequency")
+searches_df["amenities"].value_counts().reset_index(name="frequency")
+searches_df["bed_type"].value_counts().reset_index(name="frequency")
+searches_df["cancellation_policy"].value_counts().reset_index(name="frequency")
+searches_df["city"].value_counts().reset_index(name="frequency")
+searches_df["cleaning_fee"].value_counts().reset_index(name="frequency")
+searches_df["host_identity_verified"].value_counts().reset_index(name="frequency")
+searches_df["host_response_rate"].value_counts().reset_index(name="frequency")
+searches_df["neighbourhood"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+result_df = (
+    # 1. Count the number of searches for each room type and city combination
+    searches_df
+    .groupby(["city", "room_type"])["id"]
+    .count()
+    .reset_index(name="number_of_searches")
+    # 2. Arrange in ascending order by city and room type
+    .sort_values(by=(["city", "room_type"]), ascending=True)
+)
+
+## Result:
+print("Total number of searches for each room type by city: ")
+result_df
+
+Notes:
+- The data quality check revealed that the id column values were all unique. For aggregations that involve
+  counting, the usage of the count() function would be preferred over the nunique() function.
+- My approach to this problem started with counting the number of searches for each room type and city
+  combination using the groupby(), count() and reset_index() functions. Then, I arranged the results in 
+  ascending order by city and room type columns in ascending order using the sort_values() function.
+
+Suggestions and Final Thoughts:
+- The size() function works similarly to the n() function in R programming when performing group by
+  aggregations on a DataFrame. It counts the number of nulls and non-nulls in each group. In contrast,
+  the count() function only counts the number of non-nulls in each group.
+  ex.
+      searches_df(["city", "room_type"]).size().reset_index(name="number_of_searches")
+
+Solve Duration:
+14 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10303
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Google - Top Percentile Fraud
+We want to identify the most suspicious claims in each state. 
+We'll consider the top 5% of claims (those at or above the 95th percentile of fraud scores) in each state as potentially fraudulent.
+Your output should include the policy number, state, claim cost, and fraud score.
+
+Data Dictionary:
+Table name = 'fraud_score'
+claim_cost: bigint (int)
+fraud_score: float (flt)
+policy_num: varchar (str)
+state: varchar (str)
+
+Code:
+**Attempt #1
+SELECT
+    policy_num,
+    state,
+    claim_cost,
+    -- 1. Find fraud scores greater than or equal to 95th percentile in each state
+    PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY fraud_score ASC) OVER (PARTITION BY state) AS fraud_score
+FROM 
+    fraud_score;
+
+
+**Attempt #2
+WITH RankedData AS (
+    SELECT
+        policy_num,
+        state,
+        claim_cost,
+        fraud_score,
+        ROW_NUMBER() OVER(PARTITION BY state ORDER BY fraud_score ASC) as rank_asc,
+        COUNT(*) OVER(PARTITION BY state) AS total_rows
+    FROM 
+       fraud_score
+),
+TargetRank AS (
+    SELECT
+        *,
+        CEILING(total_rows * 0.95) AS target_position
+    FROM 
+        RankedData
+)
+SELECT
+    policy_num,
+    state,
+    claim_cost,
+    fraud_score
+FROM 
+    TargetRank
+WHERE 
+    rank_asc >= target_position
+
+
+** Solution #1
+WITH PercentileData AS (
+    SELECT
+        policy_num,
+        state,
+        claim_cost,
+        fraud_score,
+        -- 1. Assign a percent rank to fraud scores in each state
+        PERCENT_RANK() OVER(PARTITION BY state ORDER BY fraud_score) AS percentile
+    FROM 
+        fraud_score
+)
+SELECT 
+    policy_num,
+    state,
+    claim_cost,
+    fraud_score
+FROM 
+    PercentileData
+WHERE
+    -- 2. Filter for claims greater than or equal to 95th percentile in each state
+    percentile >= 0.95;
+
+
+** Solution #2
+WITH PercentileData AS (
+    SELECT
+        policy_num,
+        state,
+        claim_cost,
+        fraud_score,
+        -- 1. Find fraud scores greater than or equal to 95th percentile in each state
+        PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY fraud_score ASC) OVER (PARTITION BY state) AS percentile
+    FROM 
+        fraud_score
+)
+SELECT 
+    policy_num,
+    state,
+    claim_cost,
+    fraud_score
+FROM PercentileData
+WHERE fraud_score >= percentile;
+
+Notes:
+- The data quality check revealed unique values for the policy_num column and a wide distribution of values
+  between 0 and 1 in the fraud_score column.
+- My first approach to this problem was finding fraud scores greater than or equal to the 9th percentile
+  in each state using the PERCENTILE_CONT() function as seen in Attempt #1.
+- My second approach was finding fraud scores greater than or equal to the 95th percentile in each state by
+  using multiple common table expression (CTEs) where I ranked and compared the target positions of fraud
+  scores in each state uisng the ROW_NUMBER(), COUNT() and CEILING() functions. as seen in Attempt #2.
+- Attempt #2 was closer to the solution with less rows being displayed. While Attempt #1 had too many rows
+  displayed.
+- After two approaches I decided to look up how to solve it since I could not figure out why my output
+  did not match the desired prompt's output.
+
+Suggestions and Final Thoughts:
+- Between my Attempt #1 and Attempt #2, it seems like Attempt #2 was closer to the intended solution. For
+  Attempt #1, I needed to place the query into a commmon table expression and then query it to filter for
+  fraud score being greater than the percentile in order to obtain substantially less rows for the
+  final output.
+- Strangely enough, the PERCENTILE_CONT() function still would not match the desired output even after a
+  revised approach as seen in Solution #2 where I added an extra CTE step and filtered in the subsequent
+  query for fraud_score to be greater than or equal to the percentile. The best approach seemed to be using
+  PERCENT_RANK() as seen in Solution #1.
+- After reviewing the discussion boards and a few other user answers, the common consensus is that the 
+  solution for the problem seems to be wrong unless using the correct function. Some values when using 
+  the PERCENTILE_CONT() function don't appear even if they are in the 95th or greater pecentile. The only
+  function that seems to work is PERCENT_RANK() and then filtering subsequently for the 95th or greater
+  percentile. 
+- The PERCENT_RANK() function is available on most SQL dialect platforms. Seems to be more reliable and
+  straightforward compared to the PERCENTILE_CONT() function which is not compatiable with every SQL dialect
+  and has some differences between supporting ones. PERCENT_RANK() is used for filtering based on relative
+  position and is more of a discrete ranking. While PERCENTILE_CONT() finds a specific threshold benchmark
+  score based on a weighted average.
+
+Solve Duration:
+45 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+35 minutes
+
+############################################################################################################
