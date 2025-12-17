@@ -1,0 +1,501 @@
+Date: 12/17/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2155
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Accenture - Ad Performance Rating
+Following a recent advertising campaign, the marketing department wishes to classify its efforts based on the total number of units sold for each product.
+You have been tasked with calculating the total number of units sold for each product and categorizing ad performance based on the following criteria for items sold:
+Outstanding: 30+
+Satisfactory: 20 - 29
+Unsatisfactory: 10 - 19
+Poor: 1 - 9
+Your output should contain the product ID, total units sold in descending order, and its categorized ad performance.
+
+Data Dictionary:
+Table name = 'marketing_campaign'
+user_id: numeric (num)
+product_id: numeric (num)
+quantity: numeric (num)
+price: numeric (num)
+created_at: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1
+## Question:
+# Following a recent advertising campaign, the marketing department wishes to classify its efforts
+# based on the total number of units sold for each product.
+# You have been tasked with calculating the total number of units sold for each product and
+# categorizing ad performance based on the following criteria for items sold.
+# Outstanding - 30+
+# Satisfactory - 20-29
+# Unsatisfactory - 10-19
+# Poor - 1-9
+# Output should contain the product ID, total units sold in descending order, 
+# and its categorized ad performance.
+
+## Output:
+# product_id, total_units_sold, ad_performance
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#marketing_campaign <- read_csv("marketing_campaign.csv")
+campaign_df <- data.frame(marketing_campaign)
+head(campaign_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 102 x 5
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - user_id, product_id, quantity
+data.frame(lapply(campaign_df, class))
+
+dim(campaign_df)
+
+sum(duplicated(campaign_df))
+
+enframe(colSums(is.na(campaign_df)), name="index", value="na_count")
+
+enframe(table(campaign_df$user_id), name="index", value="frequency")
+enframe(table(campaign_df$product_id), name="index", value="frequency")
+enframe(table(campaign_df$quantity), name="index", value="frequency")
+
+## Iteration:
+result_df <- campaign_df %>%
+    group_by(product_id) %>%
+    summarise(
+        # 1. Calculate the total number of units (quantity) sold for each product_id
+        total_units_sold = sum(quantity, na.rm=TRUE),
+        .groups="drop"
+    ) %>%
+    mutate(
+        # 2. Categorize ad performance based on items sold
+        ad_performance = case_when(
+            (total_units_sold >= 30) ~ "Outstanding",
+            (total_units_sold >= 20) & (total_units_sold <= 29) ~ "Satisfactory",
+            (total_units_sold >= 10) & (total_units_sold <= 19) ~ "Unsatisfactory",
+            (total_units_sold >= 1) & (total_units_sold <= 9) ~ "Poor",
+            TRUE ~ "Uncategorized"
+        )
+    ) %>%
+    arrange(
+        # 3. Sort in descending order by total units sold
+        desc(total_units_sold)
+    )
+
+## Result:
+result_df
+
+Notes:
+- The data quality check revealed varying count frequencies for each product_id column and multiple values 
+  for the quantity column.
+- I started my approach to this problem by calculating the total number of units sold for each product_id
+  using the group_by() and summarise() Functions. From there, I categorized ad performance based on the
+  number of items sold using the mutate() and case_when() functions. If the total_units_sold was greater
+  than or equal to 30 then "Outstanding", if the total_units_sold was greater than or equal to 20 and less
+  than or equal to 29 then "Satisfactory", if the total_units_sold was greater than or equal to 10 and less
+  than or equal to 19 then "Unsatisfactory", if the total_units_sold was greater than or equal to 1 and less
+  than or equal to 9 then "Poor". Lastly, I sorted the results in descending order by total_units_sold.
+
+Suggestions and Final Thoughts:
+- Originally only had logical operators that were greater than or equal to the floor value but wanted to
+  consider edge cases so I decided to account for the ceiling values with less than or equal to. Overall it
+  helps with readability and clarity.
+- There is a function called skim() from the skimr package that can provide a detailed report of the data.
+  StrataScratch does not seem to have it installed in their environment. 
+  ex.
+      skimr::skim(df)
+
+Solve Duration:
+18 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9642
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Airbnb - Find the unique room types
+Find the unique room types(filter room types column). 
+Output each unique room types in its own row.
+
+Data Dictionary:
+Table name = 'airbnb_searches'
+ds: datetime64 (dt)
+id_user: object (str)
+ds_checkin: datetime64 (dt)
+ds_checkout: datetime64 (dt)
+n_searches: int64 (int)
+n_nights: float64 (flt)
+n_guests_min: int64 (int)
+n_guests_max: int64 (int)
+origin_country: object (str)
+filter_price_min: float64 (flt)
+filter_price_max: float64 (flt)
+filter_room_types: object (str)
+filter_neighborhoods: object (str)
+
+Code:
+**Solution #1
+## Question:
+# Find the unique room types (filter room types column).
+# Output each unique room types in its own row.
+
+## Output:
+# unique_room_types
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#airbnb_searches = pd.read_csv("airbnb_searches.csv")
+searches_df = pd.DataFrame(airbnb_searches)
+searches_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 130 x 13
+# Duplicates - 0
+# Nulls - ds_checkin(10), ds_checkout(10), n_nights(10), filter_price_min(36), 
+#         filter_price_max(36), filter_neighborhoods(122)
+# Value Counts - id_user, origin_country, filter_room_types, filter_neighborhoods
+#searches_df.info()
+
+searches_df.shape
+
+searches_df.duplicated().sum()
+
+searches_df.isna().sum().reset_index(name="na_count")
+
+searches_df["id_user"].value_counts().reset_index(name="frequency")
+searches_df["origin_country"].value_counts().reset_index(name="frequency")
+searches_df["filter_room_types"].value_counts().reset_index(name="frequency")
+searches_df["filter_neighborhoods"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+cleaned_df = pd.Series(
+    searches_df["filter_room_types"]            
+    .str.split(',')                             # 1. Convert strings to a list
+    .explode()                                  # 2. Unnest lists to individual rows
+    .unique()                                   # 3. Find unique values
+, name="unique_room_types").to_frame()
+
+result_df = cleaned_df[
+    (cleaned_df["unique_room_types"] != "") &    # 4. Filter out nulls and empty strings
+    (cleaned_df["unique_room_types"].notna())
+].sort_values(by="unique_room_types", ascending=True)
+
+## Result:
+print("Unique room types in searches: ")
+result_df
+
+
+** Solution #2 (revised)
+result_df = (
+    searches_df["filter_room_types"]            
+    .str.split(',')                             # 1. Convert strings to a list
+    .explode()                                  # 2. Unnest lists to individual rows
+    .str.strip()                                # 3. Trim lagging/leading white spaces
+    .dropna()                                   # 4. Remove null values
+    .unique()                                   # 5. Find distinct values
+)
+
+# 6. Convert to DataFrame
+result_df = pd.DataFrame(result_df, columns=["unique_room_types"])
+
+# 7. Filter out empty strings
+result_df = result_df[
+    (result_df["unique_room_types"] != "")     
+].sort_values(by="unique_room_types", ascending=True)
+
+Notes:
+- The data quality checks revealed that the filter_room_types column contains identical values in varying
+  string lengths and separated by commas but not in a list format.
+- My approach to this problem was to perform text manipulation rather than just calling the unique() function.
+  I started off converting strings to lists, unnesting the lists to individual rows, finding the unique
+  values from those results, converting the output to a Series, and converting back to a DataFrame using the
+  str.split(), explode(), unique(), pd.Series() and to_frame() functions respectively. After cleaning the
+  text, the DataFrame was filtered out for nulls and empty strings using the != operator and the notna()
+  function. Lastly, the results were sorted in ascending order by unique room type using the sort_values()
+  function.
+
+Suggestions and Final Thoughts:
+- Whenever performing text manipulation, it is best to use the str.strip() function to remove any lagging
+  or leading white spaces.
+- The dropna() function can be used to remove null values instead of filtering out null values in a 
+  subsequent step.
+- In Solution #1 I had created an intermediate DataFrame cleaned_df for clarity but it is more recommended
+  to have less DataFrames if possible for efficency and chaining the logic as seen in Solution #2.
+- Instead of using pd.Series() and to_frame(), it is possible to convert values and rename their columns
+  directly using the pd.DataFrame() function as seen in Solution #2
+
+Solve Duration:
+38 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+15 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10313
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Uber - Naive Forecasting
+Some forecasting methods are extremely simple and surprisingly effective. 
+Naïve forecast is one of them; we simply set all forecasts to be the value of the last observation. 
+Our goal is to develop a naïve forecast for a new metric called "distance per dollar" defined as the (distance_to_travel/monetary_cost) in our dataset and measure its accuracy.
+Our dataset includes both successful and failed requests. 
+For this task, include all rows regardless of request status when aggregating values.
+To develop this forecast,  sum "distance to travel"  and "monetary cost" values at a monthly level before calculating "distance per dollar". 
+This value becomes your actual value for the current month. 
+The next step is to populate the forecasted value for each month. 
+This can be achieved simply by getting the previous month's value in a separate column. 
+Now, we have actual and forecasted values. 
+This is your naïve forecast. 
+Let’s evaluate our model by calculating an error matrix called root mean squared error (RMSE). 
+RMSE is defined as sqrt(mean(square(actual - forecast)). 
+Report out the RMSE rounded to the 2nd decimal spot.
+
+Data Dictionary:
+Table name = 'uber_request_logs'
+distance_to_travel: float (flt)
+driver_to_client_distnace: float (flt)
+monetary_cost: float (flt)
+request_date: date (dt)
+request_id: bigint (int)
+request_status: varchar (str)
+
+Code:
+**Attempt #1
+WITH MonthlyActualAndForecastedValues AS (
+    SELECT 
+        DATEPART(month, request_date) AS month,
+        -- 1. Calculate monthly distance per dollar for "actual value", 
+        --    monthly_distance_per_dollar = SUM(distance_to_travel) / SUM(monetary_cost)
+        1.0 * SUM(distance_to_travel) / NULLIF(SUM(monetary_cost), 0) AS actual_value,
+        -- 2. Obtain previous month's monthly distance per dollar for "forecasted value"
+        LAG(1.0 * SUM(distance_to_travel) / NULLIF(SUM(monetary_cost), 0) , 1, 0) OVER(
+            ORDER BY 
+                DATEPART(month, request_date)
+        ) AS forecasted_value
+    FROM 
+        uber_request_logs
+    GROUP BY 
+        DATEPART(month, request_date)
+)
+SELECT
+    -- 3. Calculate root mean squared error and round to two decimals.
+    --    RMSE = SQRT(AVG(SQUARE(actual - forecast)))
+    ROUND(
+        SQRT(
+            AVG(
+                SQUARE(
+                    actual_value - forecasted_value
+                )
+            )
+        )
+    , 2) AS RMSE
+FROM MonthlyActualAndForecastedValues;
+
+
+** Solution #1
+-- Question:
+-- Some forecasting methods are extremely simple and surprisingly effective.
+-- Naive forecast is one of them; we simply set all forecasts to be the value of the last observation.
+-- Our goal is to develop a naive forecast for a new metric called "distance per dollar" defined
+-- as the (distance_to_travel/monetary_cost) in our dataset and measure its accuracy.
+-- Our dataset includes both successful and failed requests.
+-- For this task, include all rows regardless of request status when aggregating values.
+-- To develop this forecast, sum "distance_to_travel" and "monetary_cost" values at a monthly level
+-- before calculating "distance per dollar".
+-- This value becomes your actual value for the current month.
+-- The next step is to populate the forecasted value for each month.
+-- This can be achieved simply by getting the previous month's value in a separate column.
+-- Now, we have actual and forecasted values.
+-- This is your naive forecast.
+-- Let's evaluate our model by calculating an error matrix called root mean squared error (RMSE)
+-- RMSE is defined as sqrt(mean(square(actual - forecast))).
+-- Report out the RMSE rounded to the 2nd decimal spot.
+
+-- Output:
+-- RMSE
+
+-- Preview data:
+SELECT TOP 5* FROM uber_request_logs;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 20 x 6
+-- Duplicates - 0
+-- Nulls - 0
+-- Value Counts - request_id, request_status
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN distance_to_travel IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN driver_to_client_distance IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN monetary_cost IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN request_date IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN request_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN request_status IS NULL THEN 1 ELSE 0 END) AS col6,
+    COUNT(*) AS total_rows
+FROM uber_request_logs;
+
+SELECT -- Duplicates
+    distance_to_travel, driver_to_client_distance, monetary_cost, request_date, request_id, request_status,
+    COUNT(*) AS duplicate_count
+FROM uber_request_logs
+GROUP BY
+    distance_to_travel, driver_to_client_distance, monetary_cost, request_date, request_id, request_status
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    request_id,
+    COUNT(*) AS frequency
+FROM uber_request_logs
+GROUP BY request_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    request_status,
+    COUNT(*) AS frequency
+FROM uber_request_logs
+GROUP BY request_status
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Calculate monthly distance per dollar for "actual value", 
+--    monthly_distance_per_dollar = SUM(distance_to_travel) / SUM(monetary_cost)
+-- 2. Obtain previous month's monthly distance per dollar for "forecasted value"
+-- 3. Calculate root mean squared error and round to two decimals.
+--    RMSE = SQRT(AVG(SQUARE(actual - forecast)))
+WITH MonthlyActualAndForecastedValues AS (
+    SELECT 
+        FORMAT(request_date, 'yyyy-MM')  AS month,
+        1.0 * SUM(distance_to_travel) / NULLIF(SUM(monetary_cost), 0) AS actual_value,
+        LAG(1.0 * SUM(distance_to_travel) / NULLIF(SUM(monetary_cost), 0)) OVER(
+            ORDER BY FORMAT(request_date, 'yyyy-MM')
+        ) AS forecasted_value
+    FROM uber_request_logs
+    GROUP BY FORMAT(request_date, 'yyyy-MM')
+)
+SELECT
+    ROUND(SQRT(AVG(SQUARE(actual_value - forecasted_value))), 2) AS RMSE
+FROM MonthlyActualAndForecastedValues;
+
+-- Result:
+WITH MonthlyActualAndForecastedValues AS (
+    SELECT 
+        FORMAT(request_date, 'yyyy-MM') AS month,
+        -- 1. Calculate monthly distance per dollar for "actual value", 
+        --    monthly_distance_per_dollar = SUM(distance_to_travel) / SUM(monetary_cost)
+        1.0 * SUM(distance_to_travel) / NULLIF(SUM(monetary_cost), 0) AS actual_value,
+        -- 2. Obtain previous month's monthly distance per dollar for "forecasted value"
+        LAG(1.0 * SUM(distance_to_travel) / NULLIF(SUM(monetary_cost), 0)) OVER(
+            ORDER BY 
+                FORMAT(request_date, 'yyyy-MM')
+        ) AS forecasted_value
+    FROM 
+        uber_request_logs
+    GROUP BY 
+       FORMAT(request_date, 'yyyy-MM')
+)
+SELECT
+    -- 3. Calculate root mean squared error and round to two decimals.
+    --    RMSE = SQRT(AVG(SQUARE(actual - forecast)))
+    ROUND(
+        SQRT(
+            AVG(
+                SQUARE(
+                    actual_value - forecasted_value
+                )
+            )
+        )
+    , 2) AS RMSE
+FROM MonthlyActualAndForecastedValues;
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts found in the data quality check that were
+  necessary for solving the problem at hand.
+- I began my approach to this problem by extracting the month from the request_date column using the
+  DATEPART() function. Next, I calculated the monthly distance per dollar by dividing the summed 
+  distance_to_travel and summed monetary_cost columns using the SUM() and NULLIF() functions to account for
+  division by 0. From there, I obtained the previous month's distance per dollar and filled the first row's 
+  previous value with 0 using the LAG() function. These steps were placed into a common table expression (CTE)
+  called MonthlyActualAndForecastedValues. The CTE was then subsequently queried to calculate the root mean 
+  squared error with the actual_value and forecasted_value columns using the SQUARE(), AVG(), SQRT, and ROUND()
+  functions.
+
+Suggestions and Final Thoughts:
+- For the first entry, a Naive forecast does not exist and should be NULL rather than be replaced with 0. If
+  it were replaced with 0 as seen in Attempt #1 then it would affect the calculation of the root mean squared error
+  (RMSE). When leaving it as NULL, the AVG() function ignores the row and provides a more accurate RMSE. The
+  LAG() function defaults to NULL but can be specified to a different value in it's parameters.
+  ex.
+      LAG(1.0 * SUM(distance_to_travel) / NULLIF(SUM(monetary_cost), 0)) OVER(
+            ORDER BY 
+                EOMONTH(request_date)
+      ) AS forecasted_value
+- If the dataset spans multiple years and months, then it would be best to include a truncated date with the
+  year and month rather than just the month. For SQL Server, the EOMONTH() function provides the end of month
+  date which includes the month and year. Alternatively, the FORMAT() function can be used without including
+  the end of the month day. As for other SQL dialects, DATE_TRUNC() can be used with the parameters
+  DATETRUNC('unit', timestamp). The FORMAT() function creates a string datatype but is better for readability.
+  The EOMONTH() maintains the date datatype.
+  a date datatype.
+  ex.
+      EOMONTH(request_date) AS month_end;
+      FORMAT(request_date, 'yyyy-MM') AS year_month;
+      DATE_TRUNC('month', request_date);
+- I included the multiplication of 1.0 and the NULLIF() functions when performing the division of the actual
+  value column to prevent integer truncation and possible division by zero.
+- To decide whether the RMSE value is good or not for the Naive forecast, compare it to the average actual
+  value and the mean absolute error (MAE). In this case it was RMSE = 2.34, average actual value = 4.18, and
+  the MAE = 1.92. The RMSE is high between the RMSE and average actual value, about 56% error rate. When
+  compared to the MAE, the RMSE value is close to one another meaning the error is consistent and not a good
+  fit for the data. There doesn't seem to be significant outliers in the data either.
+  ex.
+      AVG(actual_value) AS average_actual_value;
+      ROUND(AVG(ABS(actual_value - forecasted_value)), 2) AS MAE;
+
+Solve Duration:
+29 minutes
+
+Notes Duration:
+8 minutes
+
+Suggestions and Final Thoughts Duration:
+30 minutes
+
+############################################################################################################
