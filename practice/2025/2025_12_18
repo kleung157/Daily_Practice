@@ -1,0 +1,493 @@
+Date: 12/18/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2157
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Amazon - 10% Monthly Sales Increase
+You have been asked to compare sales of the current month, May, to those of the previous month, April.
+The company requested that you only display products whose sales (UNITS SOLD * PRICE) have increased by more than 10% from the previous month to the current month.
+Your output should include the product id and the percentage growth in sales.
+
+Data Dictionary:
+Table name = 'online_orders'
+product_id: numeric (num)
+promotion_id: numeric (num)
+cost_in_dollars: numeric (num)
+customer_id: numeric (num)
+units_sold: numeric (num)
+date_sold: POSIXct, POSIXt (dt)
+
+Code:
+Solution #1
+## Question:
+# You have been asked to compare sales of the current month, May, to those of the previous month, April.
+# The company requested that you only display products whose sales (UNITS SOLD * PRICE) have increased
+# by more than 10% from the previous month to the current month.
+# Your output should include the product id and the percentage growth in sales.
+
+## Output:
+# product_id, sales_percentage_growth
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#online_orders <- read_csv("online_orders.csv")
+orders_df <- data.frame(online_orders)
+head(orders_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 29 x 6
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - product_id, promotion_id, customer_id
+data.frame(lapply(orders_df, class))
+
+dim(orders_df)
+
+sum(duplicated(orders_df))
+
+enframe(colSums(is.na(orders_df)), name="index", value="na_count")
+
+enframe(table(orders_df$product_id), name="index", value="frequency")
+enframe(table(orders_df$promotion_id), name="index", value="frequency")
+enframe(table(orders_df$customer_id), name="index", value="frequency")
+
+## Iteration:
+start_date <- as.Date("2022-04-01")
+end_date <- as.Date("2022-05-31")
+target_percentage <- as.numeric(10)
+
+result_df <- orders_df %>%
+    filter(
+        # 1. Filter for April and May months
+        (as.Date(date_sold) >= start_date) &
+        (as.Date(date_sold) <= end_date)
+    ) %>%
+    mutate(
+        # 2. Extract month from date_sold 
+        month = month(date_sold),
+        # 3. Calculate sales for each product,
+        #    sales = units_sold x cost_in_dollars
+        sales = units_sold * cost_in_dollars
+    ) %>%
+    group_by(month, product_id) %>%
+    summarise(
+        # 4. Calculate total sales for each product and month combination
+        total_sales = sum(sales, na.rm=TRUE),
+        .groups="drop"
+    ) %>%
+    pivot_wider(
+        # 5. Pivot the months and total sales values
+        names_from = month,
+        values_from = total_sales,
+        names_prefix = "month_",
+        values_fill = 0
+    ) %>%
+    mutate(
+        # 6. Calculate percentage growth in sales
+        sales_percentage_growth = round(
+            100.0 * (month_5 - month_4) / na_if(month_4, 0),
+            digits=2
+        )
+    ) %>%
+    filter(
+        # 7. Filter for products that increased more than 10% 
+        sales_percentage_growth > target_percentage
+    ) %>%
+    select(
+        # 8. Select relevant columns
+        product_id, sales_percentage_growth
+    ) %>%
+    arrange(
+        # 9. Sort by products in ascending order
+        product_id    
+    )
+
+## Result:
+result_df
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts found in the data quality check.
+- I started my approach to this problem by filtering for April and May months in the date_sold column using
+  the as.Date() and filter() functions. Next, I extracted the month from the date_sold column and calculated
+  the sales for each product with the units_sold and cost_in_dollars columns using the mutate() and month()
+  functions. From there, I calculated the total sales for each product and month combination using the
+  group_by(), summarise() and sum() functions. The resulting aggregation was then pivoted to display the
+  months as columns and total sales as the row values for each product_id using the pivot_wider() function.
+  Once pivoted, I calculated the percentage growth in sales with the month_5 and month_4 columns using the
+  mutate(), round(), and na_if() functions. Afterwards, the data was filtered for products that increased
+  more than 10% in sales percentage growth using the filter() function. Lastly, the necessary output
+  columns were selected and sorted by product_id in ascending order using the select() and arrange()
+  functions.
+
+Suggestions and Final Thoughts:
+- In the pivot_wider() function, the values_fill parameter can be used to fill any values that are NULL.
+  ex.
+      pivot_wider(
+          names_from = month,
+          values_from = total_sales,
+          names_prefix = "month_",
+          values_fill = 0
+      )
+- Originally I had filtered for the months April and May using the month() and %in% functions but wanted to
+  try using a range of dates instead. The prompt did not specify to take into account the year so I simply
+  used the year that was most prevalent in the data which was 2022.
+  ex.
+      filter(
+          month(date_sold) %in% c(4, 5)
+      )
+- The sales calculation using the units_sold and cost_in_dollars columns could be performed in the grouping
+  and aggregation step rather than creating a new column beforehand.
+  ex.
+      group_by(month, product_id) %>%
+      summarise(
+          total_sales = sum(units_sold * cost_in_dollars, na.rm=TRUE),
+          .groups="drop"
+      )
+- I used the na_if() function to account for division by zero and filling with NULL. I was inspired by SQL's
+  dedicated NULLIF() function.
+  ex.
+      na_if(month_4, 0)
+- Wrote out a pseudocode plan for the problem and had to add a few more steps while performing the coding
+  which wasn't bad compared to writing the whole pseudocode only while coding.
+
+Solve Duration:
+38 minutes
+
+Notes Duration:
+12 minutes
+
+Suggestions and Final Thoughts Duration:
+16 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9650
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Spotify - Top 10 Songs 2010
+Find the top 10 ranked songs in 2010. 
+Output the rank, group name, and song name, but do not show the same song twice. 
+Sort the result based on the rank in ascending order.
+
+Data Dictionary:
+Table name = 'billboard_top_100_year_end'
+year: int64 (int)
+year_rank: int64 (int)
+group_name: object (str)
+artist: object (str)
+song_name: object (str)
+id: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# Find the top 10 ranked songs in 2010.
+# Output the rank, group name, and song name, but do not show the same song twice.
+# Sort the result based on the rank in ascending order.
+
+## Output:
+# year_rank, group_name, song_name
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#billboard_top_100_year_end = pd.read_csv("billboard_top_100_year_end.csv")
+billboard_df = pd.DataFrame(billboard_top_100_year_end)
+billboard_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 6422 x 6
+# Duplicates - 0
+# Nulls - song_name(6)
+# Value Counts - group_name, artist, song_name, id
+#billboard_df.info()
+
+billboard_df.shape
+
+billboard_df.duplicated().sum()
+
+billboard_df.isna().sum().reset_index(name="na_count")
+
+billboard_df["group_name"].value_counts().reset_index(name="frequency")
+billboard_df["artist"].value_counts().reset_index(name="frequency")
+billboard_df["song_name"].value_counts().reset_index(name="frequency")
+billboard_df["id"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+target_year = int(2010)
+target_ranking = int(10)
+
+result_df = billboard_df[
+    (billboard_df["year"] == target_year) &                # 1. Filter for year 2010
+    (billboard_df["year_rank"] <= target_ranking)          # 2. Filter for top 10 songs, year_rank <= 10
+].copy()
+
+result_df = (
+    result_df[["year_rank", "group_name", "song_name"]]    # 3. Select relevant columns
+    .drop_duplicates(subset="song_name")                   # 4. Remove duplicate songs
+    .sort_values(by="year_rank", ascending=True)           # 5. Arrange in ascending order by year_rank
+)
+
+## Result:
+print("Top 10 ranked songs in 2010: ")
+result_df
+
+Notes:
+- There were 6 null values in the song_name column found in the data quality check.
+- I began my approach to this problem by filtering for the year 2010 in the year column and filtering for
+  top 10 songs in the year_rank column using predefined target variables. Next, I selected the relevant output
+  columns and removed duplicate song_names using the drop_duplicates() function. From there, I arranged the 
+  output in ascending order by the year_rank column using the sort_values() function.
+
+Suggestions and Final Thoughts:
+- The drop_duplicates() function removes duplicates based on all columns in a row if a subset parameter is
+  not specified. For the problem at hand, it is best to specify the susbset column in the parameter.
+  ex.
+      drop_duplicates(subset="song_name")
+
+Solve Duration:
+17 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10314
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Amazon - Revenue Over Time
+Find the 3-month rolling average of total revenue from purchases given a table with users, their purchase amount, and date purchased. 
+Do not include returns which are represented by negative purchase values. 
+Output the year-month (YYYY-MM) and 3-month rolling average of revenue, sorted from earliest month to latest month.
+A 3-month rolling average is defined by calculating the average total revenue from all user purchases for the current month and previous two months. 
+The first two months will not be a true 3-month rolling average since we are not given data from last year. 
+Assume each month has at least one purchase.
+
+Data Dictionary:
+Table name = 'amazon_purchases'
+created_at: date (dt)
+purchase_amt: bigint (int)
+user_id: bigint (int)
+
+Code:
+**Attempt #1
+WITH YearMonthAverageRevenue AS (
+    SELECT 
+        -- 1. Extract the year and month in YYYY-MM format
+        FORMAT(created_at, 'yyyy-MM') AS year_month,
+        -- 3. Calculate average total revenue for each year month
+        AVG(purchase_amt) AS average_revenue
+    FROM 
+        amazon_purchases
+    WHERE 
+        -- 2. Filter out returns represented as negative purchase values
+        purchase_amt > 0
+    GROUP BY 
+        FORMAT(created_at, 'yyyy-MM')
+)
+SELECT
+    year_month,
+    -- 4. Calculate rolling average for each year month,
+    --    rolling average = AVG(current_month + previous 2 months)
+    AVG(average_revenue) OVER(
+        ORDER BY year_month
+        ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+    ) AS revenue_rolling_average_3_months
+FROM 
+    YearMonthAverageRevenue
+ORDER BY 
+    -- 5. Sort by year_month in ascending order
+    year_month;
+
+
+**Solution #1 (revised)
+-- Question:
+-- Find the 3-month rolling average of total revenue from purchases given a table with users,
+-- their purchase amount, and date purchased.
+-- Do not include returns which are presented by negative purchase values.
+-- Output the year-month (YYYY-MM) and 3-month rolling average of revenue,
+-- sorted from earliest month to latest month.
+-- A 3-month rolling average is defined by calculating the average total revenue from all user
+-- purchases for the current month and previous two months.
+-- The first two months will not be a true 3-month rolling average since we are not given data
+-- from last year.
+-- Assume each month has at least one purchase.
+
+-- Output:
+-- year_month, revenue_rolling_average_3_months
+
+-- Preview data:
+SELECT TOP 5* FROM amazon_purchases;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 100 x 3
+-- Duplicates - 0
+-- Nulls - 0
+-- Value Counts - user_id
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN created_at IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN purchase_amt IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    COUNT(*) AS total_rows
+FROM amazon_purchases;
+
+SELECT -- Duplicates
+    created_at, purchase_amt, user_id,
+    COUNT(*) AS duplicate_count
+FROM amazon_purchases
+GROUP BY
+    created_at, purchase_amt, user_id
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    user_id,
+    COUNT(*) AS frequency
+FROM amazon_purchases
+GROUP BY user_id
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Extract the year and month in YYYY-MM format
+-- 2. Filter out returns represented as negative purchase values
+-- 3. Calculate total revenue for each year month
+-- 4. Calculate rolling average for each year month,
+--    rolling average = AVG(current_month + previous 2 months)
+-- 5. Sort by year_month in ascending order
+WITH YearMonthAverageRevenue AS (
+    SELECT 
+        FORMAT(created_at, 'yyyy-MM') AS year_month,
+        SUM(purchase_amt) AS total_revenue
+    FROM amazon_purchases
+    WHERE purchase_amt > 0
+    GROUP BY FORMAT(created_at, 'yyyy-MM')
+)
+SELECT
+    year_month,
+    ROUND(
+        AVG(total_revenue) OVER(
+            ORDER BY year_month
+            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        )
+    , 2) AS revenue_rolling_average_3_months
+FROM YearMonthAverageRevenue
+ORDER BY year_month;
+
+-- Result:
+WITH YearMonthAverageRevenue AS (
+    SELECT 
+        -- 1. Extract the year and month in YYYY-MM format
+        FORMAT(created_at, 'yyyy-MM') AS year_month,
+        -- 3. Calculate total revenue for each year month
+        SUM(purchase_amt) AS total_revenue
+    FROM 
+        amazon_purchases
+    WHERE 
+        -- 2. Filter out returns represented as negative purchase values
+        purchase_amt > 0
+    GROUP BY 
+        FORMAT(created_at, 'yyyy-MM')
+)
+SELECT
+    year_month,
+    -- 4. Calculate rolling average for each year month,
+    --    rolling average = AVG(current_month + previous 2 months)
+    ROUND(
+        AVG(total_revenue) OVER(
+            ORDER BY year_month
+            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        )
+    , 2) AS revenue_rolling_average_3_months
+FROM 
+    YearMonthAverageRevenue
+ORDER BY 
+    -- 5. Sort by year_month in ascending order
+    year_month;
+
+
+**Solution #2 (optimized)
+WITH YearMonthAverageRevenue AS (
+    SELECT 
+        EOMONTH(created_at) AS end_of_month,
+        SUM(purchase_amt) AS total_revenue
+    FROM 
+        amazon_purchases
+    WHERE 
+        purchase_amt > 0
+    GROUP BY 
+        EOMONTH(created_at)
+)
+SELECT
+    FORMAT(end_of_month, 'yyyy-MM') AS year_month,
+    ROUND(
+        AVG(total_revenue) OVER(
+            ORDER BY year_month
+            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        )
+    , 2) AS revenue_rolling_average_3_months
+FROM 
+    YearMonthAverageRevenue
+ORDER BY 
+    end_of_month;
+
+Notes:
+- No duplicates, nulls, or abnormal value counts were discovered in the data quality check.
+- My approach to this problem started with extracting the year and month in YYYY-MM format from the
+  created_at column using the FORMAT() function. From there, I filtered out returns that were represented
+  as negative values in the purchase_amt column. Next, I calculated the average total revenue for each year
+  month using the AVG() function. These steps were placed into a common table expression (CTE) called 
+  YearMonthAverageRevenue and subsequently queried to calculate the rolling average for each year month
+  using the AVG() and OVER() functions. Finally, I sorted the results in ascending order by the year_month 
+  column.
+
+Suggestions and Final Thoughts:
+- Instead of using SUM() to calculate total revenue, I had calculated the average revenue for each year
+  month using the AVG() function. Will have to read the prompt a little more carefully when writing out
+  the pseudocode and also double checking after finishing coding.
+  ex.
+      SUM(purchase_amt) AS total_revenue
+- To optimize the query and be more performant, it is best to use the EOMONTH() function to group by
+  year and month in the initial steps while sticking with date datatypes. The final step can then be 
+  converted to a displayable string format using the FORMAT() function as seen in Solution #2.
+
+Solve Duration:
+23 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+15 minutes
+
+############################################################################################################
