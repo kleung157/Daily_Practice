@@ -1,0 +1,484 @@
+Date: 12/19/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2158
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Meta - Sales Evaluation on Media Formats
+The marketing department is evaluating the most effective promotional strategies for each product family.
+You have been asked to find the total sales by media type for each product family. 
+Here, “total sales” refers to cost_in_dollars multiplied by units_sold. 
+Each order is linked to a promotion, and the associated media type for that promotion should be used to categorize the sale. 
+For example, the product family ELECTRONICS could be sold 57% through INTERNET and 43% through BROADCAST.
+Your output should include the product family listed alphabetically, the media type, and the calculated percentage of sales rounded to the nearest whole number ordered from highest to lowest.
+
+Data Dictionary:
+Table name = 'online_orders'
+product_id: numeric (num)
+promotion_id: numeric (num)
+cost_in_dollars: numeric (num)
+customer_id: numeric (num)
+units_sold: numeric (num)
+date_sold: POSIXct, POSIXt (dt)
+
+Table name = 'online_sales_promotions'
+promotion_id: numeric (num)
+cost: numeric (num)
+start_date: POSIXct, POSIXt (dt)
+end_date: POSIXct, POSIXt (dt)
+media_type: character (str)
+
+Table name = 'online_products'
+product_id: numeric (num)
+product_category: numeric (num)
+product_class: character (str)
+brand_name: character (str)
+is_low_fat: character (str)
+is_recyclable: character (str)
+product_family: character (str)
+
+Code:
+Solution #1
+## Question:
+# The marketing department is evauating the most effective promotional strategies for each product family.
+# You have been asked to find the total sales by media type for each product family.
+# Here, "total sales" refers to cost_in_dollars x units_sold. 
+# Each order is linked to a promotion,
+# and the associated media type for that promotion should be used to categorize the sale.
+# For example, the product family ELECTRONICS could be sold 57% through INTERNET and 43% through BROADCAST.
+# Your output should include the product family listed alphabetically, the media type, and the
+# calculated percentage of sales rounded to the nearest whole number ordered from highest to lowest.
+
+## Output:
+# product_family, media_type, percentage_of_sales
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#online_orders <- read_csv("online_orders.csv")
+#online_sales_promotions <- read_csv("online_sales_promotions.csv")
+#online_products <- read_csv("online_products.csv")
+orders_df <- data.frame(online_orders)
+promotions_df <- data.frame(online_sales_promotions)
+products_df <- data.frame(online_products)
+head(orders_df, 5)
+head(promotions_df, 5)
+head(products_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - orders: 29 x 6
+#            - promotions: 5 x 5
+#            - products: 12 x 7
+# Duplicates - orders: 0
+#            - promotions: 0
+#            - products: 0
+# Nulls - orders: 0
+#       - promotions: 0
+#       - products: 0
+# Value Counts - orders: product_id, promotion_id, customer_id
+#              - promotions: promotion_id, media_type
+#              - products: product_id, product_class, brand_name, is_low_fat, is_recyclable, product_family
+data.frame(lapply(orders_df, class))
+data.frame(lapply(promotions_df, class))
+data.frame(lapply(products_df, class))
+
+dim(orders_df)
+dim(promotions_df)
+dim(products_df)
+
+sum(duplicated(orders_df))
+sum(duplicated(promotions_df))
+sum(duplicated(products_df))
+
+enframe(colSums(is.na(orders_df)), name="index", value="na_count")
+enframe(colSums(is.na(promotions_df)), name="index", value="na_count")
+enframe(colSums(is.na(products_df)), name="index", value="na_count")
+
+enframe(table(orders_df$product_id), name="index", value="frequency")
+enframe(table(orders_df$promotion_id), name="index", value="frequency")
+enframe(table(orders_df$customer_id), name="index", value="frequency")
+enframe(table(promotions_df$promotion_id), name="index", value="frequency")
+enframe(table(promotions_df$media_type), name="index", value="frequency")
+enframe(table(products_df$product_id), name="index", value="frequency")
+enframe(table(products_df$product_class), name="index", value="frequency")
+enframe(table(products_df$brand_name), name="index", value="frequency")
+enframe(table(products_df$is_low_fat), name="index", value="frequency")
+enframe(table(products_df$is_recyclable), name="index", value="frequency")
+enframe(table(products_df$product_family), name="index", value="frequency")
+
+## Iteration:
+result_df <- orders_df %>%
+    inner_join(
+        # 1. Join orders, promotions, and products DataFrames
+        promotions_df, 
+        by="promotion_id"
+    ) %>%
+    inner_join(
+        products_df, 
+        by="product_id"
+    ) %>%
+    group_by(product_family, media_type) %>%
+    summarise(
+        # 2. Calculate total sales by media type for each product family
+        #    total_sales = cost_in_dollars x units_sold
+        total_sales = sum(cost_in_dollars * units_sold, na.rm=TRUE),
+        .groups="drop"
+    ) %>%
+    group_by(product_family) %>%
+    mutate(
+        # 3. Calculate percentage of sales for each media type by product family, round to whole number
+        #    percentage = 100.0 * total_sales / overall_product_family_sales
+        percentage_of_sales = round(
+            100.0 * total_sales / na_if(sum(total_sales, na.rm=TRUE), 0),
+            digits=0
+        )
+    ) %>%
+    ungroup() %>%
+    select(
+        # 4. Select relevant columns
+        product_family, media_type, percentage_of_sales
+    ) %>%
+    arrange(
+        # 5. Sort by product family in ascending order, percentage_of_sales in descending order
+        product_family, 
+        desc(percentage_of_sales)
+    )
+
+## Result:
+result_df
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts found in the data quality check.
+- I started my approach to this problem by inner joining the orders, promotions, and products DataFrames 
+  using the inner_join() function. From there, I calculated the total sales by media type for each product
+  family using the group_by(), summarise(), and sum() functions. Next, I calculated percentage of sales for
+  each media type by product family and rounded the results to the nearest whole number using the group_by(),
+  mutate(), round(), sum(), and ungroup() functions. After calculations, I selected the relevant output
+  columns and sorted them by product family in ascending order, and percentage of sales in descending order
+  using the select(), arrange(), and desc() functions.
+
+Suggestions and Final Thoughts:
+- Forgot to include the na_if() to account for division by zero and na.rm=TRUE in the sum() function when
+  performing the calculation for percentage of sales.
+  ex.
+      percentage_of_sales = round(
+          100.0 * total_sales / na_if(sum(total_sales, na.rm=TRUE), 0),
+          digits=0
+- For large datasets, the order of using select() then arrange() is preferred for optimization. Typically
+  the standard dplyr pipeline is arrange() then select().
+- In the event that zeros are preferred for the percentage of sales instead of a null value, the replace_na()
+  function can replace nulls with 0.
+  ex.
+      mutate(
+          percentage_of_sales = replace_na(percentage_of_sales, 0)
+      )
+
+Solve Duration:
+29 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9657
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+ESPN - Find the year which had the highest number of players
+Find the year which had the highest number of players.
+Output the year along with the number of players.
+
+Data Dictionary:
+Table name = 'nfl_combine'
+year: int64 (int)
+name: object (str)
+firstname: object (str)
+lastname: object (str)
+position: object (str)
+heightfeet: int64 (int)
+heightinches: float64 (flt)
+heightinchestotal: float64 (flt)
+weight: int64 (int)
+arms: float64 (flt)
+hands: float64 (flt)
+fortyyd: float64 (flt)
+twentyyd: float64 (flt)
+tenyd: float64 (flt)
+twentyss: float64 (flt)
+threecone: float64 (flt)
+vertical: float64 (flt)
+broad: int64 (int)
+bench: int64 (int)
+round: int64 (int)
+college: object (str)
+pick: object (str)
+pickround: int64 (int)
+picktotal: int64 (int)
+
+Code:
+Solution #1
+## Question:
+# Find the year which had the highest number of players.
+# Output the year along with the number of players.
+
+## Output:
+# year, number_of_players
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#nfl_combine = pd.read_csv("nfl_combine.csv")
+combine_df = pd.DataFrame(nfl_combine)
+combine_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 126 x 24
+# Duplicates - 0
+# Nulls - college(51), pick(51)
+# Value Counts - name, firstname, lastname, position, college, pick
+#combine_df.info()
+
+combine_df.shape
+
+combine_df.duplicated().sum()
+
+combine_df.isna().sum().reset_index(name="na_count")
+
+combine_df["name"].value_counts().reset_index(name="frequency")
+combine_df["firstname"].value_counts().reset_index(name="frequency")
+combine_df["lastname"].value_counts().reset_index(name="frequency")
+combine_df["position"].value_counts().reset_index(name="frequency")
+combine_df["college"].value_counts().reset_index(name="frequency")
+combine_df["pick"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# 1. Count the number of players for each year
+result_df = combine_df.groupby("year")["name"].count().reset_index(name="number_of_players")
+
+# 2. Filter for year with highest number of players
+result_df = result_df[
+    result_df["number_of_players"] == result_df["number_of_players"].max()    
+]
+
+## Result:
+print("NFL year with the highest number of players: ")
+result_df
+
+Notes:
+- The data quality check revealed 51 nulls in the college and pick columns but they were not relevant for
+  solving the problem at hand. I noticed that the name column values were all unique and could be an id 
+  column.
+- My approach to this problem was counting the number of players for each year using the name column as the
+  identifier for counting. Then, I filtered for the year with the highest number of players. The functions I
+  used were groupby(), count(), reset_index(), and max().
+
+Suggestions and Final Thoughts:
+- If the name column had duplicate values then the use of nunique() on the name column would be more
+  appropriate for aggregation than the count() function. 
+  ex.
+      result_df = combine_df.groupby("year")["name"].nunique().reset_index(name="number_of_players")
+- I chose to use the max() function to account for potential ties and it is much easier to use than combining
+  multiple functions to rank and filter. The idxmax() function only includes one value which would work for
+  this problem but i wanted to also consider edge cases.
+  ex.
+      top_year = result_df["number_of_players"].idxmax()
+      result_df = result_df.loc[top_year].to_frame().T
+
+Solve Duration:
+9 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+12 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10319
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Amazon - Monthly Percentage Difference
+Given a table of purchases by date, calculate the month-over-month percentage change in revenue. 
+The output should include the year-month date (YYYY-MM) and percentage change, rounded to the 2nd decimal point, and sorted from the beginning of the year to the end of the year.
+The percentage change column will be populated from the 2nd month forward and can be calculated as ((this month's revenue - last month's revenue) / last month's revenue)*100.
+
+Data Dictionary:
+Table name = 'sf_transactions'
+created_at: date (dt)
+id: bigint (int)
+purchase_id: bigint (int)
+value: bigint (int)
+
+Code:
+Solution #1
+-- Question:
+-- Given a table of purchases by date, calculate the month-over-month percentage change in revenue.
+-- The output should include the year-month date (YYYY-MM) and percentage change,
+-- rounded to the 2nd decimal point, and sorted from the beginning of the year to the end of the year.
+-- The percentage change column will be populated from the 2nd month forward and
+-- can be calculated as ((this month's revenue - last month's revenue) / last month's revenue)*100.
+
+-- Output:
+-- year_month, revenue_percentage_change
+
+-- Preview data:
+SELECT TOP 5* FROM sf_transactions;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 92 x 4
+-- Duplicates - 0
+-- Nulls - 0
+-- Value Counts - id, purchase_id
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN created_at IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN purchase_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN value IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM sf_transactions;
+
+SELECT -- Duplicates
+    created_at, id, purchase_id, value,
+    COUNT(*) AS duplicate_count
+FROM sf_transactions
+GROUP BY 
+    created_at, id, purchase_id, value
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    id,
+    COUNT(*) AS frequency
+FROM sf_transactions
+GROUP BY id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    purchase_id,
+    COUNT(*) AS frequency
+FROM sf_transactions
+GROUP BY purchase_id
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Extract the end of the year and month from created_at column
+-- 2. Calculate the current total revenue for each year month
+-- 3. Calculate the previous total revenue for each year month
+-- 4. Calculate revenue percentage change, round to 2 decimals
+--    percentage_change = 100.0 * (current month revenue - last month revenue) / last month revenue
+-- 5. Convert year month into readable string format
+-- 6. Arrange by year month in ascending order
+WITH MonthlyRevenue AS (
+    SELECT 
+        EOMONTH(created_at) AS end_year_month,
+        SUM(value) AS current_month_total_revenue,
+        LAG(SUM(value)) OVER(
+            ORDER BY EOMONTH(created_at) ASC
+        ) AS previous_month_total_revenue
+    FROM sf_transactions
+    GROUP BY EOMONTH(created_at)
+)
+SELECT
+    FORMAT(end_year_month, 'yyyy-MM') AS year_month,
+    ROUND(
+        100.0 * (current_month_total_revenue - previous_month_total_revenue)
+        /  NULLIF(1.0 * previous_month_total_revenue, 0)
+    , 2) AS revenue_percentage_change
+FROM MonthlyRevenue
+ORDER BY end_year_month ASC;
+
+-- Result:
+WITH MonthlyRevenue AS (
+    SELECT 
+        -- 1. Extract the end of the year and month from created_at column
+        EOMONTH(created_at) AS end_year_month,
+        -- 2. Calculate the current total revenue for each year month
+        SUM(value) AS current_month_total_revenue,
+        -- 3. Calculate the previous total revenue for each year month
+        LAG(SUM(value)) OVER(
+            ORDER BY EOMONTH(created_at) ASC
+        ) AS previous_month_total_revenue
+    FROM 
+        sf_transactions
+    GROUP BY 
+        EOMONTH(created_at)
+)
+SELECT
+    -- 5. Convert year month into readable string format
+    FORMAT(end_year_month, 'yyyy-MM') AS year_month,
+    -- 4. Calculate revenue percentage change, round to 2 decimals
+    --    percentage_change = 100.0 * (current month revenue - last month revenue) / last month revenue
+    ROUND(
+        100.0 * (current_month_total_revenue - previous_month_total_revenue)
+        / NULLIF(1.0 * previous_month_total_revenue, 0)
+    , 2) AS revenue_percentage_change
+FROM 
+    MonthlyRevenue
+ORDER BY
+    -- 6. Arrange by year month in ascending order
+    end_year_month ASC;
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts found in the data quality check.
+- I began my approach to this problem by extracting the end of the year and month date from the created_at
+  column using the EOMONTH() function. Next, I calculated the current month total revenue for each year month
+  and the previous month total revenue for each year month using the SUM(), LAG(), and OVER() functions.
+  These steps were placed into a common table expression (CTE) called MonthlyRevenue and subsequently queried
+  to calculate the revenue percentage change with the current month total revenue and previous month total
+  revenue columns using the ROUND() and NULLIF() functions. After calculating the percentage, I converted the
+  end of year month date to a readable string format 'YYYY-MM' using the FORMAT() function. Lastly, I
+  arranged the results by the end year month column in ascending order.
+
+Suggestions and Final Thoughts:
+- Even though I accounted for converting values to floats in the numerator for the percentage calculation,
+  it is still best to account for them in the denominator as well. This can be done by multiplying 1.0 or
+  using the CAST(col AS FLOAT) function.
+  ex.
+      NULLIF(1.0 * previous_month_total_revenue, 0);
+      NULLIF(CAST(previous_month_total_revenue AS FLOAT), 0);
+- The FORMAT() function is flexible but significantly slower on large datasets for converting dates to
+  a YYYY-MM string format. The alternative is to use CONVERT() and specify the parameters. The VARCHAR(7)
+  is the number of characters and 126 provides the ISO format 8601 for international standard date and time
+  as "YYYY-MM-DD". Unfortunately the CONVERT() function is only for SQL Server.
+  ex.
+      CONVERT(VARCHAR(7), end_year_month, 126) AS year_month;
+
+Solve Duration:
+22 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+12 minutes
+
+############################################################################################################
