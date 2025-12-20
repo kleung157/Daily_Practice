@@ -401,7 +401,7 @@ Notes:
 
 Suggestions and Final Thoughts:
 - The lines "new->text = save;" and "new->next = NULL;" can be placed outside of the if statements for the
-  lists being empty or not. It sets the new node's peropeties and prevents duplication.
+  lists being empty or not. It sets the new node's properties and prevents duplication.
 - The conditional statements could be unified using if/else instead of two if statements since they both
   deal with NULL situations.
   ex.
@@ -421,18 +421,417 @@ Suggestions and Final Thoughts:
 ############################################################################################################
 
 Source:
+C Programming for Everybody - Implement a Python dict class
 
 Question:
+You will create a set of supporting functions using the following structure to implement a subset of the Python dict class in C. 
+Some code and method signatures have been provided for you as well as a main() program and some support routines from the lecture slides. 
+There is a good deal of discussion of this application in the lecture materials associated with this assignment.
 
 Python Code:
+dct = dict();
+dct["z"] = "Catch phrase"
+print(dct);
+dct["z"] = "W"
+print(dct):
+dct["y"] = "B"
+dct["c"] = "C"
+dct["a"] = "D"
+print(dct);
+print("Length =", len(dct));
+print("z=", dct.get("z", 404))
+print("x=", dct.get("x", 404))
+print("\nDump")
+for key in dct:
+    print(key+"="+dct(key))
 
 C Code:
+Attempt #1 (only the pydict_put function was revised)
+/* x[key] = value; Insert or replace the value associated with a key */
+void pydict_put(struct pydict* self, char *key, char *value)
+{
+    struct dnode *old = pydict_find(self, key);
+  
+    // If old key found then replace the value
+    if ( old != NULL ) {
+        // Free the data in the old value before allocating the new value
+        free(old->value);
+      
+        // Allocate space for new savevalue variable
+        char *savevalue = (char *) malloc(strlen(value)+1);
+      
+        // Check if allocation failed 
+        if ( savevalue == NULL ) {
+            return;
+        }
+       
+        // Copy new value to savevalue
+        strcpy(savevalue, value);
+    }
+  
+    // If old key not found then insert key and value
+    else {
+        // Allocate space for savekey and savevalue variables
+        char *savekey = (char *) malloc(strlen(key)+1);
+        char *savevalue = (char *) malloc(strlen(value)+1);
+  
+        // Check if allocation failed 
+        if ( savekey == NULL ) {
+            return;
+        }
+        if ( savevalue == NULL ) {
+            return;
+        }
+  
+        // Copy key to savekey and value to savevalue
+        strcpy(savekey, key);
+        strcpy(savevalue, value);
+  
+        // Allocate space for new node
+        struct dnode *new = (struct dnode *)
+            malloc(sizeof(struct dnode));
+  
+        // Check if allocation failed 
+        if ( new == NULL ) {
+            return;
+        }
+  
+        // Set new node properties
+        new->key = savekey;
+        new->value = savevalue;
+        new->next = NULL;
+  
+        // Dict is empty: The new node is the head
+        if ( self->head == NULL ) {
+            self->head = new;
+        }
+        // Dict not empty: Link the old tail to the new node
+        else {
+           self->tail->next = new;
+        }
+  
+        // Update the dict's tail
+        self->tail = new;
+  
+        // Increment the counter
+        self->count++;
+    }
+}
+
+
+**Solution #1 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct dnode {
+    char *key;
+    char *value;
+    struct dnode *next;
+};
+
+struct pydict {
+  struct dnode *head;
+  struct dnode *tail;
+  int count;
+};
+
+/* Constructor - dct = dict() */
+struct pydict * pydict_new() {
+    struct pydict *p = malloc(sizeof(*p));
+    p->head = NULL;
+    p->tail = NULL;
+    p->count = 0;
+    return p;
+}
+
+/* Destructor - del(dct) */
+void pydict_del(struct pydict* self) {
+    struct dnode *cur, *next;
+    cur = self->head;
+    while(cur) {
+        free(cur->key);
+        free(cur->value);
+        next = cur->next;
+        free(cur);
+        cur = next;
+    }
+    free((void *)self);
+}
+
+int main(void)
+{
+    struct dnode * cur;
+    struct pydict * dct = pydict_new();
+
+    setvbuf(stdout, NULL, _IONBF, 0);  /* Internal */
+
+    pydict_put(dct, "z", "Catch phrase");
+    pydict_print(dct);
+    pydict_put(dct, "z", "W");
+    pydict_print(dct);
+    pydict_put(dct, "y", "B");
+    pydict_put(dct, "c", "C");
+    pydict_put(dct, "a", "D");
+    pydict_print(dct);
+    printf("Length =%d\n",pydict_len(dct));
+
+    printf("z=%s\n", pydict_get(dct, "z"));
+    printf("x=%s\n", pydict_get(dct, "x"));
+
+    printf("\nDump\n");
+    for(cur = dct->head; cur != NULL ; cur = cur->next ) {
+        printf("%s=%s\n", cur->key, cur->value);
+    }
+
+    pydict_del(dct);
+}
+
+/* print(dct) */
+/* {'z': 'W', 'y': 'B', 'c': 'C', 'a': 'D'} */
+void pydict_print(struct pydict* self)
+{
+    int i;
+    struct dnode *cur;
+    printf("{");
+
+    // Loop until current pointer reaches NULL, or end of dict
+    for ( i=0, cur = self->head; cur != NULL; cur = cur->next, i++ ) {
+        printf("'%s': '%s'", cur->key, cur->value);
+        // Place commas only between dict entries
+        if ( i < self->count-1 ) {
+            printf(", ");
+        }
+    }
+    printf("}\n");
+}
+
+int pydict_len(const struct pydict* self)
+{
+    return self->count;
+}
+
+/* find a node - used in get and put */
+struct dnode* pydict_find(struct pydict* self, char *key)
+{
+    struct dnode *cur;
+    int i;
+
+    // Loop until current pointer reaches NULL, or end of dict
+    for( i=0, cur = self->head; cur != NULL; cur = cur->next, i++ ) {
+        // Check if the current node contains the target key,
+        // if key found, return the current node
+        if ( strcmp(cur->key, key) == 0 ) {
+            return cur;
+        }
+    }
+
+    // If loop finishes without finding the target key, return NULL
+    return NULL;
+}
+
+/* x.get(key) - Returns NULL if not found */
+char* pydict_get(struct pydict* self, char *key)
+{
+    struct dnode *entry = pydict_find(self, key);
+
+    // If key is present in dict then return value, else return NULL
+    if ( entry != NULL ) {
+        return entry->value;
+    }
+    else {
+        return NULL; 
+    }
+}
+
+/* x[key] = value; Insert or replace the value associated with a key */
+void pydict_put(struct pydict* self, char *key, char *value)
+{
+    struct dnode *old = pydict_find(self, key);
+  
+    // If old key found then replace the value
+    if ( old != NULL ) {
+        // Allocate space for new savevalue variable
+        char *savevalue = (char *) malloc(strlen(value)+1);
+      
+        // Check if allocation failed 
+        if ( savevalue == NULL ) {
+            return;
+        }
+       
+        // Copy new value to savevalue
+        strcpy(savevalue, value);
+        
+        // Free the data in the old value if allocation was successful
+        free(old->value);
+      
+        // Assign to node
+        old->value = savevalue;
+    }
+  
+    // If old key not found then insert key and value
+    else {
+        // Allocate space for savekey and savevalue variables
+        char *savekey = (char *) malloc(strlen(key)+1);
+        char *savevalue = (char *) malloc(strlen(value)+1);
+
+        // Allocate space for new node
+        struct dnode *new = (struct dnode *)
+            malloc(sizeof(struct dnode));
+  
+        // Check if allocation failed 
+        if ( savekey == NULL ) {
+            return;
+        }
+        if ( savevalue == NULL ) {
+            free(savekey);
+            return;
+        }
+        if ( new == NULL ) {
+            free(savekey);
+            free(savevalue);
+            return;
+        }
+
+        // Copy key to savekey and value to savevalue
+        strcpy(savekey, key);
+        strcpy(savevalue, value);
+  
+        // Set new node properties
+        new->key = savekey;
+        new->value = savevalue;
+        new->next = NULL;
+  
+        // Dict is empty: The new node is the head
+        if ( self->head == NULL ) {
+            self->head = new;
+        }
+        // Dict not empty: Link the old tail to the new node
+        else {
+           self->tail->next = new;
+        }
+  
+        // Update the dict's tail
+        self->tail = new;
+  
+        // Increment the counter
+        self->count++;
+    }
+}
 
 Input:
+N/A
 
 Output:
+{'z': 'Catch phrase'}
+{'z': 'W'}
+{'z': 'W', 'y': 'B', 'c': 'C', 'a': 'D'}
+Length =4
+z=W
+x=(null)
+
+Dump
+z=W
+y=B
+c=C
+a=D
 
 Notes:
+- I ended up reusing a lot of the code I had created in a past problem that involved creating functions that
+  mimic a python list.
+- For the pydict_print() function, the changes I made to existing code were renaming the struct datatype to
+  dnode to denote a dictionary node, printing two strings separated by a colon and space, assigning the 
+  current pointer to point to a key and value variable found in the struct dnode for printing the strings, 
+  and printing curly braces instead of brackets. The function entailed declaring variables, using a for loop
+  to loop through a dictionary with pointers and printing the corresponding key and value pairs, placing
+  commas between dict entries using an if statement, and matching the format of a python dictionary using
+  printf statements.
+- The pydict_len() function was a matter of using a pointer to a variable named count that was assigned in 
+  the struct pydict.
+- The pydict_find() function was similar to the pydict_print() function in terms of declared variables and
+  the for loop but the expressions in the for loop were different. These conditions chcecked if the current
+  node contained the target key and if the key was found then the current node was returned. If the loop
+  finished without finding the target key then the function returned NULL.
+- The pydict_get() function called an existing function pydict_find() and assigned it to a pointer variable
+  called entry in the struct dnode. If the key found in the function pydict_find() was present in the
+  dictionary then the value was returned using a pointer that points from entry to the variable value in the
+  struct dnode, otherwise the function returned NULL.
+- The pydict_put() function inserted or replaced the value associated with a key based on if and else
+  statements where a key had existed in the dictionary or not. This function called upon the
+  pydict_find() function and assigned the results to a variable called old in the struct dnode. For the if
+  condition, if the old key was found then the old value was replaced. The data in the old value was freed 
+  before allocating and setting the new value to the existing key. In the else condition, if the old key
+  was not found then the key and value was inserted into the dictionary. Separate variables were declared
+  to allocate space for the key and value being inserted. A new node was declared, allocated in the
+  struct dnode, and set with properties using pointers. An if/else statement was created to determine 
+  whether the dictionary was empty or not so that the new node would point to the head or the new node
+  would link to the old tail respectively. At the end of the else condition, the dictionary's tail
+  was updated to the new node and a counter was incremented.
+
+Suggestions and Final Thoughts:
+- In the pydict_put() function, I was missing the assignment of the node where the old variable pointing to
+  the value would be changed to the newly allocated savevalue variable.
+  ex.
+      old->value = savevalue;
+- To prevent a memory leak, it is best to have functions that clean up after themselves if any step of
+  their processes fails. The free() function can be used in the if conditions that check if the allocation
+  failed or not. If a successful allocation occurs then the free conditions can take place.
+  ex.
+      if (savevalue == NULL) {
+          free(savekey);          // Clean up the key before leaving!
+          return;
+      }
+      if (new_node == NULL) {
+          free(savekey);          // Clean up everything 
+          free(savevalue);        // Clean up everything
+          return;
+  ex.
+      if ( old != NULL ) {
+          char *savevalue = malloc(strlen(value) + 1);
+          if (savevalue == NULL) {
+              return;
+          }
+          strcpy(savevalue, value)
+          free(old->value);               // Free AFTER successful malloc
+          old->value = savevalue;
+      }
+- For the else block of the pydict_put() function, I refactored the code to group the declarations and 
+  allocation first and then placed the checks for allocation failures with free() functions before performing
+  any actions such as strcpy() or assigning properties.
+  ex.
+      // Allocate space for savekey and savevalue variables
+      char *savekey = (char *) malloc(strlen(key)+1);
+      char *savevalue = (char *) malloc(strlen(value)+1);
+
+      // Allocate space for new node
+      struct dnode *new = (struct dnode *)
+          malloc(sizeof(struct dnode));
+  
+      // Check if allocation failed 
+      if ( savekey == NULL ) {
+          return;
+      }
+      if ( savevalue == NULL ) {
+          free(savekey);
+          return;
+      }
+      if ( new == NULL ) {
+          free(savekey);
+          free(savevalue);
+          return;
+      }
+
+        // Copy key to savekey and value to savevalue
+        strcpy(savekey, key);
+        strcpy(savevalue, value);
+- Checking for allocations failing code can be simplified.
+  ex.
+      if ( !savekey || !savevalue || !new ) {
+          free(savekey);
+          free(savevalue);
+          free(new);
+          return;
+      }
 
 ############################################################################################################
 
@@ -449,5 +848,43 @@ Input:
 Output:
 
 Notes:
+
+Suggestions and Final Thoughts:
+
+############################################################################################################
+
+Source:
+
+Question:
+
+Python Code:
+
+C Code:
+
+Input:
+
+Output:
+
+Notes:
+
+Suggestions and Final Thoughts:
+
+############################################################################################################
+
+Source:
+
+Question:
+
+Python Code:
+
+C Code:
+
+Input:
+
+Output:
+
+Notes:
+
+Suggestions and Final Thoughts:
 
 ############################################################################################################
