@@ -821,9 +821,9 @@ Suggestions and Final Thoughts:
           return;
       }
 
-        // Copy key to savekey and value to savevalue
-        strcpy(savekey, key);
-        strcpy(savevalue, value);
+      // Copy key to savekey and value to savevalue
+      strcpy(savekey, key);
+      strcpy(savevalue, value);
 - Checking for allocations failing code can be simplified.
   ex.
       if ( !savekey || !savevalue || !new ) {
