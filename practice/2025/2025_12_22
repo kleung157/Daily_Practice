@@ -1,0 +1,585 @@
+Date: 12/22/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2161
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Tiktok - Least Popular Video
+You have been asked to find the least popular video based on how many users have watched it.
+Consider that a user can watch a video multiple times. 
+Only the unique user views are counted.
+In the case of a tie, output all the video ids of the least popular video(s).
+
+Data Dictionary:
+Table name = 'videos_watched'
+user_id: character (str)
+video_id: character (str)
+watched_at: POSIXct, POSIXt (dt)
+
+Code:
+**Attempt #1
+## Question:
+# You have been asked to find the least popular video based on how many users have watched it.
+# Consider that a user can watch a video multiple times.
+# Only the unique user views are counted.
+# In the case of a tie, output all the video ids of the least popular video(s).
+
+## Output:
+# video_id
+
+## Import libraries
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#videos_watched <- read_csv("videos_watched.csv")
+videos_df <- data.frame(videos_watched)
+head(videos_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 51 x 3
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - user_id, video_id
+data.frame(lapply(videos_df, class))
+
+dim(videos_df)
+
+sum(duplicated(videos_df))
+
+enframe(colSums(is.na(videos_df)), name="index", value="na_count")
+
+enframe(table(videos_df$user_id), name="index", value="frequency")
+enframe(table(videos_df$video_id), name="index", value="frequency")
+
+## Iteration:
+result_df <- videos_df %>%
+    group_by(video_id) %>%
+    summarise(
+        # 1. Calculate the unique user view count for each video_id
+        unique_user_views = n_distinct(user_id, na.rm=TRUE),
+        .groups="drop"
+    ) %>%
+    slice_min(
+        # 2. Filter for least popular video and include ties
+        unique_user_views
+    ) %>%
+    arrange(
+        # 3. Sort by video_id in ascending order
+        video_id
+    )
+
+## Result:
+result_df
+
+
+**Solution #1 (revised)
+result_df <- videos_df %>%
+    group_by(video_id) %>%
+    summarise(
+        # 1. Calculate the unique user view count for each video_id
+        unique_user_views = n_distinct(user_id, na.rm=TRUE),
+        .groups="drop"
+    ) %>%
+    slice_min(
+        # 2. Filter for least popular video and include ties
+        unique_user_views
+    ) %>%
+    arrange(
+        # 3. Sort by video_id in ascending order
+        video_id
+    ) %>%
+    select(
+        # 4. Select relevant columns
+        video_id
+    )
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts found in the data quality check.
+- I started my approach to this problem by calculating the unique user view count for each video id using
+  the group_by(), summarise(), and n_distinct() functions. Next, I filtered for the least popular videos
+  and included ties using the slice_min() function. Lastly, I sorted the results by video id in ascending
+  order.
+
+Suggestions and Final Thoughts:
+- Make sure the final results match the prompt's desired output. Needed to add a select statement to the 
+  end of the query to narrow down the number of columns presented.
+  ex.
+      select(
+          video_id
+       )
+
+Solve Duration:
+12 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9658
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+ESPN - Underweight/Overweight Athletes
+Identify colleges with underweight and overweight athletes. 
+Consider athletes with weight < 180 pounds as underweight and players with weight > 250 pounds as overweight. 
+Output the college along with the total number of overweight and underweight players. 
+If the college does not have any underweight/overweight players, leave the college out of the output. 
+You can assume that each athlete's full name is unique on their college.
+
+Data Dictionary:
+Table name = 'nfl_combine'
+year: int64 (int)
+name: object (str)
+firstname: object (str)
+lastname: object (str)
+position: object (str)
+heightfeet: int64 (int)
+heightinches: float64 (flt)
+heightinchestotal: float64 (flt)
+weight: int64 (int)
+arms: float64 (flt)
+hands: float64 (flt)
+fortyyd: float64 (flt)
+twentyyd: float64 (flt)
+tenyd: float64 (flt)
+twentyss: float64 (flt)
+threecone: float64 (flt)
+vertical: float64 (flt)
+broad: int64 (int)
+bench: int64 (int)
+round: int64 (int)
+college: object (str)
+pick: object (str)
+pickround: int64 (int)
+picktotal: int64 (int)
+
+Code:
+**Solution #1
+## Question:
+# Identify colleges with underweight and overweight athletes.
+# Consider athletes with weight < 180 pounds as underweight and 
+# players with weight > 250 pounds are overweight.
+# Output the college along with the total number of overweight and underweight players.
+# If the college does not have any underweight/overweight players, leave the college out of the output.
+# You can assume that each athlete's full name is unique on their college.
+
+## Output:
+# college, underweight_athletes_total, overweight_athletes_total
+
+## Import libraries
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#nfl_combine = pd.read_csv("nfl_combine.csv")
+combine_df = pd.DataFrame(nfl_combine)
+combine_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 126 x 24
+# Duplicates - 0
+# Nulls - college(51), pick(51)
+# Value Counts - name, firstname, lastname, position, college, pick
+#combine_df.info()
+
+combine_df.shape
+
+combine_df.duplicated().sum()
+
+combine_df.isna().sum().reset_index(name="na_count")
+
+combine_df["name"].value_counts().reset_index(name="frequency")
+combine_df["firstname"].value_counts().reset_index(name="frequency")
+combine_df["lastname"].value_counts().reset_index(name="frequency")
+combine_df["position"].value_counts().reset_index(name="frequency")
+combine_df["college"].value_counts().reset_index(name="frequency")
+combine_df["pick"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# 1. Categorize athletes as underweight or overweight,
+#    underweight = weight < 180 pounds, overweight = weight > 180 pounds
+conditions = [
+    combine_df["weight"] < 180,
+    combine_df["weight"] > 250
+]
+
+choices = ["underweight", "overweight"]
+
+combine_df["weight_category"] = np.select(conditions, choices, default="uncategorized")
+
+# 2. Calculate the number of underweight and overweight athletes for each college
+result_df = (
+    combine_df
+    .groupby("college")
+    .agg(underweight_athletes_total = ("weight_category", lambda x: np.sum(x=="underweight")),
+         overweight_athletes_total = ("weight_category", lambda x: np.sum(x=="overweight"))
+    )
+    .reset_index()
+)
+
+# 3. Filter out NULL colleges and those with no underweight or overweight players
+result_df = result_df[
+    (result_df["college"].notna()) &
+    (
+        (result_df["underweight_athletes_total"] != 0) | (result_df["overweight_athletes_total"] != 0)
+    )
+]
+
+# 4. Sort by college in ascending order
+result_df = result_df.sort_values(by="college", ascending=True)
+
+# 5. Select relevant columns
+result_df = result_df[["college", "underweight_athletes_total", "overweight_athletes_total"]]
+
+## Result:
+print("Total number of underweight and overweight athletes for each college:")
+result_df
+
+
+**Solution #2 (method chaining)
+result_df = (
+    combine_df.dropna(subset=["college"])
+    .assign(
+        is_under = lambda x: x["weight"] < 180,
+        is_over = lambda x: x["weight"] > 250
+    )
+    .groupby("college")
+    .agg(
+        underweight_athletes_total=("is_under", "sum"),
+        overweight_athletes_total=("is_over", "sum")
+    )
+    .reset_index()
+    .query("underweight_athletes_total > 0 or overweight_athletes_total > 0")
+    .sort_values("college")
+)
+
+Notes:
+- The data quality check revealed 51 null values in the college column. 
+- My approach to this problem began with categorizing athletes as underweight or overweight using the
+  np.select() function. Athletes under 180 lbs were considered underweight, athletes over 180 lbs were
+  considered overweight and the rest were uncategorized. From there, I calculated the number of underweight
+  and overweight athletes for each column using the groupby(), agg(), np.sum(). reset_index() and lambda x
+  functions. After aggregation, I filtered out colleges that were NULL and had no underweight or overweight
+  players using the notna() function and comparison operators. Finally, I sorted the columns in ascending
+  order by college and selected relevant output columns using the sort_values() function.
+
+Suggestions and Final Thoughts:
+- Alternatives to np.select() for categorization of underweight and overweight athletes could be done with
+  creating separate boolean Series columns that are represented as 1 or 0. Another approach is with the 
+  function assign() and lambda x. The np.select() function uses more memory than the Boolean series approach.
+  ex.
+      # Boolean Series
+      nfl_combine['is_underweight'] = nfl_combine['weight'] < 180
+      nfl_combine['is_overweight'] = nfl_combine['weight'] > 250
+      # assign()
+      is_under = lambda x: x['weight'] < 180,
+      is_over = lambda x: x['weight'] > 250
+- Instead of having a filter for null values in the college column, the 51 null values found in the data
+  quality check could be dropped before aggregation using the dropna() function
+  ex.
+      combine_df.dropna(subset=["college"])
+- To peek into a chain method, the pipe() function can be used with lambda x and print.
+  ex.
+      result = (
+          combine_df
+          .dropna(subset="college"])
+          .pipe(lambda d: print(f"Rows after dropna: {len(d)}") or d)   # Debugging line
+          ...
+      )
+- The query() function can be used in a chain for comparisons as seen in Solution #2
+  ex.
+      .query("underweight_athletes_total > 0 or overweight_athletes_total > 0")
+- Solution #2 provides method chaining for all the steps of the query instead of having to separate out
+  the steps into multiple versions of a single DataFrame. Solution #2 is ideal for readability and 
+  maintainability. Solution #1 provides an easier way to debug and view each step of the process. My approach
+  would probably be more aligned with Solution #1 for clarity and then evolve to Solution #2 when needed for
+  production and optimization.
+  
+Solve Duration:
+30 minutes
+
+Notes Duration:
+15 minutes
+
+Suggestions and Final Thoughts Duration:
+29 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10350
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Meta - Algorithm Performance
+Meta/Facebook is developing a search algorithm that will allow users to search through their post history. 
+You have been assigned to evaluate the performance of this algorithm.
+We have a table with the user's search term, search result positions, and whether or not the user clicked on the search result.
+Write a query that assigns ratings to the searches in the following way:
+•	If the search was not clicked for any term, assign the search with rating=1
+•	If the search was clicked but the top position of clicked terms was outside the top 3 positions, assign the search a rating=2
+•	If the search was clicked and the top position of a clicked term was in the top 3 positions, assign the search a rating=3
+As a search ID can contain more than one search term, select the highest rating for that search ID. 
+Output the search ID and its highest rating.
+Example: The search_id 1 was clicked (clicked = 1) and its position is outside of the top 3 positions (search_results_position = 5), therefore its rating is 2.
+
+Data Dictionary:
+Table name = 'fb_search_events'
+clicked: bigint (int)
+search_id: bigint (int)
+search_results_position: bigint (int)
+search_term: varchar (str)
+
+Code:
+**Attempt #1
+-- Question:
+-- Meta/Facebook is developing a search algorithm that will allow users to search through their post history.
+-- You have been assigned to evaluate the performance of this algorithm.
+-- We have a table with the user's search term, search result positions,
+-- and whether or not the user clicked on the search result. 
+-- Write a query that assigns ratings to the searches in the following way:
+--     If the search was not clicked for any term, assign the search with rating=1
+--     If the search was clicked but the top position of clicked terms was outside the top 3 positions,
+--     assign the search a rating=2
+--     If the search was clicked and the top position of a clicked term was in the top 3 positions,
+--     assign the search a rating=3
+-- As a search ID can contain more than one search term, select the highest rating for that search ID.
+-- Output the search ID and its highest rating.
+-- Example - The search_id 1 was clicked (clicked = 1) and its position is outside of the top 3 positions
+--           (search_results_position = 5), therefore its rating is 2.
+
+-- Output:
+-- search_id, rating
+
+-- Preview data:
+SELECT TOP 5* FROM fb_search_events;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 75 x 4
+-- Duplicates - 1
+-- Nulls - 0
+-- Value Counts - search_id, search_term
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN clicked IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN search_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN search_results_position IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN search_term IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM fb_search_events;
+
+SELECT -- Duplicates
+    clicked, search_id, search_results_position, search_term,
+    COUNT(*) AS duplicate_count
+FROM fb_search_events
+GROUP BY
+    clicked, search_id, search_results_position, search_term
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    search_id,
+    COUNT(*) AS frequency
+FROM fb_search_events
+GROUP BY search_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    search_term,
+    COUNT(*) AS frequency
+FROM fb_search_events
+GROUP BY search_term
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Remove duplicate rows 
+-- 2. Assign ratings to searches using categorization,
+--    if clicked = 0, then rating=1, 
+--    if clicked = 1 and search_results_position > 3 then rating=2,
+--    if clicked = 1 and search_results_position <= 3 then rating=3
+-- 3. Rank the ratings in descending order for each search_id and include ties
+-- 4. Filter for highest rating for each search ID
+-- 5. Sort by search_id in ascending order
+WITH SearchRatings AS (
+    SELECT DISTINCT 
+        search_id,
+        CASE
+            WHEN clicked = 0 THEN 1
+            WHEN clicked = 1 AND search_results_position > 3 THEN 2
+            WHEN clicked = 1 AND search_results_position <= 3 THEN 3
+            ELSE 'Uncategorized'
+        END AS rating
+    FROM fb_search_events
+),
+RankedSearchRatings AS (
+    SELECT
+        search_id,
+        rating,
+        DENSE_RANK() OVER(PARTITION BY search_id ORDER BY rating DESC) AS dense_rank
+    FROM SearchRatings
+)
+SELECT 
+    search_id,
+    rating
+FROM RankedSearchRatings
+WHERE dense_rank = 1
+ORDER BY search_id ASC;
+
+-- Result:
+WITH SearchRatings AS (
+    -- 1. Remove duplicate rows 
+    SELECT DISTINCT 
+        search_id,
+        -- 2. Assign ratings to searches using categorization,
+        --    if clicked = 0, then rating=1, 
+        --    if clicked = 1 and search_results_position > 3 then rating=2,
+        --    if clicked = 1 and search_results_position <= 3 then rating=3
+        CASE
+            WHEN clicked = 0 THEN 1
+            WHEN clicked = 1 AND search_results_position > 3 THEN 2
+            WHEN clicked = 1 AND search_results_position <= 3 THEN 3
+            ELSE 'Uncategorized'
+        END AS rating
+    FROM 
+        fb_search_events
+),
+RankedSearchRatings AS (
+    SELECT
+        search_id,
+        rating,
+        -- 3. Rank the ratings in descending order for each search_id and include ties
+        DENSE_RANK() OVER(
+            PARTITION BY search_id 
+            ORDER BY rating DESC
+        ) AS dense_rank
+    FROM 
+        SearchRatings
+)
+SELECT 
+    search_id,
+    rating
+FROM 
+    RankedSearchRatings
+WHERE 
+    -- 4. Filter for highest rating for each search ID
+    dense_rank = 1
+ORDER BY 
+    -- 5. Sort by search_id in ascending order
+    search_id ASC;
+
+
+** Solution #1 (revised)
+WITH SearchRatings AS (
+    -- 1. Remove duplicate rows 
+    SELECT DISTINCT 
+        search_id,
+        -- 2. Assign ratings to searches using categorization,
+        --    if clicked = 0, then rating=1, 
+        --    if clicked = 1 and search_results_position > 3 then rating=2,
+        --    if clicked = 1 and search_results_position <= 3 then rating=3
+        CASE
+            WHEN clicked = 0 THEN 1
+            WHEN clicked = 1 AND search_results_position > 3 THEN 2
+            WHEN clicked = 1 AND search_results_position <= 3 THEN 3
+            ELSE NULL
+        END AS rating
+    FROM 
+        fb_search_events
+),
+RankedSearchRatings AS (
+    SELECT
+        search_id,
+        rating,
+        -- 3. Rank the ratings in descending order for each search_id and include ties
+        DENSE_RANK() OVER(
+            PARTITION BY search_id 
+            ORDER BY rating DESC
+        ) AS dense_rank
+    FROM 
+        SearchRatings
+)
+SELECT 
+    search_id,
+    rating
+FROM 
+    RankedSearchRatings
+WHERE 
+    -- 4. Filter for highest rating for each search ID
+    dense_rank = 1
+ORDER BY 
+    -- 5. Sort by search_id in ascending order
+    search_id ASC;
+
+Notes:
+- The data quality checks revealed 1 duplicated row in the dataset.
+- The approach that I took to this problem was to remove the duplicate rows first using DISTINCT in the
+  SELECT clause. From there, I assigned ratings to searches using CASE WHEN statements where if clicked = 0
+  then rating = 1, if clicked = 1 and search results position > 3 then rating = 2, if clicked = 1 and
+  search results position <= 3 then rating = 3, and anything else was considered 'uncategorized'. These
+  steps were placed into a common table expression (CTE) called SearchRatings and subsequently queried to
+  rank the ratings in descending order for each search id and included ties using the DENSE_RANK() function.
+  The ranking step was placed into a CTE called RankedSearchRatings and queried afterwards to filter for 
+  highest rating for each search ID using the rank and sorted by search_id in ascending order.
+
+Suggestions and Final Thoughts:
+- For the CASE WHEN statement, if the categorization output is a numerical or integer datatype then the else
+  statement should also be similar rather than including a string, or else a type mismatch error would occur.
+  The fix would be to use 0 or NULL.
+  ex.
+      CASE
+          WHEN clicked = 0 THEN 1
+          WHEN clicked = 1 AND search_results_position > 3 THEN 2
+          WHEN clicked = 1 AND search_results_position <= 3 THEN 3
+          ELSE NULL
+      END;
+- A more simplified and straightforward approach to this problem if the data was clean would be to use a
+  single query and perform group by aggregation.
+  ex.
+      SELECT
+          search_id,
+          MAX(
+              CASE
+                  WHEN clicked = 1 AND search_results_position > 3 THEN 2
+                  WHEN clicked = 1 AND search_results_position <= 3 THEN 3
+                  ELSE 1
+              END
+          ) AS rating
+      FROM 
+          fb_search_events
+      GROUP BY 
+          search_id
+      ORDER BY
+          search_id ASC;
+
+Solve Duration:
+31 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+15 minutes
+
+############################################################################################################
