@@ -1,0 +1,525 @@
+Date: 12/24/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2162
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+The sales team wants to find out which months had the highest sales. 
+Based on the sales data provided, you must determine the top three year-month combinations for sales.
+Your output should include the top three monthly sales in the format YYYY-MM as well as the corresponding total monthly sales.
+
+Data Dictionary:
+Table name = 'fct_customer_sales'
+cust_id: character (str)
+prod_sku_id: character (str)
+order_date: POSIXct, POSIXt (dt)
+order_value: numeric (num)
+order_id: character (str)
+
+Code:
+Soluton #1
+## Question:
+# The sales team wants to find out which months had the highest sales.
+# Based on the sales data provided, you must determine the top three year-month combinations for sales.
+# Your output should include the top three monthly sales in the format YYYY-MM as well as the
+# corresponding total monthly sales.
+
+## Output:
+# year_month, total_sales
+
+## Import libraries
+#install.packages(tidyverse)
+#install.packages(lubridate)
+library(tidyverse)
+library(lubridate)
+
+## Load and preview data:
+#fct_customer_sales <- read_csv("fct_customer_sales.csv")
+sales_df <- data.frame(fct_customer_sales)
+head(sales_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 78 x 5
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - cust_id, prod_sku_id, order_id
+data.frame(lapply(sales_df, class))
+
+dim(sales_df)
+
+sum(duplicated(sales_df))
+
+enframe(colSums(is.na(sales_df)), name="index", value="na_count")
+
+enframe(table(sales_df$cust_id), name="index", value="frequency")
+enframe(table(sales_df$prod_sku_id), name="index", value="frequency")
+enframe(table(sales_df$order_id), name="index", value="frequency")
+
+## Iteration:
+result_df <- sales_df %>%
+    mutate(
+        # 1. Extract year and beginning of the month from order_date
+        floor_year_month = floor_date(order_date, "month")
+    ) %>%
+    group_by(floor_year_month) %>%
+    summarise(
+        # 2. Calculate total sales for each year month
+        total_sales = sum(order_value, na.rm=TRUE),
+        .groups="drop"
+    ) %>%
+    mutate(
+        # 3. Format year month to YYYY-MM 
+        year_month = strftime(floor_year_month, "%Y-%m"),
+        # 4. Rank the total sales in descending order and include ties
+        rank = dense_rank(desc(total_sales))
+    ) %>%
+    filter(
+        # 5. Filter for top 3 monthly sales
+        rank <= 3
+    ) %>%
+    arrange(
+        # 6. Arrange by total sales in descending order
+        desc(total_sales)
+    ) %>%
+    select(
+        # 7. Select relevant columns
+        year_month, total_sales
+    )
+
+## Result:
+result_df
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts found in the data quality check.
+- I started my approach to this problem by extracting the year and beginning of the month from the order_date
+  column using the mutate() and floor_date() functions. From there, I calculated the total sales for each year
+  month using the group_by(), summarise(), and sum() functions. Next, I formatted the year month to 'YYYY-MM'
+  as a string and ranked the total sales in descending order to include ties using the mutate(), strftime(),
+  dense_rank(), and desc() functions. After ranking, I filtered for top 3 monthly sales using the filter()
+  function. Lastly, I sorted the output by the total_sales column in descending order and selected the 
+  necessary output columns using the arrange(), desc() and select() functions.
+
+Suggestions and Final Thoughts:
+- The step for flooring the date to year and beginning of the month can be performed in the group_by()
+  function instead of the mutate() function. 
+  ex. 
+      group_by(
+           floor_year_month = floor_date(order_date, "month")
+      )
+- Alternatives to using the strftime() function include using format() or stamp() from the lubridate package.
+  The format() function has the parameters format(date, "%Y-%m") and the stamp() function defines the template
+  in the parameter stamp("YYYY-MM", orders = "Ym") then can be applied to a column. The format function is
+  preferred as it more or less contains the strftime() function in it already but is easier to understand.
+  ex.
+      sf <- stamp("2023-01", orders = "Ym")
+      mutate(
+          format_year_month = format(floor_year_month, "%Y-%m"),
+          sf_year_month = sf(floor_year_month)
+      )
+
+Solve Duration:
+16 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+15 minutes
+
+###########################################################################################################
+
+Website:
+StrataScratch - ID 9661
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+General Assembly - Find the student with the highest efficiency for mathematics
+Find the student with the highest efficiency for mathematics?  Consider only students with at least 1 hour of studying.
+The efficiency is defined as the score divided by hours studied.
+Output the highest efficiency along with the other data of that student: student id, hours studies and the obtained score for mathematics.
+
+Data Dictionary:
+Table name = 'sat_scores'
+school: object (str)
+teacher: object (str)
+student_id: float64 (flt)
+sat_writing: float64 (flt)
+sat_verbal: float64 (flt)
+sat_math: float64 (flt)
+hrs_studied: float64 (flt)
+id: int64 (int)
+average_sat: float64 (flt)
+love: datetime64 (dt)
+
+Code:
+Solution #1
+## Question:
+# Find the student with the highest efficiency for mathematics.
+# Consider only students with at least 1 hour of studying.
+# The efficiency is defined as the score divided by hours studied.
+# Output the highest efficiency along with the other data of that student;
+# student id, hours studied, and the obtained score for mathematics
+
+## Output:
+# student_id, efficiency, hrs_studied, sat_math
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#sat_scores = pd.read_csv("sat_scores.csv")
+scores_df = pd.DataFrame(sat_scores)
+scores_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 135 x 10
+# Duplicates - 0
+# Nulls - hrs_studied(7), love(135)
+# Value Counts - school, teacher, student_id, id, hrs_studied
+#scores_df.info()
+
+scores_df.shape
+
+scores_df.duplicated().sum()
+
+scores_df.isna().sum().reset_index(name="na_count")
+
+scores_df["school"].value_counts().reset_index(name="frequency")
+scores_df["teacher"].value_counts().reset_index(name="frequency")
+scores_df["student_id"].value_counts().reset_index(name="frequency")
+scores_df["id"].value_counts().reset_index(name="frequency")
+scores_df["hrs_studied"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+target_study_hours = float(1)
+
+# 1. Filter for students with at least 1 hour of studying and not null
+filtered_df = scores_df[
+    (scores_df["hrs_studied"].notna()) &
+    (scores_df["hrs_studied"] >= target_study_hours)
+].copy()
+
+# 2. Calculate efficiency for each student,
+#    efficiency = sat_math / hrs_studied
+filtered_df["efficiency"] = np.where(
+    (filtered_df["hrs_studied"].isna()) | (filtered_df["hrs_studied"] == 0),
+    np.nan,
+    round(1.0 * filtered_df["sat_math"] / filtered_df["hrs_studied"], 2)
+)
+
+# 3. Filter for student with highest efficiency
+result_df = filtered_df[
+    filtered_df["efficiency"] == filtered_df["efficiency"].max()    
+].copy()
+
+# 4. Select relevant columns
+result_df = result_df[["student_id", "efficiency", "hrs_studied", "sat_math"]]
+
+## Result:
+print("Student with the highest efficiency for mathematics: ")
+result_df
+
+Notes:
+- The data quality check revealed 7 null values in the hrs_studied column.
+- My approach to this problem began with filtering for students with at least 1 hour of studying and not
+  null values in the hrs_studied column using the notna(), copy(), and filter comparison functions. Next, I 
+  calculated the efficiency for each student by dividing the sat_math and hrs_studied columns using np.where()
+  isna(), np.nan, round() and comparison functions. I accounted for division by zero and null using conditions
+  where if there was null or 0 in the hrs_studied column then the result would be null, else division would
+  occur regularly with the appropriate columns. From there, I filtered for students with highest efficiency
+  using the max(), copy(), and filter comparison functions. Finally, I selected the relevant output columns.
+
+Suggestions and Final Thoughts:
+- The filter for students with at least 1 hour of studying and not null already prevents division by zero
+  or null. I created a double check when using the np.where() function in the second step for conditions
+  where divison by zero or null happens to occur after the filter.
+- Another edge case that I considered is if the student with highest efficiency ended in a tie rather than
+  only considering a single value. For a single value, idmax() and then loc[] functions would be more
+  appropriate if the data was known to only have a single value and not any potential ties.
+  ex.
+      top_student_idx = filtered_df["efficiency"].idmax()
+      result = filtered_df.loc[
+          [top_student_idx],
+          ["student_id", "efficiency", "hrs_studied", "sat_math"]
+      ]
+- To be more concise and efficient with the filter and select step, the loc[] function can be used and chain
+  those steps together.
+  ex.
+      result_df = filtered_df.loc[
+          filtered_df["efficiency"] == filtered_df["efficiency"].max(),
+          ["student_id", "efficiency", "hrs_studied", "sat_math"]
+      ]
+- When calculating efficiency for each student, the division by zero or null can be accounted for using
+  the replace() and fillna() function to be less verbose compared to the np.where() function. The replace()
+  function accounts for infinity values and replaces them with null and the fillna() fills nulls with 0.
+  If division "700/0 = inf", then replace "inf = NaN", then fillna "NaN = 0". Move the round() function to
+  the end so that Python only needs to round final clean numbers and not null or infinity values.
+  ex.
+      filtered_df["efficiency"] = (
+          (filtered_df["sat_math"] / filtered_df["hrs_studied"])
+          .replace([np.inf, -np.inf], np.nan)
+          .fillna(0)
+          .round(2)
+      )
+
+Solve Duration:
+20 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+25 minutes
+
+###########################################################################################################
+
+Website:
+StrataScratch - ID 10355
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Block - Employees With Same Birth Month
+Identify the number of employees within each department that share the same birth month. 
+Return the result as a table with one row per department and one column per month (Month_1 to Month_12). 
+If a month has no employees born in it within a specific department, report this month as having 0 employees. 
+The profession column stores the department names of each employee.
+
+Data Dictionary:
+Table name = 'employee_list'
+birth_month: bigint (int)
+birthday: date (dt)
+employee_id: bigint (int)
+first_name: varchar (str)
+last_name: varchar (str)
+profession: varchar (str)
+
+Code:
+**Solution #1 (data quality check and multiple pass CTE approach)
+-- Question:
+-- Identify the number of employees within each department that share the same birth month.
+-- Return the result as a table with one row per department and one column per month (Month_1 to Month_12).
+-- If a month has no employees born in it within a specific department,
+-- report this month as having 0 employees.
+-- The profession column stores the department names of each employee.
+
+-- Output:
+-- department, Month_1 to Month_12
+
+-- Preview data:
+SELECT TOP 5* FROM employee_list;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 99 x 6
+-- Duplicates - 0
+-- Nulls - 0
+-- Value Counts - employee_id, first_name, last_name, profession, birth_month
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN birth_month IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN birthday IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN employee_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN first_name IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN last_name IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN profession IS NULL THEN 1 ELSE 0 END) AS col6,
+    COUNT(*) AS total_rows
+FROM employee_list;
+
+SELECT -- Duplicates
+    birth_month, birthday, employee_id, first_name, last_name, profession,
+    COUNT(*) AS duplicate_count
+FROM employee_list
+GROUP BY
+    birth_month, birthday, employee_id, first_name, last_name, profession
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    employee_id,
+    COUNT(*) AS frequency
+FROM employee_list
+GROUP BY employee_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    first_name,
+    COUNT(*) AS frequency
+FROM employee_list
+GROUP BY first_name
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    last_name,
+    COUNT(*) AS frequency
+FROM employee_list
+GROUP BY last_name
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    profession,
+    COUNT(*) AS frequency
+FROM employee_list
+GROUP BY profession
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    birth_month,
+    COUNT(*) AS frequency
+FROM employee_list
+GROUP BY birth_month
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Calculate the number of employees within each department with the same birthday month
+-- 2. Pivot the months column and number of employees within each department
+-- 3. Fill months with 0 if no employees born in it within a specific department
+With DepartmentMonthEmployees AS (
+    SELECT 
+        profession AS department,
+        birth_month,
+        COUNT(employee_id) AS number_of_employees
+    FROM employee_list
+    GROUP BY profession, birth_month
+)
+SELECT
+    department,
+    MAX(CASE WHEN birth_month = 1 THEN number_of_employees ELSE 0 END) AS Month_1,
+    MAX(CASE WHEN birth_month = 2 THEN number_of_employees ELSE 0 END) AS Month_2,
+    MAX(CASE WHEN birth_month = 3 THEN number_of_employees ELSE 0 END) AS Month_3,
+    MAX(CASE WHEN birth_month = 4 THEN number_of_employees ELSE 0 END) AS Month_4,
+    MAX(CASE WHEN birth_month = 5 THEN number_of_employees ELSE 0 END) AS Month_5,
+    MAX(CASE WHEN birth_month = 6 THEN number_of_employees ELSE 0 END) AS Month_6,
+    MAX(CASE WHEN birth_month = 7 THEN number_of_employees ELSE 0 END) AS Month_7,
+    MAX(CASE WHEN birth_month = 8 THEN number_of_employees ELSE 0 END) AS Month_8,
+    MAX(CASE WHEN birth_month = 9 THEN number_of_employees ELSE 0 END) AS Month_9,
+    MAX(CASE WHEN birth_month = 10 THEN number_of_employees ELSE 0 END) AS Month_10,
+    MAX(CASE WHEN birth_month = 11 THEN number_of_employees ELSE 0 END) AS Month_11,
+    MAX(CASE WHEN birth_month = 12 THEN number_of_employees ELSE 0 END) AS Month_12
+FROM DepartmentMonthEmployees
+GROUP BY department
+ORDER BY department ASC;
+
+-- Result:
+With DepartmentMonthEmployees AS (
+    SELECT 
+        profession AS department,
+        birth_month,
+        -- 1. Calculate the number of employees within each department with the same birthday month
+        COUNT(employee_id) AS number_of_employees
+    FROM 
+        employee_list
+    GROUP BY 
+        profession, 
+        birth_month
+)
+SELECT
+    department,
+    -- 2. Pivot the months column and number of employees within each department
+    -- 3. Fill months with 0 if no employees born in it within a specific department
+    MAX(CASE WHEN birth_month = 1 THEN number_of_employees ELSE 0 END) AS Month_1,
+    MAX(CASE WHEN birth_month = 2 THEN number_of_employees ELSE 0 END) AS Month_2,
+    MAX(CASE WHEN birth_month = 3 THEN number_of_employees ELSE 0 END) AS Month_3,
+    MAX(CASE WHEN birth_month = 4 THEN number_of_employees ELSE 0 END) AS Month_4,
+    MAX(CASE WHEN birth_month = 5 THEN number_of_employees ELSE 0 END) AS Month_5,
+    MAX(CASE WHEN birth_month = 6 THEN number_of_employees ELSE 0 END) AS Month_6,
+    MAX(CASE WHEN birth_month = 7 THEN number_of_employees ELSE 0 END) AS Month_7,
+    MAX(CASE WHEN birth_month = 8 THEN number_of_employees ELSE 0 END) AS Month_8,
+    MAX(CASE WHEN birth_month = 9 THEN number_of_employees ELSE 0 END) AS Month_9,
+    MAX(CASE WHEN birth_month = 10 THEN number_of_employees ELSE 0 END) AS Month_10,
+    MAX(CASE WHEN birth_month = 11 THEN number_of_employees ELSE 0 END) AS Month_11,
+    MAX(CASE WHEN birth_month = 12 THEN number_of_employees ELSE 0 END) AS Month_12
+FROM 
+    DepartmentMonthEmployees
+GROUP BY 
+    department
+ORDER BY
+    department ASC;
+
+
+**Solution #2 (single pass with COUNT())
+SELECT
+    profession AS department,
+    COUNT(CASE WHEN birth_month = 1 THEN 1 END) AS Month_1,
+    COUNT(CASE WHEN birth_month = 2 THEN 1 END) AS Month_2,
+    COUNT(CASE WHEN birth_month = 3 THEN 1 END) AS Month_3,
+    COUNT(CASE WHEN birth_month = 4 THEN 1 END) AS Month_4,
+    COUNT(CASE WHEN birth_month = 5 THEN 1 END) AS Month_5,
+    COUNT(CASE WHEN birth_month = 6 THEN 1 END) AS Month_6,
+    COUNT(CASE WHEN birth_month = 7 THEN 1 END) AS Month_7,
+    COUNT(CASE WHEN birth_month = 8 THEN 1 END) AS Month_8,
+    COUNT(CASE WHEN birth_month = 9 THEN 1 END) AS Month_9,
+    COUNT(CASE WHEN birth_month = 10 THEN 1 END) AS Month_10,
+    COUNT(CASE WHEN birth_month = 11 THEN 1 END) AS Month_11,
+    COUNT(CASE WHEN birth_month = 12 THEN 1 END) AS Month_12
+FROM employee_list
+GROUP BY profession
+ORDER BY profession ASC;
+
+
+**Solution #3 (single pass with SUM() and COALESCE())
+SELECT
+    profession AS department,
+    COALESCE(SUM(CASE WHEN birth_month = 1 THEN 1 END), 0) AS Month_1,
+    COALESCE(SUM(CASE WHEN birth_month = 2 THEN 1 END), 0) AS Month_2,
+    COALESCE(SUM(CASE WHEN birth_month = 3 THEN 1 END), 0) AS Month_3,
+    COALESCE(SUM(CASE WHEN birth_month = 4 THEN 1 END), 0) AS Month_4,
+    COALESCE(SUM(CASE WHEN birth_month = 5 THEN 1 END), 0) AS Month_5,
+    COALESCE(SUM(CASE WHEN birth_month = 6 THEN 1 END), 0) AS Month_6,
+    COALESCE(SUM(CASE WHEN birth_month = 7 THEN 1 END), 0) AS Month_7,
+    COALESCE(SUM(CASE WHEN birth_month = 8 THEN 1 END), 0) AS Month_8,
+    COALESCE(SUM(CASE WHEN birth_month = 9 THEN 1 END), 0) AS Month_9,
+    COALESCE(SUM(CASE WHEN birth_month = 10 THEN 1 END), 0) AS Month_10,
+    COALESCE(SUM(CASE WHEN birth_month = 11 THEN 1 END), 0) AS Month_11,
+    COALESCE(SUM(CASE WHEN birth_month = 12 THEN 1 END), 0) AS Month_12
+FROM employee_list
+GROUP BY profession
+ORDER BY department ASC;
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts found in the data quality check.
+- The approach that I took for this problem was to first calculate the number of employees within each
+  department that had the same birthday month using the COUNT() function. This step was placed into a 
+  common table expression (CTE) called DepartmentMonthEmployees which was subsequently queried to pivot
+  the birth_month and number_of_employees columns within each department using the MAX() function and
+  CASE WHEN statements. The CASE WHEN statement filled months with 0 if no employees were born in it within
+  a specific department. The pivoted table was then ordered by department in ascending order.
+
+Suggestions and Final Thoughts:
+- Initially, I thought I would have to extract the month from the birthday column but after performing the
+  data quality checks I realized there was a column called birth_month that already did it for me.
+- For my approach, I created the narrow data in a CTE first then widened the dataset through pivoting to
+  provide clarity and a step by step approach. A single pass approach could have been performed with the 
+  aggregation and widening in one step. The COUNT() function returns 0 if it finds nothing but NULLS to
+  count when used in combination with CASE WHEN statements. This is seen in Solution #2.
+- Another alternative for a single pass approach would be to use SUM() AND COALESCE() instead of COUNT()
+  to account for NULL values and fill them with 0. This is seen in Solution #3.
+- My first attempt at this problem would most likely be more along the lines of Solution #1 then evolve to a 
+  more optimized and concise approach like Solution #2 or Solution #3. Solution #3 is more robust than
+  Solution #2 given the COALESCE() function.
+      
+Solve Duration:
+22 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+25 minutes
+
+###########################################################################################################
