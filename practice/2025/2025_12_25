@@ -158,7 +158,7 @@ activated_at: datetime64 (dt)
 state: object (str)
 
 Code:
-Solution #1
+**Solution #1
 ## Question:
 # Find company IDs with more than 2 unique users who speak any of the following languages -
 # English, German, French, or Spanish.
