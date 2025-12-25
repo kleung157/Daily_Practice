@@ -1,0 +1,437 @@
+Date: 12/25/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 2164
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Amazon - Stock Codes with Prices Above Average
+You are given a dataset of online transactions, and your task is to identify product codes whose unit prices are greater than the average unit price of sold products.
+•   The unit price should be the original price (i.e., the minimum unit price for each product code).
+•   The average unit price should be computed based on the unique product codes and their original prices.
+Your output should contain productcode and unitprice (the original price).
+
+Data Dictionary:
+Table name = 'online_retails'
+invoiceno: numeric (num)
+quantity: numeric (num)
+productcode: character (str)
+invoicedate: POSIXct, POSIXt (dt)
+unitprice: numeric (num)
+
+Code:
+**Solution #1 
+## Question:
+# You are given a dataset of online transactions, and your task is to identify product codes 
+# whose unit prices are greater than the average unit price of sold products.
+# The unit price should be the original price (ex. the minimum unit price for each product code).
+# The average unit price should be computed based on the unique product codes and their original prices.
+# Your output should contain productcode and unitprice (the original price).
+
+## Output:
+# productcode, unitprice
+
+## Import libraries:
+#install.packges(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#online_retails <- read_csv("online_retails.csv")
+retails_df <- data.frame(online_retails)
+head(retails_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 39 x 5 
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - invoiceno, productcode, unitprice
+data.frame(lapply(retails_df, class))
+
+dim(retails_df)
+
+sum(duplicated(retails_df))
+
+enframe(colSums(is.na(retails_df)), name="index", value="na_count")
+
+enframe(table(retails_df$invoiceno), name="index", value="frequency")
+enframe(table(retails_df$productcode), name="index", value="frequency")
+enframe(table(retails_df$unitprice), name="index", value="frequency")
+
+## Iteration:
+result_df <- retails_df %>%
+    mutate(
+        # 1. Calculate the average unit price of all sold products
+        average_unit_price = mean(unitprice, na.rm=TRUE)
+    ) %>%
+    filter(
+        # 2. Filter for unit prices that are greater than the average unit price
+        unitprice > average_unit_price
+    ) %>%
+    arrange(
+        # 3. Sort by productcode in ascending order
+        productcode
+    ) %>%
+    select(
+        # 4. Select relevant columns
+        productcode, unitprice
+    )
+
+## Result:
+result_df
+
+
+**Solution #2 (revised)
+average_unit_price <- mean(retails_df$unitprice, na.rm=TRUE)
+
+result_df <- retails_df %>%
+    group_by(productcode) %>%
+    summarise(
+        original_price = min(unitprice, na.rm=TRUE),
+        .groups="drop"
+    ) %>%
+    filter(
+        original_price > average_unit_price
+    ) %>%
+    select(
+        productcode, unitprice = original_price
+    ) %>%
+    arrange(
+        productcode
+    )
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts found in the data quality check.
+- My approach to this problem started with calculating the average unit price of all sold products using the
+  mutate() and mean() functions. Then I filtered for unit prices that were greater than the average unit
+  price using the filter() function and comparison operators. From there, I sorted the results by productcode
+  in ascending order and selected the necessary output columns using the arrange() and select() functions.
+
+Suggestions and Final Thoughts:
+- The prompt states that each product code is unique and each product code only seems to have a single
+  unitprice for this dataset. The data quality checks confirmed this as well. However, if following all
+  the details of the prompt, then adding the minimum unit price for each unit product code would be a 
+  necessary step first before comparing the unit price to the average unit price. In addition, instead
+  of computing the average unit price for each row, it would be better to create a separate variable
+  outside of the dplyr pipe chain and use that single defined variable to compare to the unit price in
+  the filter. This approach is seen in Solution #2.
+- Try to get back in the habit of selecting columns then arranging them. Lately have been arranging
+  then selecting. Selecting then arranging is best for performance.
+
+Solve Duration:
+17 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+20 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9668
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Google - English, German, French, Spanish Speakers
+Find company IDs with more than 2 unique users who speak any of the following languages: English, German, French, or Spanish.
+
+Data Dictionary:
+Table name = 'playbook_users'
+user_id: int64 (int)
+created_at: datetime64 (dt)
+company_id: int64 (int)
+language: object (str)
+activated_at: datetime64 (dt)
+state: object (str)
+
+Code:
+Solution #1
+## Question:
+# Find company IDs with more than 2 unique users who speak any of the following languages -
+# English, German, French, or Spanish.
+
+## Output:
+# company_id
+
+## Import libraries
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#playbook_users = pd.read_csv("playbook_users.csv")
+users_df = pd.DataFrame(playbook_users)
+users_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 222 x 6
+# Duplicates - 0
+# Nulls - activated_at(2)
+# Value Counts - user_id, company_id, language, state
+#users_df.info()
+
+users_df.shape
+
+users_df.duplicated().sum()
+
+users_df.isna().sum().reset_index(name="na_count")
+
+users_df["user_id"].value_counts().reset_index(name="frequency")
+users_df["company_id"].value_counts().reset_index(name="frequency")
+users_df["language"].value_counts().reset_index(name="frequency")
+users_df["state"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# 1. Create a list of languages, languages = ['english', 'german', 'french', 'spanish']
+languages = ['english', 'german', 'french', 'spanish']
+target_user_count = int(2)
+
+# 2. Filter for users that speak any of the langauges in the list
+filtered_df = users_df[
+    users_df["language"].str.lower().isin(languages)
+].copy()
+
+# 3. Calculate number of unique users who speak any of the languages per company id
+result_df = (
+    filtered_df
+    .groupby("company_id")["user_id"]
+    .nunique()
+    .reset_index(name="number_of_unique_users")
+)
+
+# 4. Filter for company ids with more than 2 unique users
+result_df = result_df[
+    result_df["number_of_unique_users"] > target_user_count
+]
+# 5. Select relevant columns and arrange by company id in ascending order
+result_df = result_df[["company_id"]].sort_values(by="company_id", ascending=True)
+
+## Result:
+print("company IDs with more than 2 unique users who speak English, German, French, or Spanish: ")
+result_df
+
+
+** Solution #2 (method chaining)
+languages = ['english', 'german', 'french', 'spanish']
+target_user_count = int(2)
+
+result_df = (
+    users_df[users_df["language"].str.lower().isin(languages)]
+    .groupby("company_id")["user_id"]
+    .nunique()
+    .reset_index(name="unique_user_count")
+    .loc[lambda x: x["unique_user_count"] > target_user_count]
+    .sort_values(by="company_id", ascending=True)
+    [["company_id"]]
+)
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts in the data quality check that were necessary
+  to consider for solving the problem at hand.
+- I began my approach to this problem by creating a list of languages and defining the target unique
+  user count. From there, I filtered for users that spoke any of the languages in the list created using
+  the str.lower(), isin(), and copy() functions. Next, I calculated the number of unique users who spoke
+  any of the languages per company id using the groupby(), nunique(), and reset_index() functions. After
+  aggregation, I filtered for company ids with more than 2 unique users using a comparison operator to 
+  the predefined target user count variable. Lastly, I selected the relevant columns and arranged by
+  company id in ascending order using the sort_values() function.
+
+Suggestions and Final Thoughts:
+- In Solution #1, I wrote out my initial approach in a step by step manner and created a number of 
+  intermediate DataFrames for clarity and debugging. Solution #2 shows an approach where all the methods
+  are chained together into one. Most likely I would start with Solution #1 then gradually evolve to 
+  Solution #2 for production cases.
+- For filtering, the .loc[] and lambda x functions can be used instead of boolean indexing. Another
+  alternative is using the query() function for readability but it creates string logic. The most
+  robust method is using loc and lambda.
+  ex.
+      .loc[lambda x: x["unique_user_count"] > target_user_count]
+      .query("unique_user_count > @target_user_count")
+
+Solve Duration:
+17 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+15 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10358
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+IBM - Friday Purchases
+IBM is working on a new feature to analyze user purchasing behavior for all Fridays in the first quarter of the year. 
+In this question first quarter is defined as first 13 weeks. 
+For each Friday separately, calculate the average amount users have spent per order. 
+The output should contain the week number of that Friday and average amount spent.
+
+Data Dictionary:
+Table name = 'user_purchases'
+amount_spent: float (flt)
+date: date (dt)
+day_name: varchar (str)
+user_id: bigint (int)
+
+Code:
+**Attempt #1
+-- Question:
+-- IBM is working on a new feature to analyze user purchasing behavior for all Fridays
+-- in the first quarter of the year.
+-- In this question first quarter is defined as first 13 weeks.
+-- For each Friday separately, calculate the average amount users have spent per order.
+-- The output should contain the week number of that Friday and average amount spent.
+
+-- Output:
+-- week_number, average_amount_spent_by_users_per_order
+
+-- Preview data:
+SELECT TOP 5* FROM user_purchases;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 40 x 4
+-- Duplicates - 0
+-- Nulls - 0
+-- Value Counts - day_name, user_id
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN amount_spent IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN date IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN day_name IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM user_purchases;
+
+SELECT -- Duplicates
+    amount_spent, date, day_name, user_id,
+    COUNT(*) AS duplicate_count
+FROM user_purchases
+GROUP BY
+    amount_spent, date, day_name, user_id
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    day_name,
+    COUNT(*) AS frequency
+FROM user_purchases
+GROUP BY day_name
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    user_id,
+    COUNT(*) AS frequency
+FROM user_purchases
+GROUP BY user_id
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Filter for day_name, Friday
+-- 2. Assign week number for each Friday
+-- 3. Calculate average amount users have spent per order for each week number
+-- 4. Order by week number in ascending order
+SELECT
+    DATEPART(week, date) AS week_number,
+    AVG(amount_spent) AS average_amount_spent_by_users_per_order
+FROM user_purchases
+WHERE LOWER(day_name) = 'friday'
+GROUP BY DATEPART(week, date)
+ORDER BY week_number;
+
+-- Result:
+SELECT
+    -- 2. Assign week number for each Friday
+    DATEPART(week, date) AS week_number,
+    -- 3. Calculate average amount users have spent per order for each week number
+    AVG(amount_spent) AS average_amount_spent_by_users_per_order
+FROM 
+    user_purchases
+WHERE 
+    -- 1. Filter for day_name, Friday
+    LOWER(day_name) = 'friday'
+GROUP BY 
+    DATEPART(week, date)
+ORDER BY 
+    -- 4. Order by week number in ascending order
+    week_number;
+
+
+** Solution #1 (revised)
+SELECT
+    -- 3. Assign week number for each Friday
+    DATEPART(week, date) AS week_number,
+    -- 4. Calculate average amount users have spent per order for each week number
+    AVG(amount_spent) AS average_amount_spent_by_users_per_order
+FROM 
+    user_purchases
+WHERE 
+    -- 1. Filter for day_name, Friday
+    LOWER(day_name) = 'friday'
+    -- 2. Filter for first 13 weeks
+    AND DATEPART(week, date) BETWEEN 1 AND 13
+GROUP BY 
+    DATEPART(week, date)
+ORDER BY 
+    -- 5. Order by week number in ascending order
+    week_number;
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts found in the data quality check.
+- The approach that I took for this problem was to first filter for Friday in the day_name column using
+  the LOWER() function. From there, I assigned a week number for each Friday date using the DATEPART() 
+  function. Next, I calculated the average amount users have spent per order for each week number Friday
+  using the AVG() function. Finally, I ordered by week number in ascending order.
+
+Suggestions and Final Thoughts:
+- I noticed that this problem provided a day_name column. It would have been better if the problem
+  didn't include it so that the difficulty for this problem would be somewhat greater. I most likely
+  would have used the date column to extract the day name using the DATENAME() function. The parameters
+  for the DATENAME function are DATENAME(interval, datecolumn).
+  ex.
+      DATENAME(weekday, date) AS day_name;
+- I missed the filter for the first 13 weeks. Strangely enough, the dataset did not even go up to 13
+  weeks and ended at week number 11. Using "BETWEEN" provides more clarity and readability. Either
+  method is the same in terms of performance.
+  ex.
+      WHERE
+          DATEPART(week, date) <= 13;
+  ex.
+      WHERE
+          DATEPART(week, date) BETWEEN 1 AND 13;
+- The prompt did not specify a specific year to perform the query. Most dates fell under one year which
+  was 2023. If a year was necessary then the dataset would need to be grouped by year before performing
+  the aggregation
+  ex.
+      GROUP BY
+          DATEPART(year, date),
+          DATEPART(week, date)
+
+Solve Duration:
+26 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+15 minutes
+
+############################################################################################################
