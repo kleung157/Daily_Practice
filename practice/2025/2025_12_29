@@ -1,0 +1,602 @@
+Date: 12/29/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9599
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+ESPN - Old And Young Athletes
+Find the old-to-young player ratio for each Olympic games. 
+'Old' is defined as ages 50 and older and 'young' is defined as athletes 25 or younger. 
+Output the Olympic games, number of old athletes, number of young athletes, and the old-to-young ratio.
+
+Data Dictionary:
+Table name = 'olympics_athletes_events'
+id: numeric (num)
+year: numeric (num)
+name: character (str)
+sex: character (str)
+age: numeric (num)
+height: numeric (num)
+weight: numeric (num)
+team: character (str)
+noc: character (str)
+games: character (str)
+season: character (str)
+city: character (str)
+sport: character (str)
+event: character (str)
+medal: character (str)
+
+Code:
+**Solution #1
+## Question:
+# Find the old to young player ratio for each Olympic games.
+# 'Old' is defined as ages 50 and older and 'young' is defined as athletes 25 or younger.
+# Output the Olympic games, number of old athletes, number of young athletes, and the old to young ratio.
+
+## Output:
+# games, number_of_old_athletes, number_of_young_athletes, old_to_young_ratio
+
+## Import libraries:
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#olympics_athletes_events <- read_csv("olympics_athletes_events.csv")
+olympics_df <- data.frame(olympics_athletes_events)
+head(olympics_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 352 x 15
+# Duplicates - 3
+# Nulls - age(65), height(223), weight(246), medal(229)
+# Value Counts - id, name, sex, team, noc, games, season, city, sport, event, medal
+data.frame(lapply(olympics_df, class))
+
+dim(olympics_df)
+
+sum(duplicated(olympics_df))
+cleaned_olympics_df <- olympics_df %>% distinct()
+sum(duplicated(cleaned_olympics_df))
+
+enframe(colSums(is.na(cleaned_olympics_df)), name="index", value="na_count")
+
+enframe(table(cleaned_olympics_df$id), name="index", value="frequency")
+enframe(table(cleaned_olympics_df$name), name="index", value="frequency")
+enframe(table(cleaned_olympics_df$sex), name="index", value="frequency")
+enframe(table(cleaned_olympics_df$team), name="index", value="frequency")
+enframe(table(cleaned_olympics_df$noc), name="index", value="frequency")
+enframe(table(cleaned_olympics_df$games), name="index", value="frequency")
+enframe(table(cleaned_olympics_df$season), name="index", value="frequency")
+enframe(table(cleaned_olympics_df$city), name="index", value="frequency")
+enframe(table(cleaned_olympics_df$sport), name="index", value="frequency")
+enframe(table(cleaned_olympics_df$event), name="index", value="frequency")
+enframe(table(cleaned_olympics_df$medal), name="index", value="frequency")
+
+## Iteration:
+old_threshold <- as.numeric(50)
+young_threshold <- as.numeric(25)
+
+result_df <- cleaned_olympics_df %>%
+    mutate(
+        # 1. Categorize athletes based on age, don't consider nulls or zeroes
+        is_old = case_when(
+            age >= old_threshold ~ 1,
+            TRUE ~ 0
+        ),
+        is_young = case_when(
+            (age <= young_threshold) & (age > 0) ~ 1,
+            TRUE ~ 0
+        )
+    ) %>%
+    group_by(games) %>%
+    summarise(
+        # 2. Count the number of old and and number of young athletes per Olympics games
+        number_of_old_athletes = sum(is_old, na.rm=TRUE),
+        number_of_young_athletes = sum(is_young, na.rm=TRUE),
+        .groups="drop"
+    ) %>%
+    mutate(
+        # 3. Calculate the ratio of old to young
+        old_to_young_ratio = case_when(
+            (is.na(number_of_young_athletes)) | (number_of_young_athletes == 0) ~ NA,
+            TRUE ~ number_of_old_athletes / number_of_young_athletes
+        )
+    ) %>%
+    arrange(games)
+
+## Result:
+result_df
+
+
+**Solution #2 (revised, concise approach)
+# 1. Remove duplicates and nulls
+cleaned_olympics_df <- olympics_df %>% 
+    distinct() %>%
+    filter(
+        !is.na(age)
+    )
+
+old_threshold <- as.numeric(50)
+young_threshold <- as.numeric(25)
+
+result_df <- cleaned_olympics_df %>%
+    group_by(games) %>%
+    summarise(
+        # 2. Count the number of old and and number of young athletes per Olympics games
+        number_of_old_athletes = sum(age >= old_threshold, na.rm=TRUE),
+        number_of_young_athletes = sum(age <= young_threshold & age > 0, na.rm=TRUE),
+        .groups="drop"
+    ) %>%
+    mutate(
+        # 3. Calculate the ratio of old to young
+        old_to_young_ratio = number_of_old_athletes / na_if(number_of_young_athletes, 0)
+    ) %>%
+    arrange(games)
+
+## Result:
+result_df
+
+Notes:
+- The data quality check revealed 3 duplicates and 65 nulls in the age column. Duplicates were removed and
+  a new DataFrame was created to represent the clean dataset.
+- My approach to this problem began with categorizing athletes based on the age column using the mutate() and
+  case_when() functions. If the age was greater than or equal to 50 then categorize as old with a 1, else 0. 
+  If the age was less than or equal to 25 and greater than 0 then categorize as young with a 1, else 0. 
+  I made sure to account for potential null or zero values when categorizing the rows. Next, I calculated
+  the total number of old and number of young athletes for each Olympic games using the group_by(), 
+  summarise(), and sum() functions. From there, I calculated the ratio of old to young athletes using the 
+  mutate() and case_when() functions. If the denominator (number_of_young_athletes) was null or 0 then the
+  calculation would return NA, else the ratio calculation between number_of_old_athletes and 
+  number_of_young_athletes would occur. Lastly, I sorted the results by the games column in ascending order
+  using the arrange() function.
+
+Suggestions and Final Thoughts:
+- When cleaning the dataset before analysis, filtering out nulls on the age column can be done in the same
+  stage as the removal of duplicates.
+  ex.
+      cleaned_olympics_df <- olympics_df %>% 
+          distinct() %>%
+          filter(
+              !is.na(age)
+          )
+- Instead of creating new columns for categorizing the old and young athletes, the categorization can occur
+  in the group by aggregation step
+  ex.
+      group_by(games) %>%
+      summarise(
+          number_of_old_athletes = sum(age >= old_threshold, na.rm=TRUE),
+          number_of_young_athletes = sum(age <= young_threshold & age > 0, na.rm=TRUE),
+          .groups="drop"
+      )
+- To account for divsion by zero in a ratio calculation, the na_if() function can be used to replace the 0
+  with NULL in the denominator before performing the division calcualtion
+  ex.
+      mutate(
+          old_to_young_ratio = number_of_old_athletes / na_if(number_of_young_athletes, 0)
+      )
+- In Solution #1, I accounted for potential edge cases and wrote out the code with helper columns to show
+  everything in a step by step manner. Solution #2 is the refined and more optimized way of refactoring the
+  code for production.
+
+Solve Duration:
+33 minutes
+
+Notes Duration:
+15 minutes
+
+Suggestions and Final Thoughts Duration:
+20 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9694
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+City of Los Angeles - Single Facility Corporations
+Find all owners which have only a single facility. 
+Output the owner_name and order the results alphabetically.
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+serial_number: object (str)
+activity_date: datetime64 (dt)
+facility_name: object (str)
+score: int64 (int)
+grade: object (str)
+service_code: int64 (int)
+service_description: object (str)
+employee_id: object (str)
+facility_address: object (str)
+facility_city: object (str)
+facility_id: object (str)
+facility_state: object (str)
+facility_zip: object (str)
+owner_id: object (str)
+owner_name: object (str)
+pe_description: object (str)
+program_element_pe: int64 (int)
+program_name: object (str)
+program_status: object (str)
+record_id: object (str)
+
+Code:
+**Attempt #1
+## Question:
+# Find all owners which have only a single facility.
+# Output the owner_name and order the results alphabetically.
+
+## Output:
+# owner_name
+
+# Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#los_angeles_restaurant_health_inspections = pd.read_csv("los_angeles_restaurant_health_inspections.csv")
+inspections_df = pd.DataFrame(los_angeles_restaurant_health_inspections)
+inspections_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 299 x 20
+# Duplicates - 0
+# Nulls - program_name(2)
+# Value Counts - serial_number, facility_name, grade, service_description, employee_id, facility_address,
+#                facility_city, facility_id, facility_state, facility_zip, owner_id, owner_name, 
+#                pe_description, program_name, program_status, record_id
+#inspections_df.info()
+
+inspections_df.shape
+
+inspections_df.duplicated().sum()
+
+inspections_df.isna().sum().reset_index(name="na_count")
+
+inspections_df["serial_number"].value_counts().reset_index(name="frequency")
+inspections_df["facility_name"].value_counts().reset_index(name="frequency")
+inspections_df["grade"].value_counts().reset_index(name="frequency")
+inspections_df["service_description"].value_counts().reset_index(name="frequency")
+inspections_df["employee_id"].value_counts().reset_index(name="frequency")
+inspections_df["facility_address"].value_counts().reset_index(name="frequency")
+inspections_df["facility_city"].value_counts().reset_index(name="frequency")
+inspections_df["facility_id"].value_counts().reset_index(name="frequency")
+inspections_df["facility_state"].value_counts().reset_index(name="frequency")
+inspections_df["facility_zip"].value_counts().reset_index(name="frequency")
+inspections_df["owner_id"].value_counts().reset_index(name="frequency")
+inspections_df["owner_name"].value_counts().reset_index(name="frequency")
+inspections_df["pe_description"].value_counts().reset_index(name="frequency")
+inspections_df["program_name"].value_counts().reset_index(name="frequency")
+inspections_df["program_status"].value_counts().reset_index(name="frequency")
+inspections_df["record_id"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+result_df = (
+    inspections_df
+    .groupby("owner_name")["facility_id"]            # 1. Count the number of facilities for each owner
+    .count()
+    .reset_index(name="facility_count")
+    .loc[lambda x: x["facility_count"] == 1]         # 2. Filter for owners with only a single facility
+    .sort_values(by="owner_name", ascending=True)    # 3. Sort by owner_name in ascending order
+    ["owner_name"]
+)
+
+## Result:
+print("Owners that have only a single facility: ")
+result_df
+
+
+**Solution #1 (revised with nunique() )
+result_df = (
+    inspections_df
+    .groupby("owner_name")["facility_id"]             # 1. Count the number of unique facilities for each owner
+    .nunique()
+    .reset_index(name="unique_facility_count")
+    .loc[lambda x: x["unique_facility_count"] == 1]   # 2. Filter for owners with only a single facility
+    .sort_values(by="owner_name", ascending=True)     # 3. Sort by owner_name in ascending order
+    ["owner_name"]
+)
+
+Notes:
+- There were no duplicates, nulls, or value counts found in the data quality check that were relevant for
+  solving the problem at hand.
+- I started my approach to this problem by counting the number of facilities for each owner using the
+  group_by(), count() and reset_index() functions. From there, I filtered for owners with only a single
+  facility using the loc() and lambda functions. Next, I arranged the results by owner_name in ascending 
+  order and selected the necessary output columns using the sort_values() function. 
+
+Suggestions and Final Thoughts:
+- Since the dataset refers to inspections, the facility_id is repeated if there are multiple inspections
+  for the same facility and owner. The use of nunique() is more accurate to count the number of distinct
+  facilities as opposed to the number of facility inspections when using the count() function. This was
+  seen in the data quality check but I seemed to have subconsciously ignored it rather than take it into
+  account before analyzing.
+  ex.
+      inspections_df["facility_id"].value_counts().reset_index(name="frequency")
+      inspections_df.groupby("owner_name")["facility_id"].nunique()
+- For automating the value counts, a for loop can be used to adhere to DRY (don't repeat yourself). I prefer
+  copy and pasting each column name and editing so that I can see everything step by step rather than just a
+  preview.
+  ex.
+      for col in inspections_df.columns:
+          print(f"--- {col} ---")
+          print(inspections_df[col].value_counts().head(5))
+- The query() function can be used instead of the loc() and lambda functions for filtering comparisons. The
+  query() function is faster for larger DataFrames and has better readability but is string-based and has a
+  harder time considering edge cases. The loc() and lambda functions are more robust and used more routinely.
+  ex.
+      query("unique_facility_count == 1")
+
+Solve Duration:
+16 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+15 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10369
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Spotify - Spotify Penetration Analysis
+Market penetration is an important metric for understanding Spotify's performance and growth potential in different regions.
+You are part of the analytics team at Spotify and are tasked with calculating the active user penetration rate in specific countries.
+For this task, 'active_users' are defined based on the  following criterias:
+last_active_date: The user must have interacted with Spotify within the last 30 days.
+•    sessions: The user must have engaged with Spotify for at least 5 sessions.
+•    listening_hours: The user must have spent at least 10 hours listening on Spotify.
+Based on the condition above, calculate the active 'user_penetration_rate' by using the following formula.
+•    Active User Penetration Rate = (Number of Active Spotify Users in the Country / Total users in the Country)
+Total Population of the country is based on both active and non-active users.​
+The output should contain 'country' and 'active_user_penetration_rate' rounded to 2 decimals.
+Let's assume the current_day is 2024-01-31.
+
+Data Dictionary:
+Table name = 'penetration_analysis'
+country: varchar (str)
+last_active_date: date (dt)
+listening_hours: bigint (int)
+sessions: bigint (int)
+user_id: bigint (int)
+
+Code:
+**Solution #1
+-- Question:
+-- Market penetration is an important metric for understanding Spotify's performance and growth
+-- potential in different regions.
+-- You are part of the analytics team at Spotify and are tasked with calculating the active user
+-- penetration rate in specific countries.
+-- For this task, 'active_users' are defined based on the following criterias
+--     last_active_date - the user must have interacted with Spotify within the last 30 days.
+--     sessions - the user must have engaged with Spotify for at least 5 sessions.
+--     listening_hours - the user must have spent at least 10 hours listening on Spotify.
+-- Based on the condition above, calculate the active 'user_penetration_rate' by using the following formula.
+-- Active User Penetration Rate = (Number of Active Users in the Country / Total users in the Country)
+-- Total Population of the country is based on both active and non-active users.
+-- The output should contain 'country' and 'active_user_penetration_rate' rounded to 2 decimals.
+-- Let's assume the current_day is 2024-01-31.
+
+-- Output:
+-- country, active_user_penetration_rate
+
+-- Preview data:
+SELECT TOP 5* FROM penetration_analysis;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 1000 x 5
+-- Duplicates - 0
+-- Nulls -
+-- Value Counts - country, user_id
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN country IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN last_active_date IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN listening_hours IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN sessions IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    COUNT(*) AS total_rows
+FROM penetration_analysis;
+
+SELECT -- Duplicates
+    country, last_active_date, listening_hours, sessions, user_id,
+    COUNT(*) AS duplicate_count
+FROM penetration_analysis
+GROUP BY
+    country, last_active_date, listening_hours, sessions, user_id
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    country,
+    COUNT(*) AS frequency
+FROM penetration_analysis
+GROUP BY country
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    user_id,
+    COUNT(*) AS frequency
+FROM penetration_analysis
+GROUP BY user_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    last_active_date,
+    COUNT(*) AS frequency
+FROM penetration_analysis
+GROUP BY last_active_date
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Filter for active users based on criteria;
+--    last_active_date, within the last 30 days
+--    sessions, at least 5 sessions
+--    listening_hours, at least 10 hours
+-- 2. Count the number of active users in each country
+-- 3. Count the number of total users in each country
+-- 4. Calculate active user penetration rate, round to 2 decimals
+--    rate = number of active users / number of total users
+-- 5. Arrange by country in ascending order
+WITH CountryUsers AS (
+    SELECT 
+        country,
+        COUNT(
+            CASE 
+                WHEN 
+                    last_active_date BETWEEN DATEADD(day, -30, '2024-01-31') AND '2024-01-31'
+                    AND sessions >= 5 
+                    AND listening_hours >= 10
+                THEN user_id
+                ELSE NULL
+            END
+        ) AS active_users,
+        COUNT(user_id) AS total_users
+    FROM penetration_analysis
+    GROUP BY country
+)
+SELECT
+    country,
+    ROUND(
+        1.0 * active_users / NULLIF(total_users, 0)
+    , 2) AS active_user_penetration_rate
+FROM CountryUsers
+ORDER BY country ASC;
+
+-- Result:
+WITH CountryUsers AS (
+    SELECT 
+        country,
+        -- 2. Count the number of active users in each country
+        COUNT(
+            CASE 
+                WHEN 
+                    -- 1. Filter for active users based on criteria;
+                    --    last_active_date, within the last 30 days
+                    --    sessions, at least 5 sessions
+                    --    listening_hours, at least 10 hours
+                    last_active_date BETWEEN DATEADD(day, -30, '2024-01-31') AND '2024-01-31'
+                    AND sessions >= 5 
+                    AND listening_hours >= 10
+                THEN user_id
+                ELSE NULL
+            END
+        ) AS active_users,
+        -- 3. Count the number of total users in each country
+        COUNT(user_id) AS total_users
+    FROM 
+        penetration_analysis
+    GROUP BY 
+        country
+)
+SELECT
+    country,
+    -- 4. Calculate active user penetration rate, round to 2 decimals
+    --    rate = number of active users / number of total users
+    ROUND(
+        1.0 * active_users / NULLIF(total_users, 0)
+    , 2) AS active_user_penetration_rate
+FROM 
+    CountryUsers
+ORDER BY 
+    -- 5. Arrange by country in ascending order
+    country ASC;
+
+
+**Solution #2 (revised for a single pass approach)
+SELECT
+    country,
+    -- 4. Calculate active user penetration rate, round to 2 decimals
+    --    rate = number of active users / number of total users
+    ROUND(
+        1.0 *
+        -- 2. Count the number of active users in each country
+        COUNT(
+            CASE 
+                WHEN 
+                    -- 1. Filter for active users based on criteria;
+                    --    last_active_date, within the last 30 days
+                    --    sessions, at least 5 sessions
+                    --    listening_hours, at least 10 hours
+                    last_active_date BETWEEN DATEADD(day, -30, '2024-01-31') AND '2024-01-31'
+                    AND sessions >= 5 
+                    AND listening_hours >= 10
+                THEN user_id
+                ELSE NULL
+            END
+        ) 
+        -- 3. Count the number of total users in each country
+        / NULLIF(COUNT(user_id), 0)
+    , 2) AS active_user_penetration_rate
+FROM 
+    penetration_analysis
+GROUP BY
+    country
+ORDER BY 
+    -- 5. Arrange by country in ascending order
+    country ASC;
+
+Notes:
+- The data quality check revealed a large range of date values with multiple frequencies in the 
+  last_active_date column and all values in the user_id column were unique.
+- The approach that I took for solving this problem started with filtering for active users based on the
+  following criterias; users interacting within the last 30 days, users engaged for at least 5 sessions, and 
+  users listening for at least 10 hours. These filters were placed into a CASE WHEN statement and used to 
+  count the number of active users in each country using the DATEADD() AND COUNT() functions. The total users
+  in each country were counted as well in the same SELECT statement using the COUNT() function. The previous
+  steps were placed into a common table expression (CTE) called CountryUsers and subsequently queried to
+  calculate the active user penetration rate by dividing the active_users and total_users columns.
+  The results were rounded to 2 decimal places and divison by zero was accounted for using the ROUND() and
+  NULLIF() functions which returns NULL if a zero is present in the denominator. The final output was
+  arranged in ascending order based on the country column.
+  
+Suggestions and Final Thoughts:
+- For MS SQL Server, the DATEADD() function has the parameters (datepart, interval, date). This can be used
+  for calculating the interval for a given date and specified datepart. Another approach would be to use the
+  DATEDIFF() function with the parameters (datepart, startdate, and enddate) to calculate the difference
+  between two dates based on the datepart specified. Using BETWEEN with DATEADD() and the current date
+  accounted for 31 days instead of 30 days as seen in Solution #1/2. The DATEADD() and DATEDIFF() approaches 
+  are more preferred for strict requirements that are "within 30 days". However, a 30 day window usually
+  includes the current date in the range which makes it to be 31 days instead of just 30. DATEADD() is more
+  index friendly and more performant than using DATEDIFF().
+  ex. 
+      -- PostgreSQL / Oracle / MYSQL example
+      WHERE last_active_date BETWEEN ('2024-01-31' - INTERVAL '30' DAY) AND '2024-01-31';  
+  ex.
+      WHERE last_active_date > DATEADD(day, -30, '2024-01-31')
+         AND last_active_date <= '2024-01-31';
+  ex.
+      WHERE DATEDIFF(day, last_active_date, '2024-01-31') BETWEEN 0 and 29;
+
+Solve Duration:
+37 minutes
+
+Notes Duration:
+15 minutes
+
+Suggestions and Final Thoughts Duration:
+40 minutes
+
+############################################################################################################
