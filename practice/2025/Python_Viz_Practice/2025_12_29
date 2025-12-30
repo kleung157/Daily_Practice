@@ -1,0 +1,130 @@
+Date: 12/29/2025
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10440
+
+Difficulty:
+Easy
+
+Question Type:
+Python
+
+Question:
+Website visitors tracking
+Develop a line chart to track the daily number of visitors to a website over the last year, color 'midnightblue' for the line.
+Matplotlib Color Mapping - color='midnightblue'
+Matplotlib Figure Size - figsize=(14,7)
+
+Data Dictionary:
+Table name = 'df'
+date: datetime64 (dt)
+visitors: int64 (int)
+
+Code:
+**Attempt #1
+# Import libraries:
+import matplotlib.pyplot as plt
+
+# Sort dates
+df = df.sort_values("date")
+
+# Set figure size
+plt.figure(figsize=(14, 7))
+
+# Create the plot
+plt.plot(df["date"], df["visitors"], color='midnightblue')
+
+# Add labels and title
+plt.xlabel("Date")
+plt.ylabel("Visitors")
+plt.title("Website Visitors Tracking")
+
+# Rotate dates to prevent overlapping
+plt.xticks(rotation=45)
+
+# Ensure labels aren't truncated
+plt.tight_layout()
+
+plt.show()
+
+
+**Solution #1 (set months for every tick only using matplotlib.pyplot)
+# Import libraries:
+import matplotlib.pyplot as plt
+
+# Preview data and statistics
+df.head(5)
+df.describe().reset_index()
+
+# Sort dates
+df = df.sort_values("date")
+
+# Set figure size
+plt.figure(figsize=(14, 7))
+
+# Group by year month and take the minimum date
+monthly_ticks = df.groupby(df['date'].dt.to_period('M'))['date'].min()
+
+# Create labels in 'YYYY-MM' format
+monthly_labels = [d.strftime("%Y-%m") for d in monthly_ticks]
+
+# Create the plot
+plt.plot(df["date"], df["visitors"], color='midnightblue')
+
+# Set ticks, labels, and rotate dates to prevent overlapping
+plt.xticks(ticks=monthly_ticks, labels=monthly_labels, rotation=45)
+
+# Add labels and title
+plt.xlabel("Date")
+plt.ylabel("Visitors")
+plt.title("Website Visitors Tracking")
+
+# Ensure labels aren't truncated
+plt.tight_layout()
+
+plt.show()
+
+
+**Solution #2 (set months for every tick with matplotlib.dates)
+# Import libraries:
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+
+# Preview data:
+df.head(5)
+
+# Value Counts
+df["date"].value_counts().reset_index(name="frequency")
+df["visitors"].value_counts().reset_index(name="frequency")
+
+# Sort dates
+df = df.sort_values(by="date", ascending=True)
+
+# Set figure and axes with figure size
+fig, ax = plt.subplots(figsize=(14, 7))
+
+# Create the plot
+ax.plot(df["date"], df["visitors"], color='midnightblue')
+
+# Set locator to show a tick for every month
+ax.xaxis.set_major_locator(mdates.MonthLocator())
+
+# Format the date
+ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
+
+# Add labels and title
+ax.set_xlabel("Month")
+ax.set_ylabel("Visitors")
+ax.set_title("Website visitors tracking")
+
+# Rotate dates to prevent overlapping
+plt.xticks(rotation=45)
+
+# Ensure labels aren't truncated
+plt.tight_layout()
+
+plt.show()
+
+############################################################################################################
