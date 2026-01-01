@@ -1,0 +1,533 @@
+Date: 01/01/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9601
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Forbes - Find The Best Day For Trading AAPL Stock
+Find which calendar day of the month (e.g. the 6th, 17th, 25th, etc.) tends to be the best for trading AAPL stock across all months in the dataset. 
+The best day is the one with highest positive difference between average closing price and average opening price. 
+Output the result along with the average opening and closing prices.
+
+Data Dictionary:
+Table name = 'aapl_historical_stock_price'
+year: numeric (num)
+month: numeric (num)
+volume: numeric (num)
+id: numeric (num)
+date: POSIXct, POSIXt (dt)
+open: numeric (num)
+high: numeric (num)
+low: numeric (num)
+close: numeric (num)
+
+Code:
+Solution #1
+## Question:
+# Find which calendar day of the month (e.g. the 6th, 17th, 25th, etc.) tends to be the best for trading
+# AAPL stock across all months in the dataset.
+# The best day is the one with highest positive difference between average closing price and average
+# opening price
+# Output the result along with the average opening and closing prices.
+
+## Output:
+# day, average_opening_price, average_closing_price
+
+## Import libraries:
+#install.packages(tidyverse)
+#install.packages(lubridate)
+library(tidyverse)
+library(lubridate)
+
+## Load and preview data:
+#aapl_historical_stock_price <- read_csv("aapl_historical_stock_price.csv")
+stocks_df = data.frame(aapl_historical_stock_price)
+head(stocks_df, 5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 247 x 9
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - id
+data.frame(lapply(stocks_df, class))
+
+dim(stocks_df)
+
+sum(duplicated(stocks_df))
+
+enframe(colSums(is.na(stocks_df)), name="index", value="na_count")
+
+enframe(table(stocks_df$id), name="index", value="frequency")
+
+## Iteration:
+result_df <- stocks_df %>%
+    mutate(
+        # 1. Extract the day of each month
+        day = day(date)
+    ) %>%
+    group_by(day) %>%
+    summarise(
+        # 2. Calculate the average opening price for each day
+        average_opening_price = mean(open, na.rm=TRUE),
+        # 3. Calculate the average closing price for each day
+        average_closing_price = mean(close, na.rm=TRUE),
+        # 4. Calculate the difference between average closing and opening price
+        difference = average_closing_price - average_opening_price,
+        .groups="drop"
+    ) %>%
+    slice_max(
+        # 5. Filter for highest positive difference
+        difference
+    ) %>%
+    select(
+        # 6. Select relevant columns
+        day, average_opening_price, average_closing_price
+    )
+
+## Result:
+result_df
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts found in the data quality check.
+- I began my approach to this problem by extracting the day of each month using the mutate() and day()
+  functions. Next, I calculated the average opening price for each day, the average closing price for each
+  day, and the difference between the average closing and opening price for each day using the group_by(),
+  summarise(), and mean() functions. After aggregation, I filtered for highest positive difference using the
+  slice_max() function. Lastly, I selected the relevant output columns using the select() function.
+- I had considered putting the extraction of the day of the month in the group_by() function so that the
+  mutate() step could be skipped. Also for filtering for highest positive difference, I thought about using
+  filter() and the comparisons of (difference > 0) & (difference == max(difference)) to indicate positive 
+  values and the highest of them.
+
+Suggestions and Final Thoughts:
+- Another way of performing the id frequency check is to see if the count of unique IDs matches tne number
+  of rows. 
+  ex.
+      nrow(stocks_df) == n_distinct(stocks_df$id)
+- Performing the difference calculation in the summarise() function is more efficient and performant than
+  placing it in a subsequent step within the mutate() function. 
+      summarise(
+          difference = average_closing_price - average_opening_price
+      )
+- Extracting the day of the month from the date in the group_by() function is cleaner and more efficient
+  if the column is not used multiple times in later steps.
+  ex.
+      group_by(day = day(date))
+- The modern way of grouping is to use .by in the summarise() function as opposed to having separate
+  group_by(), ungroup(), and .groups="drop" steps. It is slightly faster and more concise for summaries.
+  ex.
+      summarise(
+          average_opening_price = mean(open, na.rm = TRUE),
+          average_closing_price = mean(close, na.rm = TRUE),
+          difference = average_closing_price - average_opening_price,
+          .by = (day = day(date))               # The grouping logic happens right here
+      )
+- Another modern approach is the native pipe |> in base R for (R 4.1+) that uses less loaded packages 
+  compared to the standard %>% pipe from the tidyverse and magrittr packages. It is much faster and
+  easier to find errors.
+  ex.
+      result_df <- stocks_df |>
+          group_by(day = day(date)) |>
+          summarise(
+             avg_open = mean(open, na.rm = TRUE),
+             .groups = "drop"
+          )   
+
+Solve Duration:
+19 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+12 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9700
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+City of Los Angeles - Rules To Determine Grades
+Find the rules used to determine each grade. 
+Show the rule in a separate column in the format of 'Score > X AND Score <= Y => Grade = A' where X and Y are the lower and upper bounds for a grade. 
+Output the corresponding grade and its highest and lowest scores along with the rule. 
+Order the result based on the grade in ascending order.
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+serial_number: object (str)
+activity_date: datetime64 (dt)
+facility_name: object (str)
+score: int64 (int)
+grade: object (str)
+service_code: int64 (int)
+service_description: object (str)
+employee_id: object (str)
+facility_address: object (str)
+facility_city: object (str)
+facility_id: object (str)
+facility_state: object (str)
+facility_zip: object (str)
+owner_id: object (str)
+owner_name: object (str)
+pe_description: object (str)
+program_element_pe: int64 (int)
+program_name: object (str)
+program_status: object (str)
+record_id: object (str)
+
+Code:
+Solution #1
+## Question:
+# Find the rules used to determine each grade.
+# Show the rule in a separate column in the format of 'Score > X AND Score <= Y => Grade = A'
+# where X and Y are the lower and upper bounds for a grade.
+# Output the corresponding grade and its highest and lowest scores along with the rule.
+# Order the result based on the grade in ascending order.
+
+## Output:
+# grade, highest_score, lowest_score, rule
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#los_angeles_restaurant_health_inspections = pd.read_csv("los_angeles_restaurant_health_inspections.csv")
+inspections_df = pd.DataFrame(los_angeles_restaurant_health_inspections)
+inspections_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 299 x 20
+# Duplicates - 0
+# Nulls - program_name(2)
+# Value Counts - serial_number, facility_name, grade, service_description, employee_id, facility_address,
+#                facility_city, facility_id, facility_state, facility_zip, owner_id, owner_name,
+#                pe_description, program_name, program_status, record_id
+#inspections_df.info()
+
+inspections_df.shape
+
+inspections_df.duplicated().sum()
+
+inspections_df.isna().sum().reset_index(name="na_count")
+
+inspections_df["serial_number"].value_counts().reset_index(name="frequency")
+inspections_df["facility_name"].value_counts().reset_index(name="frequency")
+inspections_df["grade"].value_counts().reset_index(name="frequency")
+inspections_df["service_description"].value_counts().reset_index(name="frequency")
+inspections_df["employee_id"].value_counts().reset_index(name="frequency")
+inspections_df["facility_address"].value_counts().reset_index(name="frequency")
+inspections_df["facility_city"].value_counts().reset_index(name="frequency")
+inspections_df["facility_id"].value_counts().reset_index(name="frequency")
+inspections_df["facility_state"].value_counts().reset_index(name="frequency")
+inspections_df["facility_zip"].value_counts().reset_index(name="frequency")
+inspections_df["owner_id"].value_counts().reset_index(name="frequency")
+inspections_df["owner_name"].value_counts().reset_index(name="frequency")
+inspections_df["pe_description"].value_counts().reset_index(name="frequency")
+inspections_df["program_name"].value_counts().reset_index(name="frequency")
+inspections_df["program_status"].value_counts().reset_index(name="frequency")
+inspections_df["record_id"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+result_df = (
+    inspections_df.groupby(["grade"])
+    .agg(highest_score = ('score', 'max'),    # 1. Find the highest score for each grade (Y)
+         lowest_score = ('score', 'min')      # 2. Find the lowest score for each grade (X)
+    )
+    .reset_index()
+    .sort_values(by="grade", ascending=True)   # 4. Arrange results in ascending order by grade
+)
+
+# 3. Create rule in format 'Score > X AND Score <= Y => Grade = A'
+result_df["rule"] = (
+    "Score > " + result_df["lowest_score"].astype(str) + 
+    " AND Score <= " + result_df["highest_score"].astype(str) + 
+    " => Grade = " + result_df["grade"].astype(str)
+)
+
+## Result:
+print("Rules to determine each grade: ")
+result_df
+
+Notes:
+- There were no duplicates, nulls, and abnormal value counts found in the data quality check that were
+  relevant for solving the problem at hand.
+- I started my approach to this problem by finding the highest score and lowest score for each grade using
+  the groupby(), agg() and reset_index() functions. From there, I created the rule column in the format of
+  'Score > X and Score <= Y => Grade = A' where X was the lowest score and Y was the highest score using
+  the function .astype(str) and string concatenation. Finally, I added a sort step in the previous aggregation
+  step to arrange the results in ascending order by grade using the sort_values() function.
+- Initially, I had tried to use str() to convert the lowest and highest score columns into strings for string
+  concatenation but since this is using pandas and numpy packages, the function that is necessary is 
+  astype(str). Using str.cat() and f string lambda x are alternative approaches as well. The approach that
+  I would generally use is .astype(str) as it's more performant than f string lambda x but gives up some 
+  readability. 
+  ex.
+      result_df["rule"] = result_df.apply(
+          lambda x: f"Score > {x["lowest_score"]} AND Score <= {x["highest_score"]} => Grade = {x["grade"]}",
+          axis=1
+      )
+  ex.
+      result_df["rule"] = "Score > " + result_df["lowest_score"].astype(str)
+      result_df["rule"] = result_df["rule"].str.cat([
+          " AND Score <= ", result_df["highest_score"].astype(str),
+          " => Grade = ", result_df["grade".astype(str)
+      ])
+  
+Suggestions and Final Thoughts:
+- The rule in the prompt says 'Score > X' for the lower bound of a grade. To be more accurate, it would be
+  better to say Score >= X. To adhere to the prompt of 'Score > X' but going by the logic of 'Score >= X'
+  it would be simpler to remove the lower bound by 1.
+  ex.
+      "Score > " + (result_df["lowest_score"] - 1).astype(str)
+
+Solve Duration:
+31 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10545
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Walmart - Same-Day Orders
+Identify users who started a session and placed an order on the same day.
+For these users, return the total number of orders placed on that day and the total order value for that day.
+Your output should include the user_id, the session_date, the total number of orders, and the total order value for that day.
+
+Data Dictionary:
+Table name = 'sessions'
+session_date: date (d)
+session_id: bigint (int)
+user_id: bigint (int)
+
+Table name = 'order_summary'
+order_date: date (d)
+order_id: bigint (int)
+order_value: bigint (int)
+user_id: bigint (int)
+
+Code:
+**Attempt #1
+-- Question:
+-- Identify users who started a session and placed an order on the same day.
+-- For these users, return the total number of orders placed on that day 
+-- and the total order value for that day.
+-- Your output should include the user_id, the session_date, the total number of orders, and the total
+-- order value for that day.
+
+-- Output:
+-- user_id, session_date, total_number_of_orders, total_order_value
+
+-- Preview data:
+SELECT TOP 5* FROM sessions;
+SELECT TOP 5* FROM order_summary;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - sessions: 10 x 3
+--            - order_summary: 10 x 3
+-- Duplicates - sessions: 0
+--            - order_summary: 0
+-- Nulls - sessions: 0
+--       - order_summary: 0
+-- Value Counts - sessions: session_id, user_id
+--              - order_summary: order_id, user_id
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN session_date IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN session_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    COUNT(*) AS total_rows
+FROM sessions;
+
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN order_date IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN order_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN order_value IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM order_summary;
+
+SELECT -- Duplicates
+    session_date, session_id, user_id,
+    COUNT(*) AS duplicate_count
+FROM sessions
+GROUP BY 
+    session_date, session_id, user_id
+HAVING COUNT(*) > 1;
+
+SELECT -- Duplicates
+    order_date, order_id, order_value, user_id,
+    COUNT(*) AS duplicate_count
+FROM order_summary
+GROUP BY
+    order_date, order_id, order_value, user_id
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    session_id,
+    COUNT(*) AS frequency
+FROM sessions
+GROUP BY session_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    user_id,
+    COUNT(*) AS frequency
+FROM sessions
+GROUP BY user_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    order_id,
+    COUNT(*) AS frequency
+FROM order_summary
+GROUP BY order_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    user_id,
+    COUNT(*) AS frequency
+FROM order_summary
+GROUP BY user_id
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Join sessions and order_summary tables by user_id
+-- 2. Filter for session_date and order_date being on the same day
+-- 3. Calculate the total number of orders for each user on the same day
+-- 4. Calculate the total order value for each user on the same day
+SELECT
+    s.user_id,
+    s.session_date,
+    COUNT(o.order_id) AS total_number_of_orders,
+    SUM(o.order_value) AS total_order_value
+FROM sessions AS s
+JOIN order_summary AS o
+    ON s.user_id = o.user_id
+WHERE s.session_date = o.order_date
+GROUP BY 
+    s.user_id, 
+    s.session_date
+ORDER BY s.user_id ASC;
+
+-- Result:
+SELECT
+    s.user_id,
+    s.session_date,
+    -- 3. Calculate the total number of orders for each user on the same day
+    COUNT(o.order_id) AS total_number_of_orders,
+    -- 4. Calculate the total order value for each user on the same day
+    SUM(o.order_value) AS total_order_value
+FROM 
+    sessions AS s
+JOIN 
+    -- 1. Join sessions and order_summary tables by user_id
+    order_summary AS o
+    ON s.user_id = o.user_id
+WHERE
+    -- 2. Filter for session_date and order_date being on the same day
+    s.session_date = o.order_date
+GROUP BY 
+    s.user_id, 
+    s.session_date
+ORDER BY 
+    s.user_id ASC;
+
+
+** Solution #1 (revised with suggestions)
+WITH unique_sessions AS (
+    SELECT DISTINCT
+        user_id,
+        session_date
+    FROM 
+        sessions
+)
+SELECT
+    s.user_id,
+    s.session_date,
+    -- 3. Calculate the total number of orders for each user on the same day
+    COUNT(o.order_id) AS total_number_of_orders,
+    -- 4. Calculate the total order value for each user on the same day
+    SUM(o.order_value) AS total_order_value
+FROM 
+    unique_sessions AS s
+JOIN 
+    -- 1. Join sessions and order_summary tables by user_id
+    order_summary AS o
+    ON s.user_id = o.user_id
+    -- 2. Filter for session_date and order_date being on the same day
+    AND s.session_date = o.order_date
+GROUP BY 
+    s.user_id, 
+    s.session_date
+ORDER BY 
+    s.user_id ASC;
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts found in the data quality check.
+- My approach to this problem started with joining the sessions and order_summary tables by the user_id
+  column and filtering for session_date and order_date being on the same day. From there, I calculated
+  the total number of orders for each user on the same day and calculated the total order value for each
+  user on the same day using the COUNT() and SUM() functions respectively. Finally, I ordered the results
+  by user_id in ascending order.
+
+Suggestions and Final Thoughts:
+- The filtering for session_date and order_date being on the same day can be performed in the JOIN operation
+  as it is more modern and readable than placing it in the WHERE clause where it may have the potential to
+  break. In the case of a LEFT JOIN, the WHERE filters out NULLS after a LEFT JOIN IS performed making it
+  act like an INNER JOIN instead of the intended LEFT JOIN.
+  ex.
+      JOIN 
+          order_summary AS o
+          ON s.user_id = o.user_id
+          AND s.session_date = o.order_date
+- If there are multiple sessions where the user_id and session_date are the same then there could be 
+  duplicated order value and order number that throw off the aggregate calculations when joined. It is best 
+  to find the unique values in the sessions Table before performing the join to ensure that all the entries 
+  are distinct.
+  ex.
+      WITH unique_sessions AS (
+          SELECT DISTINCT
+             user_id,
+              session_date
+          FROM sessions;
+      )
+
+Solve Duration:
+22 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+12 minutes
+
+############################################################################################################
