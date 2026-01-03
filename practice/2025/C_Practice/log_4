@@ -1795,8 +1795,8 @@ void __HashMap_put(struct HashMap* self, char *key, int value) {
         return;
     }
   
-    // Allocate space for new key
-    new_key = (char *) malloc(strlen(key)+1);
+    // Allocate space for new key and copy key to new_key
+    new_key = strdup(key)
   
     // Allocate space for new variable
     new = malloc(sizeof(*new));
@@ -1807,9 +1807,6 @@ void __HashMap_put(struct HashMap* self, char *key, int value) {
         free(new_key);
         return;
     }
-  
-    // Copy key to new_key
-    strcpy(new_key, key);
  
     // Set new node properties
     new->key = new_key;
