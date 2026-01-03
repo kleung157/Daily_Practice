@@ -2032,7 +2032,7 @@ Question:
 Build a LinkedTreeMap.
 There is a good deal of discussion of this assignment in the lecture materials associated with this assignment.
 Loop through the tree from the root. 
-If the matchesthe node, update the value and return.  
+If the matches the node, update the value and return.  
 As the tree is scanned, keep track of the node containing largest key less than "key" in the variable left and the node containing the smallest key greater than "key" in the variable "right".  
 So if the key is not found, left will be the closest lower neighbor or null and right will be the closest greater neighbor or null.
 
