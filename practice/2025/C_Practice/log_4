@@ -1597,17 +1597,753 @@ Suggestions and Final Thoughts:
 ############################################################################################################
 
 Source:
-C Programming for Everybody
+C Programming for Everybody - Build a HashMap
 
 Question:
+In this assignment, you will implement the Map class using a hash map as the underlying structure rather than a linked list. 
+The easiest approach to this assignment is to start with your implementation of Map using a linked list and then adapt it from a single head value to an array of head values that each point to an independent linked list. 
+We use the getBucket() function to choose the appropriate linked list head from the array of head values.
 
 Python Code:
+N/A
 
 C Code:
+** Attempt #1 (only the __HashMap_put function needed to be revised)
+/* Add or update an entry in the HashMap */
+void __HashMap_put(struct HashMap* self, char *key, int value) {
+    int bucket;
+    struct HashMapEntry *old, *new;
+  
+    // Check if valid input
+    if ( key == NULL ) {
+        return;
+    }
+  
+    // If old key found then replace the value
+    bucket = getBucket(key, self->__buckets);
+    old = __HashMap_find(self, key, bucket);
+    if ( old != NULL ) {
+        old->value = value;
+        return;
+    }
+  
+    // Allocate space for new key and new value
+    char *new_key = (char *) malloc(strlen(key)+1);
+    char *new_value = (char *) malloc(strlen(key)+1);
+  
+    // Allocate space for new variable
+    new = malloc(sizeof(*new));
+  
+    // Check if allocation failed 
+    if ( new_key == NULL ) {
+        return;
+    }
+    if ( new_value == NULL ) {
+        return;  
+    }
+    if ( new == NULL ) {
+        free(new_value);
+        free(new_key);
+        return;
+    }
+  
+    // Copy key to new_key, value to new_value
+    strcpy(new_key, key);
+    strcpy(new_value, value);
+ 
+    // Set new node properties
+    new->key = new_key;
+    new->value = value;
+    new->__next = NULL;
+  
+    // HashMap is empty: The new node is the head
+    if ( self->__heads[bucket] == NULL ) {
+        self->__heads[bucket] = new;
+    }
+    
+    // HashMap not empty: Link the old tail to the new node
+    if ( self->__tails[bucket] != NULL ) {
+        self->__tails[bucket]->__next = new; 
+    }
+                      
+    // Set the back pointer
+    new->__prev = self->__tails[bucket];
+  
+    // Update the dict's tail
+    self->__tails[bucket] = new;
+  
+    // Increment the counter
+    self->__count++;
+}
+
+
+** Solution #1
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct HashMapEntry {
+    char *key;  /* public */
+    int value;  /* public */
+    struct HashMapEntry *__prev;
+    struct HashMapEntry *__next;
+};
+
+struct HashMapIter {
+    int __bucket;
+    struct HashMap *__map;
+    struct HashMapEntry *__current;
+
+    struct HashMapEntry* (*next)(struct HashMapIter* self);
+    void (*del)(struct HashMapIter* self);
+};
+
+struct HashMap {
+    /* Attributes */
+    int __buckets;
+    struct HashMapEntry *__heads[8];
+    struct HashMapEntry *__tails[8];
+    int __count;
+
+    /* Methods */
+    void (*put)(struct HashMap* self, char *key, int value);
+    int (*get)(struct HashMap* self, char *key, int def);
+    int (*size)(struct HashMap* self);
+    void (*dump)(struct HashMap* self);
+    struct HashMapIter* (*iter)(struct HashMap* self);
+    void (*del)(struct HashMap* self);
+};
+
+void __HashMap_del(struct HashMap* self)
+{
+    int i;
+    struct HashMapEntry *cur, *next;
+
+    for(i=0; i<self->__buckets; i++) {
+        cur = self->__heads[i];
+        while(cur) {
+            free(cur->key);
+            /* value is just part of the struct */
+            next = cur->__next;
+            free(cur);
+            cur = next;
+        }
+    }
+    free((void *)self);
+}
+
+void __HashMapIter_del(struct HashMapIter* self) {
+    free((void *)self);
+}
+
+int getBucket(char *str, int buckets)
+{
+    int hash = 42;
+    if ( str == NULL ) return 0;
+    for( ; *str ; str++) {
+        hash = ( hash << 3 ) ^ *str;
+    }
+    return hash % buckets;
+}
+
+void __HashMap_dump(struct HashMap* self)
+{
+    int i;
+    struct HashMapEntry *cur;
+    printf("Object HashHashMap count=%d buckets=%d\n", self->__count, self->__buckets);
+    for(i = 0; i < self->__buckets; i++ ) {
+        for(cur = self->__heads[i]; cur != NULL ; cur = cur->__next ) {
+            printf(" %s=%d [%d]\n", cur->key, cur->value, i);
+        }
+    }
+}
+
+/* Searches the HashMap to see if the key exists and where it's located */
+struct HashMapEntry* __HashMap_find(struct HashMap* self, char *key, int bucket)
+{
+    struct HashMapEntry *cur;
+  
+    if ( self == NULL || key == NULL ) {
+        return NULL; 
+    }
+    
+    for ( cur = self->__heads[bucket] ; cur != NULL ; cur = cur->__next ) {
+        if ( strcmp(key, cur->key) == 0 ) {
+            return cur; 
+        }
+    }
+      
+    return NULL;
+}
+
+/* Add or update an entry in the HashMap */
+void __HashMap_put(struct HashMap* self, char *key, int value) {
+    int bucket;
+    struct HashMapEntry *old, *new;
+    char *new_key;
+  
+    // Check if valid input
+    if ( key == NULL ) {
+        return;
+    }
+  
+    // If old key found then replace the value
+    bucket = getBucket(key, self->__buckets);
+    old = __HashMap_find(self, key, bucket);
+    if ( old != NULL ) {
+        old->value = value;
+        return;
+    }
+  
+    // Allocate space for new key
+    new_key = (char *) malloc(strlen(key)+1);
+  
+    // Allocate space for new variable
+    new = malloc(sizeof(*new));
+  
+    // Check if allocation failed 
+    if (new == NULL || new_key == NULL ) {
+        free(new);
+        free(new_key);
+        return;
+    }
+  
+    // Copy key to new_key
+    strcpy(new_key, key);
+ 
+    // Set new node properties
+    new->key = new_key;
+    new->value = value;
+    new->__next = NULL;
+    new->__prev = self->__tails[bucket];     // Set the back pointer
+  
+    // HashMap is empty: The new node is the head
+    if ( self->__heads[bucket] == NULL ) {
+        self->__heads[bucket] = new;
+    }
+    
+    // HashMap not empty: Link the old tail to the new node
+    if ( self->__tails[bucket] != NULL ) {
+        self->__tails[bucket]->__next = new; 
+    }
+  
+    // Update the HashMap's tail
+    self->__tails[bucket] = new;
+  
+    // Increment the counter
+    self->__count++;
+}
+
+/* Locate and return the value for the corresponding key or a default value */
+int __HashMap_get(struct HashMap* self, char *key, int def)
+{
+    int bucket = getBucket(key, self->__buckets);
+    struct HashMapEntry *retval = __HashMap_find(self, key, bucket);
+  
+    // If key is present in HashMap then return value, else return def
+    if ( retval == NULL ) {
+        return def;  
+    }
+  
+    return retval->value;
+}
+
+int __HashMap_size(struct HashMap* self)
+{
+    return self->__count;
+}
+
+/* Advance the iterator forwards and return the next item */
+struct HashMapEntry* __HashMapIter_next(struct HashMapIter* self)
+{
+    struct HashMapEntry *retval;
+    
+    /* If we are at the end of a chain and there are still more buckets
+       scan for a bucket that is not NULL */
+    while ( self->__current == NULL) {
+        self->__bucket++;
+      
+        if ( self->__bucket >= self->__map->__buckets ) {
+            return NULL; 
+        }
+      
+        self->__current = self->__map->__heads[self->__bucket];
+    }
+  
+    retval = self->__current;
+  
+    if ( self->__current != NULL ) {
+        self->__current = self->__current->__next;  
+    }
+    
+    return retval;
+}
+
+struct HashMapIter* __HashMap_iter(struct HashMap* map)
+{
+    struct HashMapIter *iter = malloc(sizeof(*iter));
+    iter->__map = map;
+    iter->__bucket = 0;
+    iter->__current = map->__heads[iter->__bucket];
+    iter->next = &__HashMapIter_next;
+    iter->del = &__HashMapIter_del;
+    return iter;
+}
+
+struct HashMap * HashMap_new() {
+    struct HashMap *p = malloc(sizeof(*p));
+    int i;
+
+    p->__buckets = 8;
+    for(i=0; i < p->__buckets; i++ ) {
+        p->__heads[i] = NULL;
+        p->__tails[i] = NULL;
+    }
+
+    p->__count = 0;
+
+    p->put = &__HashMap_put;
+    p->get = &__HashMap_get;
+    p->size = &__HashMap_size;
+    p->dump = &__HashMap_dump;
+    p->iter = &__HashMap_iter;
+    p->del = &__HashMap_del;
+    return p;
+}
+
+int main(void)
+{
+    struct HashMap * map = HashMap_new();
+    struct HashMapEntry *cur;
+    struct HashMapIter *iter;
+
+    setvbuf(stdout, NULL, _IONBF, 0);  /* Internal */
+
+    printf("Testing HashMap\n");
+    map->put(map, "z", 8);
+    map->put(map, "z", 1);
+    map->put(map, "y", 2);
+    map->put(map, "b", 3);
+    map->put(map, "a", 4);
+    map->dump(map);
+
+    printf("size=%d\n", map->size(map));
+
+    printf("z=%d\n", map->get(map, "z", 42));
+    printf("x=%d\n", map->get(map, "x", 42));
+
+    printf("\nIterate\n");
+    iter = map->iter(map);
+    while(1) {
+        cur = iter->next(iter);
+        if ( cur == NULL ) break;
+        printf(" %s=%d\n", cur->key, cur->value);
+    }
+    iter->del(iter);
+
+    map->del(map);
+}
 
 Input:
+N/A
 
 Output:
+Testing HashMap
+Object HashHashMap count=4 buckets=8
+ y=2 [1]
+ a=4 [1]
+ z=1 [2]
+ b=3 [2]
+size=4
+z=1
+x=42
+
+Iterate
+ y=2
+ a=4
+ z=1
+ b=3
+
+Notes:
+- The majority of the code for this problem was provided in the lecture slides. A few parts from past 
+  linked list and Map implementation problems were refactored and utilized as well.
+- The __HashMap_find() function searches the HashMap to see if the key exists and where it's located using
+  a for loop to traverse the multiple linked lists.
+- The __HashMap_put() function adds or updates an entry in the HashMap. It checks if a key entry already
+  exists and replaces the old value with the newly inputted value. If the key does not exist then space
+  is allocated for the key and value, and the new key and new value are inputted in. It also increments
+  the counter for the overall size of the HashMap.
+- The __HashMap_get() function locates and returns the value for the corresponding key. If the key is not
+  found in the HashMap then a default value is returned.
+- The __HashMap_size() function returns the current count of the HasHMap that was incremented previously
+  by the __HashMap_put() function.
+- The __HashMapIter_next() function advances the iterator forwards and returns the next item. It traverses
+  multiple linked lists within a HasHmap one at a time until it reaches the end. It uses bucket number to
+  denote a linked list and loop through the values within the bucket.
+
+Suggestions and Final Thoughts:
+- For the __HashMap_put() function, removed "char *new_value = (char *) malloc(strlen(key)+1);" and
+  "strcpy(new_value, value);" as they were not necessary and caused a memory leak. Value is stored as 
+  an int already which means new_value would be redundant.
+- An alternative to using malloc and strcpy is the strdup() function which performs string duplication.
+  It calculates the length of the original string including the null terminator \0, allocates memory on
+  the heap using malloc() for that exact size, copies the character from the source to the newly allocated
+  memory, and returns a pointer to the new string.
+  ex.
+      // Allocate space for new key and copy key to new_key
+      char *new_key = strdup(key);
+- Consolidate and refactor the allocation check to be combined into one if statement rather than multiple
+  if statements.
+  ex.
+      if (new == NULL || new_key == NULL) {
+          free(new);
+          free(new_key);
+          return;
+      }
+- Move the step of "set the back pointer" to the "set the new node properties" step rather than at the end of
+  the function.
+  ex.
+       // Set new node properties
+       new->key = new_key;
+       new->value = value;
+       new->__next = NULL;
+       new->__prev = self->__tails[bucket];     // Set the back pointer
+- __HashMap_find() locates a specific entry in the map based on the target key and bucket provided. It
+  traverses the linked lists to look for a match and if found then the pointer is returned, otherwise NULL.
+- __HashMap_put() adds a new key-value pair or updates an existing one. It checks if the key already exists
+  and overwrites it with a new inputted value if it does. If it does not exist then a new key is allocated,
+  duplicated, and appended to the end of the linked list of that particular bucket. Finally, the count is
+  incremented for the HashMap.
+- __HashMap_get() retrieves data by calculating the hash/bucket for the key and calls __HashMap__find().
+  It checks if the key doesn't exist and if it doesn't then a user-provided default value is returned.
+  Otherwise, the return value for the existing key is returned.
+- __HashMapIter_next() loops through every single item in the entire HashMap across different buckets.
+  The iterator keeps track of the bucket and node that the loop is in. If there are valid nodes during
+  traversal of the linked lists then the return value is saved. If there arent any then continue moving
+  to the next bucket and traverse the next linked list until all buckets and lists are exhausted. The
+  function returns NULL when all buckets and linked lists are traversed.
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - Build a LinkedTreeMap
+
+Question:
+Build a LinkedTreeMap.
+There is a good deal of discussion of this assignment in the lecture materials associated with this assignment.
+Loop through the tree from the root. 
+If the matchesthe node, update the value and return.  
+As the tree is scanned, keep track of the node containing largest key less than "key" in the variable left and the node containing the smallest key greater than "key" in the variable "right".  
+So if the key is not found, left will be the closest lower neighbor or null and right will be the closest greater neighbor or null.
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct TreeMapEntry {
+    char *key;  /* public */
+    int value;  /* public */
+    struct TreeMapEntry *__next;
+    struct TreeMapEntry *__left;
+    struct TreeMapEntry *__right;
+};
+
+struct TreeMapIter {
+   struct TreeMapEntry *__current;
+
+   struct TreeMapEntry* (*next)(struct TreeMapIter* self);
+   void (*del)(struct TreeMapIter* self);
+};
+
+struct TreeMap {
+   /* Attributes */
+   struct TreeMapEntry *__head;
+   struct TreeMapEntry *__root;
+   int __count;
+   int debug;
+
+   /* Methods */
+   void (*put)(struct TreeMap* self, char *key, int value);
+   int (*get)(struct TreeMap* self, char *key, int def);
+   int (*size)(struct TreeMap* self);
+   void (*dump)(struct TreeMap* self);
+   struct TreeMapIter* (*iter)(struct TreeMap* self);
+   void (*del)(struct TreeMap* self);
+};
+
+void __TreeMap_del(struct TreeMap* self) {
+    struct TreeMapEntry *cur, *next;
+    cur = self->__head;
+    while(cur) {
+        free(cur->key);
+        /* value is just part of the struct */
+        next = cur->__next;
+        free(cur);
+        cur = next;
+    }
+    free((void *)self);
+}
+
+void __TreeMapIter_del(struct TreeMapIter* self) {
+    free((void *)self);
+}
+
+void __TreeMap_dump_tree(struct TreeMapEntry *cur, int depth)
+{
+    int i;
+    if ( cur == NULL ) return;
+    for(i=0;i<depth;i++) printf("| ");
+    printf("%s=%d\n", cur->key, cur->value);
+    if ( cur->__left != NULL ) {
+        __TreeMap_dump_tree(cur->__left, depth+1);
+    }
+    if ( cur->__right != NULL ) {
+        __TreeMap_dump_tree(cur->__right, depth+1);
+    }
+}
+
+void __TreeMap_dump(struct TreeMap* self)
+{
+    struct TreeMapEntry *cur;
+    printf("Object TreeMap count=%d\n", self->__count);
+    for(cur = self->__head; cur != NULL ; cur = cur->__next ) {
+         printf("  %s=%d\n", cur->key, cur->value);
+    }
+    printf("\n");
+    __TreeMap_dump_tree(self->__root, 0);
+    printf("\n");
+}
+
+/* Run a check to see if left and right are broken */
+void __Map_check(struct TreeMap* self, struct TreeMapEntry *left, char *key, struct TreeMapEntry *right)
+{
+    if ( self->debug ) 
+        printf("Check position: %s < %s > %s\n", (left ? left->key : "0"),
+            key, (right ? right->key : "0") );
+
+    /* Check our location in the linked list */
+    if ( left != NULL ) {
+        if ( left->__next != right ) {
+            printf("FAIL left->__next != right\n");
+        }
+    } else {
+        if ( self->__head != right ) {
+            printf("FAIL self->__head != right\n");
+        }
+    }
+
+    /* Check our location in the tree */
+    if ( right != NULL && right->__left == NULL ) {
+        /* OK */
+    } else if ( left != NULL && left->__right == NULL ) {
+        /* OK */
+    } else {
+        printf("FAIL Neither right->__left nor left->__right are available\n");
+    }
+}
+
+#include "student.c"
+
+int __TreeMap_size(struct TreeMap* self)
+{
+    return self->__count;
+}
+
+struct TreeMapIter* __TreeMap_iter(struct TreeMap* self)
+{
+    struct TreeMapIter *iter = malloc(sizeof(*iter));
+    iter->__current = self->__head;
+    iter->next = &__TreeMapIter_next;
+    iter->del = &__TreeMapIter_del;
+    return iter;
+}
+
+struct TreeMap * TreeMap_new() {
+    struct TreeMap *p = malloc(sizeof(*p));
+
+    p->__head = NULL;
+    p->__root = NULL;
+    p->__count = 0;
+    p->debug = 0;
+
+    p->put = &__TreeMap_put;
+    p->get = &__TreeMap_get;
+    p->size = &__TreeMap_size;
+    p->dump = &__TreeMap_dump;
+    p->iter = &__TreeMap_iter;
+    p->del = &__TreeMap_del;
+    return p;
+}
+
+int main(void)
+{
+    struct TreeMap * map = TreeMap_new();
+    struct TreeMapEntry *cur;
+    struct TreeMapIter *iter;
+
+    setvbuf(stdout, NULL, _IONBF, 0);  /* Internal */
+
+    map->debug = 1 == 1;
+
+    printf("Testing TreeMap\n");
+    map->put(map, "h", 42);
+    map->put(map, "d", 8);
+    map->put(map, "f", 5);
+    map->put(map, "b", 123);
+    map->dump(map);
+    map->put(map, "k", 9);
+    map->put(map, "m", 67);
+    map->put(map, "j", 12);
+    map->put(map, "f", 6);
+    map->dump(map);
+
+    printf("r=%d\n", map->get(map, "r", 42));
+    printf("x=%d\n", map->get(map, "x", 42));
+
+    printf("\nIterate\n");
+    iter = map->iter(map);
+    while(1) {
+        cur = iter->next(iter);
+        if ( cur == NULL ) break;
+        printf(" %s=%d\n", cur->key, cur->value);
+    }
+    iter->del(iter);
+
+    map->del(map);
+}
+
+Input:
+N/A
+
+Output:
+Testing TreeMap
+Check position: 0 < d > h
+Check position: d < f > h
+Check position: 0 < b > d
+Object TreeMap count=4
+  b=123
+  d=8
+  f=5
+  h=42
+
+h=42
+| d=8
+| | b=123
+| | f=5
+
+Check position: h < k > 0
+Check position: k < m > 0
+Check position: h < j > k
+Object TreeMap count=7
+  b=123
+  d=8
+  f=6
+  h=42
+  j=12
+  k=9
+  m=67
+
+h=42
+| d=8
+| | b=123
+| | f=6
+| k=9
+| | j=12
+| | m=67
+
+r=42
+x=42
+
+Iterate
+ b=123
+ d=8
+ f=6
+ h=42
+ j=12
+ k=9
+ m=67
+
+Notes:
+
+Suggestions and Final Thoughts:
+
+############################################################################################################
+
+Source:
+C Programming for Everybody - Count Words
+
+Question:
+You have to build everything except the main program here.
+You should not need to write any new code.
+Just gather your working TreeMap code and the supplied code together from the previous assignment and combine them together.
+
+Python Code:
+N/A
+
+C Code:
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#include "student.c"
+
+/**
+ * The main program to read, parse, and count words
+ */
+int main(void)
+{
+    struct TreeMap * map = TreeMap_new();
+    struct TreeMapEntry *cur;
+    struct TreeMapIter *iter;
+    char word[100];  /* Yes, this is dangerous */
+    int i,j;
+    int count, maxvalue;
+    char *maxkey;
+
+    setvbuf(stdout, NULL, _IONBF, 0);  /* Internal */
+
+    /* Turn off debug */
+    map->debug = 0;
+
+    /* Loop over each word in the file */
+    while (scanf("%s", word) != EOF) {
+        for (i=0, j=0; word[i] != '\0'; i++) {
+            if ( ! isalpha(word[i]) ) continue;
+            word[j++] = tolower(word[i]);
+        }
+        word[j] = '\0';
+        count = map->get(map, word, 0);
+        map->put(map, word, count+1);
+    }
+
+    maxkey = NULL;
+    maxvalue = -1;
+    iter = map->iter(map);
+    while(1) {
+        cur = iter->next(iter);
+        if ( cur == NULL ) break;
+        if ( maxkey == NULL || cur->value > maxvalue ) {
+            maxkey = cur->key;
+            maxvalue = cur->value;
+        }
+    }
+    iter->del(iter);
+    printf("\n%s %d\n", maxkey, maxvalue);
+
+    map->del(map);
+}
+
+Input:
+the clown ran after the car and the car ran into the
+tent and the tent fell down on the clown and the car
+
+Output:
+the 7
 
 Notes:
 
