@@ -9,8 +9,8 @@ Question:
 You will a set of supporting functions using the following structure to implement a subset of the Python str class in C. 
 Some code and method signatures have been provided for you as well as a main() program and some support routines from the lecture slides. 
 In the constructor, you will allocate a 10 character buffer. 
-If as data is added, it exceeds the length of the buffer use realloc() to expand the buffer by 10. T
-here is a good deal of discussion of this application in the lecture materials associated with this assignment.
+If as data is added, it exceeds the length of the buffer use realloc() to expand the buffer by 10. 
+There is a good deal of discussion of this application in the lecture materials associated with this assignment.
 
 Python Code:
 x = str()
