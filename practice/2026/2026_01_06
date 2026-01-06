@@ -1,0 +1,555 @@
+Date: 01/06/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9605
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Google - Find the average rating of movie stars
+Find the average rating of each movie star along with their names and birthdays. 
+Sort the result in the ascending order based on the birthday. 
+Use the names as keys when joining the tables.
+
+Data Dictionary:
+Table name = 'nominee_filmography'
+year: numeric (num)
+id: numeric (num)
+name: character (str)
+amg_movie_id: character (str)
+movie_title: character (str)
+role_type: character (str)
+rating: numeric (num)
+
+Table name = 'nominee_information'
+id: numeric (num)
+name: character (str)
+amg_person_id: character (str)
+top_genre: character (str)
+birthday: POSIXct, POSIXt (dt)
+
+Code:
+** Solution #1
+## Question:
+# Find the average rating of each movie star along with their names and birthdays.
+# Sort the result in the ascending order based on the birthday.
+# Use the names as keys when joining the tables.
+
+## Output:
+# birthday, name, average_rating
+
+## Import libraries
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#nominee_filmography <- read_csv("nominee_filmography.csv")
+#nominee_information <- read_csv("nominee_information.csv")
+filmography_df <- data.frame(nominee_filmography)
+information_df <- data.frame(nominee_information)
+filmography_df |> head(5)
+information_df |> head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - filmography: 202 x 7
+#            - information: 127 x 5
+# Duplicates - filmography: 0
+#            - information: 0
+# Nulls - filmography: rating(45)
+#       - information: 0
+# Value Counts - filmography: id, name, amg_movie_id, movie_title, role_type
+#              - information: id, name, amg_person_id, top_genre
+filmography_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+information_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+filmography_df |> dim()
+information_df |> dim()
+
+filmography_df |> duplicated() |> sum()
+information_df |> duplicated() |> sum()
+
+filmography_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+information_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+filmography_df$id |> table() |> enframe(name="index", value="frequency") |> 
+    arrange(desc(frequency))
+filmography_df$name |> table() |> enframe(name="index", value="frequency") |> 
+    arrange(desc(frequency))
+filmography_df$amg_movie_id |> table() |> enframe(name="index", value="frequency") |> 
+    arrange(desc(frequency))
+filmography_df$movie_title |> table() |> enframe(name="index", value="frequency") |> 
+    arrange(desc(frequency))
+filmography_df$role_type |> table() |> enframe(name="index", value="frequency") |> 
+    arrange(desc(frequency))
+information_df$id |> table() |> enframe(name="index", value="frequency") |> 
+    arrange(desc(frequency))
+information_df$name |> table() |> enframe(name="index", value="frequency") |> 
+    arrange(desc(frequency))
+information_df$amg_person_id |> table() |> enframe(name="index", value="frequency") |> 
+    arrange(desc(frequency))
+information_df$top_genre |> table() |> enframe(name="index", value="frequency") |> 
+    arrange(desc(frequency))
+
+## Iteration:
+result_df <- filmography_df |>
+    group_by(name) |>
+    summarise(
+        # 1. Calculate average rating of each movie star
+        average_rating = mean(rating, na.rm=TRUE),
+        .groups="drop"
+    ) |>
+    inner_join(
+        # 2. Join filmography and information DataFrames by name
+        information_df |> 
+            select(
+                name, birthday
+            ), 
+        by="name"
+    ) |>
+    select(
+        # 3. Select relevant columns
+        birthday, name, average_rating
+    ) |>
+    arrange(
+        # 4. Sort in ascending order by birthday
+        birthday
+    )
+    
+## Result:
+result_df
+
+Notes:
+- The data quality check revealed 45 null values for the ratings column in the filmography DataFrame.
+- I started my approach to this problem by calculating the average rating of each movie star and removing
+  nulls from the aggregation using the group_by(), and summarise() functions. From there, I inner joined the
+  filmography and information DataFrames by the name column using the inner_join() and select() functions.
+  Next, I selected the relevant output columns and sorted in ascending order by the birthday column using the
+  select() and arrange() functions.
+
+Suggestions and Final Thoughts:
+- Aggregating the filmography DataFrame before joining with the information DataFrame is more computationally
+  efficient but can potentially create duplicates if the name key is shared and the birthday is different.
+  It is safer to join first and then perform the aggregation.
+  ex.
+       result_df <- filmography_df |>
+           inner_join(
+               information_df |> select(name, birthday), 
+               by="name"
+           ) |>
+           group_by(name, birthday) |>
+           summarise(
+               average_rating = mean(rating, na.rm=TRUE),
+               .groups="drop"
+           )
+- Converting datasets to tibbles using as_tibble() is more safe and it prints only some of the data along
+  with their data types. Conversely, converting datasetes to dataframes using data.frame() prints all the
+  raw data and has the potential to accidentally convert all string columns into a factor or categorical 
+  data. This can be prevented by setting stringsAsFactors to False which is automatically done for versions
+  of R that are 4.0 or higher. I still choose to use data.frame() for now since I prefer to see all the data
+  rows and am more familiar with this method as opposed to using tibbles.
+- Today, I implemented the modern pipe (|>) instead of using the old one (%>%) and it actually wasn't bad
+  and felt more intuitive.
+
+Solve Duration:
+27 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+12 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9705
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+City of Los Angeles - Find the total number of inspections with low risk in 2017
+Find the total number of inspections with low risk in 2017.
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+serial_number: object (str)
+activity_date: datetime64 (dt)
+facility_name: object (str)
+score: int64 (int)
+grade: object (str)
+service_code: int64 (int)
+service_description: object (str)
+employee_id: object (str)
+facility_address: object (str)
+facility_city: object (str)
+facility_id: object (str)
+facility_state: object (str)
+facility_zip: object (str)
+owner_id: object (str)
+owner_name: object (str)
+pe_description: object (str)
+program_element_pe: int64 (int)
+program_name: object (str)
+program_status: object (str)
+record_id: object (str)
+
+Code:
+** Solution #1 (step by step)
+## Question:
+# Find the total number of inspections with low risk in 2017.
+
+## Output:
+# number_of_inspections
+
+## Import libraries
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#los_angeles_restaurant_health_inspections = pd.read_csv("los_angeles_restaurant_health_inspections.csv")
+inspections_df = pd.DataFrame(los_angeles_restaurant_health_inspections)
+inspections_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 299 x 20
+# Duplicates - 0
+# Nulls - program_name(2)
+# Value Counts - serial_number, facility_name, grade, service_description, employee_id, facility_address,
+#                facility_city, facility_id, facility_state, facility_zip, owner_id, owner_name,
+#                pe_description, program_name, program_status, record_id
+#inspections_df.info()
+
+inspections_df.shape
+
+inspections_df.duplicated().sum()
+
+inspections_df.isna().sum().reset_index(name="na_count")
+
+inspections_df["serial_number"].value_counts().reset_index(name="frequency")
+inspections_df["facility_name"].value_counts().reset_index(name="frequency")
+inspections_df["grade"].value_counts().reset_index(name="frequency")
+inspections_df["service_description"].value_counts().reset_index(name="frequency")
+inspections_df["employee_id"].value_counts().reset_index(name="frequency")
+inspections_df["facility_address"].value_counts().reset_index(name="frequency")
+inspections_df["facility_city"].value_counts().reset_index(name="frequency")
+inspections_df["facility_id"].value_counts().reset_index(name="frequency")
+inspections_df["facility_state"].value_counts().reset_index(name="frequency")
+inspections_df["facility_zip"].value_counts().reset_index(name="frequency")
+inspections_df["owner_id"].value_counts().reset_index(name="frequency")
+inspections_df["owner_name"].value_counts().reset_index(name="frequency")
+inspections_df["pe_description"].value_counts().reset_index(name="frequency")
+inspections_df["program_name"].value_counts().reset_index(name="frequency")
+inspections_df["program_status"].value_counts().reset_index(name="frequency")
+inspections_df["record_id"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+result_df = inspections_df[
+    # 1. Filter for year 2017 in actvity_date
+    (inspections_df["activity_date"].dt.year == 2017) &
+    # 2. Filter for low risk in pe_description
+    (inspections_df["pe_description"].str.lower().str.contains("low risk"))
+].copy()
+
+# 3. Count the number of inspections (serial_number)
+result_df = pd.DataFrame(
+    data=[result_df["serial_number"].count()], 
+    columns=["number_of_inspections"]
+)
+
+## Result:
+print("Total number of inspections with low risk in 2017: ")
+result_df
+
+
+** Solution #2 (single chain)
+result_df = pd.DataFrame(
+    data=[
+        inspections_df.loc[
+            # 1. Filter for year 2017 in actvity_date
+            (inspections_df["activity_date"].dt.year == 2017) &
+            # 2. Filter for low risk in pe_description
+            (inspections_df["pe_description"].str.lower().str.contains("low risk")),
+            "serial_number"
+        # 3. Count the number of inspections (serial_number)
+        ].count()
+    ],
+    columns=["number_of_inspections"]
+)
+
+Notes:
+- The data quality check revealed 2 nulls in the program_name column and "low risk" is found in the 
+  pe_description column. As for inspections, the serial_number column has all unique values whereas the
+  record_id has duplicate values.
+- My approach for this problem began with filtering for inspections in the year 2017 in the activity_date 
+  column using the dt.year accessory function. Next, I filtered for inspections with low risk in the 
+  pe_description column using the str.lower() and str.contains() functions. After filtering, the number
+  of inspections was counted using the serial_number column and converted into a DataFrame with the
+  appropriate column name using the count() and pd.DataFrame() functions.
+- Initially I had used pd.Series() and to_frame() for converting the count of number of inspections into a
+  DataFrame and renaming the column but decided on trying to use the pd.DataFrame() function instead. 
+
+Suggestions and Final Thoughts:
+- Was trying to decide whether to use pd.Series() and to_frame() or pd.DataFrame() for converting the
+  inspection count into a DataFrame. The pd.Series() method I can perform more intuitively but the 
+  pd.DataFrame() method I would have to practice a little more.
+- Solution #1 shows a step by step approach that can be checked at each step and debugged if necessary.
+  Solution #2 is a one chain method that shows the final output number without being able to peek at any
+  of the steps. Solution #1 would be the initial approach and be evolved into Solution #2 for production
+  scripting and reporting. Solution #2 is more performant than Solution #1 since it does not create a copy
+  of the data.
+- .copy() is used if filtered data is being modified later on. It is much safer to use it than not but it
+  does use more memory.
+- The lambda x approach could be used in .loc[] for method chaining but it would not be as performant as
+  the constructor/.loc approach. It is more used for longer pipe chains than single summaries.
+  ex.
+      result_df = (
+          inspections_df
+          .loc[lambda x: (x["activity_date"].dt.year == 2017) & 
+                         (x["pe_description"].str.lower().str.contains("low risk"))]
+          ["serial_number"]
+          .count()
+      )
+      result_df = pd.DataFrame({"number_of_inspections": [result_df]})
+
+Solve Duration:
+23 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+30 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10546
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Cisco Systems - Capitalize First Letters
+Convert the first letter of each word found in content_text to uppercase, while keeping the rest of the letters lowercase.
+Your output should include the original text in one column and the modified text in another column.
+
+Data Dictionary:
+Table name = 'user_content'
+content_id: bigint (int)
+content_text: varchar (str)
+content_type: varchar (str)
+customer_id: bigint (int)
+
+Code:
+Attempt #1
+-- Question: 
+-- Convert the first letter of each word found in content_text to uppercase,
+-- while keeping the rest of the letters lowercase.
+-- Your output should include the original text in one column and the modified text in another column.
+
+-- Output:
+-- content_text, modified_text
+
+-- Preview data:
+SELECT TOP 5* FROM user_content;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 10 x 4
+-- Duplicates - 0
+-- Nulls - 0
+-- Value Counts - content_id, content_text, content_type, customer_id
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN content_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN content_text IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN content_type IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN customer_id IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM user_content;
+
+SELECT -- Duplicates
+    content_id, content_text, content_type, customer_id,
+    COUNT(*) AS duplicate_count
+FROM user_content
+GROUP BY
+    content_id, content_text, content_type, customer_id
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Count
+    content_id,
+    COUNT(*) AS frequency
+FROM user_content
+GROUP BY content_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Count
+    content_text,
+    COUNT(*) AS frequency
+FROM user_content
+GROUP BY content_text
+ORDER BY frequency DESC;
+
+SELECT -- Value Count
+    content_type,
+    COUNT(*) AS frequency
+FROM user_content
+GROUP BY content_type
+ORDER BY frequency DESC;
+
+SELECT -- Value Count
+    customer_id,
+    COUNT(*) AS frequency
+FROM user_content
+GROUP BY customer_id
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- Convert the first letter of each word found in content_text to uppercase,
+-- while keeping the rest of the letters lowercase.
+-- Your output should include the original text in one column and the modified text in another column.
+-- content_text, modified_text
+-- 1. Split the string by spaces into individual words
+-- 2. Capitalize the first letter of each word
+-- 3. Convert all other letters to lower case
+-- 4. Combine the individual words back into strings
+SELECT
+    content_text,
+    STRING_AGG(
+        UPPER(LEFT(value, 1)) 
+        + LOWER(SUBSTRING(value, 2, LEN(value)))
+    , ' ') AS modified_text
+FROM user_content
+CROSS APPLY STRING_SPLIT(content_text, ' ')
+GROUP BY content_text;
+
+-- Result:
+SELECT
+    content_text,
+    -- 4. Combine the individual words back into strings
+    STRING_AGG(
+        -- 2. Capitalize the first letter of each word
+        UPPER(
+            LEFT(
+                value, 1
+            )
+        ) 
+        + 
+         -- 3. Convert all other letters to lower case
+        LOWER(
+            SUBSTRING(
+                value, 2, LEN(value)
+            )
+        )
+    , ' ') AS modified_text
+FROM 
+    user_content
+CROSS APPLY 
+    -- 1. Split the string by spaces into individual words
+    STRING_SPLIT(content_text, ' ')
+GROUP BY 
+    content_text;
+
+
+** Solution #1 (revised with id column in the groupby clause and order by)
+SELECT
+    content_text AS original_text,
+    -- 4. Combine the individual words back into strings
+    STRING_AGG(
+        -- 2. Capitalize the first letter of each word
+        UPPER(
+            LEFT(
+                value, 1
+            )
+        ) 
+        + 
+         -- 3. Convert all other letters to lower case
+        LOWER(
+            SUBSTRING(
+                value, 2, LEN(value)
+            )
+        )
+    , ' ') AS modified_text
+FROM 
+    user_content
+CROSS APPLY 
+    -- 1. Split the string by spaces into individual words
+    STRING_SPLIT(content_text, ' ')
+GROUP BY 
+    content_id,
+    content_text
+ORDER BY 
+    content_id ASC;
+    
+Notes:
+- There were no duplicates, nulls, or abnormal value counts found in the data quality check.
+- My approach to this problem started with splitting the string by space delimiters in the content_text 
+  column into individual words using the CROSS APPLY clause and STRING_SPLIT() function. Next, I capitalized
+  the first letter of each word using the UPPER() and LEFT() functions. From there, I converted all other
+  letters to lower case using the LOWER(), SUBSTRING(), and LEN() functions. Finally, I combined the modified
+  words back into strings using the STRING_AGG() function.
+
+Suggestions and Final Thoughts:
+- If every row of the content_text column was a unique value then my Attempt #1 would be fine. However, to
+  include edgecases where content_text rows were duplicated, it is best to include the content_id in the
+  GROUP BY clause to make sure the primary key keeps the unique rows rather than duplicated rows.
+  ex.
+      GROUP BY 
+          content_id,
+          content_text;
+- The CROSS APPLY clause in MS SQL Server performs row-wise operations. The STRING_SPLIT() function seems
+  to only work in the CROSS APPLY function. The result of this row-wise operation is a column named "value".
+- The SUBSTRING() function has the parameters SUBSTRING(expression, start, length). Expression is the string
+  to pull from, start is the position to start for extraction, and length is the number of characters to take
+  from the starting point. This can be combined with LOWER() or UPPER() to convert each letter to the
+  appropriate letter case.
+  ex.
+      LOWER(
+          SUBSTRING(
+              value, 2, LEN(VALUE)
+          )
+      );
+- Using GROUP BY with CROSS APPLY is more performant than creating a correlated subquery. The subquery
+  however does not need to use a CROSS APPLY clause and keeps each row separate.
+  ex.
+      SELECT 
+          content_text AS original_text,
+          (
+               SELECT STRING_AGG(
+                   UPPER(LEFT(words.value, 1)) + LOWER(SUBSTRING(words.value, 2, LEN(words.value))), 
+                   ' '
+               )
+               FROM STRING_SPLIT(uc.content_text, ' ') AS words
+          ) AS modified_text
+      FROM user_content uc;
+- The STRING_AGG() function has the parameters STRING_AGG(expression, delimiter), where the expression is
+  the column or value to join together and the delimiter is the character to place between values. If a 
+  WITHIN GROUP clause is added then it orders the item of the list.
+  ex.
+      SELECT
+          Dept,
+          STRING_AGG(Name, ', ') WITHIN GORUP (ORDER BY Name ASC) AS SortedList
+      FROM Employees
+      GROUP BY Dept;
+      
+Solve Duration:
+21 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+20 minutes
+
+############################################################################################################
