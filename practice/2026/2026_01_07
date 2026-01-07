@@ -1,0 +1,617 @@
+Date: 01/07/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9607
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Amazon - The Most Expensive Products Per Category
+Find the most expensive products on Amazon for each product category. 
+Output category, product name and the price (as a number)
+
+Data Dictionary:
+Table name = 'innerwear_amazon_com'
+review_count: numeric (num)
+product_name: character (str)
+mrp: character (str)
+price: character (str)
+pdp_url: character (str)
+brand_name: character (str)
+product_category: character (str)
+retailer: character (str)
+description: character (str)
+rating: numeric (num)
+style_attributes: character (str)
+total_sizes: character (str)
+available_size: character (str)
+color: character (str)
+
+Code:
+** Attempt #1
+## Question:
+# Find the most expensive products on Amazon for each product category.
+# Output category, product name, and the price (as a number)
+
+## Output:
+# product_category, product_name, price
+
+## Import libraries
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#innerwear_amazon_com <- read_csv("innerwear_amazon_com.csv")
+innerwear_df <- data.frame(innerwear_amazon_com)
+innerwear_df |> head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unqiue value counts:
+# Dimensions - 100 x 14
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - product_name, mrp, price, pdp_url, brand_name, product_category, retailer, description,
+#                style_attributes, total_sizes, available_size, color
+innerwear_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+innerwear_df |> dim()
+
+innerwear_df |> duplicated() |> sum()
+
+innerwear_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+innerwear_df$product_name |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+innerwear_df$mrp |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+innerwear_df$price|> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+innerwear_df$pdp_url |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+innerwear_df$brand_name |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+innerwear_df$product_category |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+innerwear_df$retailer |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+innerwear_df$description |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+innerwear_df$style_attributes |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+innerwear_df$total_sizes |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+innerwear_df$available_size |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+innerwear_df$color |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+
+## Iteration
+result_df <- innerwear_df |>
+    mutate(
+        # 1. Remove $ from price, convert to numeric, and keep 2 decimal places
+        price_cleaned = format(
+            as.numeric(
+                str_replace(price, "\\$", "")
+            )
+        , nsmall = 2)
+    ) |>
+    group_by(product_category) |>
+    filter(
+        # 2. Filter for the most expensive products for each product category
+        price_cleaned == max(price_cleaned)
+    ) |>
+    ungroup() |>
+    select(
+        # 3. Select relevant columns
+        product_category, product_name, price=price_cleaned
+    ) |>
+    arrange(
+        # 4. Sort by category in ascending and price in descending order
+        product_category,
+        desc(price)
+    )
+    
+## Result:
+result_df
+
+
+** Solution #1 (revised)
+result_df <- innerwear_df |>
+    mutate(
+        # 1. Remove $ and , symbols from price, convert to numeric
+        price_cleaned = as.numeric(
+            str_remove_all(price, "[\\$,]")
+        )
+    ) |>
+    group_by(product_category) |>
+    filter(
+        # 2. Filter for the most expensive products for each product category
+        price_cleaned == max(price_cleaned, na.rm=TRUE)
+    ) |>
+    ungroup() |>
+    mutate(
+        # 3. Format with 2 decimal places 
+        price_display = format(price_cleaned, nsmall=2)
+    ) |>
+    select(
+        # 4. Select and rename relevant columns
+        product_category, product_name, price=price_display
+    ) |>
+    arrange(
+        # 5. Sort by category in ascending and price in descending order
+        product_category,
+        desc(price)
+    )
+
+Notes:
+- The data quality check revealed character datatype and values with "$" symbols for the price column.
+- My approach to this problem started with removing the "$" symbol from the price column, converting it to a
+  numeric datatype, and keeping the values to 2 decimal places using the str_replace(), as.numeric(),
+  format(), and mutate() functions. Next, I filtered for the most expensive products for each product
+  category using the max(), filter(), group_by(), and ungroup() functions. From there, I selected and
+  renamed the relevant output columns using the select() function. Finally, I sorted the results by the
+  product_category column in ascending order and by the price column in descending order using the arrange()
+  and desc() functions.
+
+Suggestions and Final Thoughts:
+- It is better to use a function that has the direct intended usage rather than a function that is close to
+  the intended usage. I had chosen to use str_replace() but str_remove_all() is more of an appropriate 
+  function for removing symbols in the price column. The str_remove_all() function actually has the 
+  str_replace_all() function underneath but the intent of the str_remove_all() function is more clearly
+  defined. To account for edge cases for the original price column, including a comma symbol in the removal
+  function would factor in cases where prices were $1,000 or greater. For the pattern parameter of string
+  functions, the use of brackets [] and double backslashes \\ is necessary for escaping multiple special
+  characters.
+  ex.
+      mutate(
+          price_cleaned = as.numeric(
+              str_remove_all(price, "[\\$,]")
+      )
+- When performing filters or group aggregations, it is best to keep the intended values as numeric datatypes
+  and then convert them to character string datatypes for the final display of values. Using the format()
+  function actually converts the numeric datatype columns into character string datatypes which can potentially
+  create errors in filter or group aggregations. The sprintf() function can also be used to show decimal places
+  for values in a column.
+  ex.
+      mutate(
+          price_display = format(price_cleaned, nsmall=2)
+          price_display2 = sprintf("%.2f", price_cleaned)
+      )
+- The slice_max() function could be used as another approach for finding the most expensive products for each
+  product category instead of having to use filter() and max() functions combined. It does also include ties.
+  ex.
+      group_by(product_category) |>
+      slice_max(price_cleaned) |>
+      ungroup()
+      
+Solve Duration:
+32 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+30 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9706
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+City of Los Angeles - Find the month which had the lowest number of inspections across all years
+Find the month which had the lowest number of inspections across all years.
+Output the number of inspections along with the month.
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+serial_number: object (str)
+activity_date: datetime64 (dt)
+facility_name: object (str)
+score: int64 (int)
+grade: object (str)
+service_code: int64 (int)
+service_description: object (str)
+employee_id: object (str)
+facility_address: object (str)
+facility_city: object (str)
+facility_id: object (str)
+facility_state: object (str)
+facility_zip: object (str)
+owner_id: object (str)
+owner_name: object (str)
+pe_description: object (str)
+program_element_pe: int64 (int)
+program_name: object (str)
+program_status: object (str)
+record_id: object (str)
+
+Code:
+** Solution #1
+## Question:
+# Find the month which had the lowest number of inspections across all years.
+# Output the number of inspections along with the month.
+
+## Output:
+# month, number_of_inspections
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#los_angeles_restaurant_health_inspections = pd.read_csv("los_angeles_restaurant_health_inspections.csv")
+inspections_df = pd.DataFrame(los_angeles_restaurant_health_inspections)
+inspections_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 299 x 20
+# Duplicates - 0
+# Nulls - program_name(2)
+# Value Counts - serial_number, facility_name, grade, service_description, employee_id, facility_address,
+#                facility_city, facility_id, facility_state, facility_zip, owner_id, owner_name,
+#                pe_description, program_name, program_status, record_id
+#inspections_df.info()
+
+inspections_df.shape
+
+inspections_df.duplicated().sum()
+
+inspections_df.isna().sum().reset_index(name="na_count")
+
+inspections_df["serial_number"].value_counts().reset_index(name="frequency")
+inspections_df["facility_name"].value_counts().reset_index(name="frequency")
+inspections_df["grade"].value_counts().reset_index(name="frequency")
+inspections_df["service_description"].value_counts().reset_index(name="frequency")
+inspections_df["employee_id"].value_counts().reset_index(name="frequency")
+inspections_df["facility_address"].value_counts().reset_index(name="frequency")
+inspections_df["facility_city"].value_counts().reset_index(name="frequency")
+inspections_df["facility_id"].value_counts().reset_index(name="frequency")
+inspections_df["facility_state"].value_counts().reset_index(name="frequency")
+inspections_df["facility_zip"].value_counts().reset_index(name="frequency")
+inspections_df["owner_id"].value_counts().reset_index(name="frequency")
+inspections_df["owner_name"].value_counts().reset_index(name="frequency")
+inspections_df["pe_description"].value_counts().reset_index(name="frequency")
+inspections_df["program_name"].value_counts().reset_index(name="frequency")
+inspections_df["program_status"].value_counts().reset_index(name="frequency")
+inspections_df["record_id"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# 1. Extract the month from the activity_date column
+inspections_df["month"] = inspections_df["activity_date"].dt.month_name()
+
+# 2. Count the number of inspections for each month
+result_df = (
+    inspections_df.groupby("month")["serial_number"]
+    .count()
+    .reset_index(name="number_of_inspections")
+)
+
+# 3. Filter for the month with the lowest number of inspections across all years
+result_df = result_df[
+    result_df["number_of_inspections"] == result_df["number_of_inspections"].min()    
+]
+
+## Result:
+print("Month with the lowest number of inspections across all years: ")
+result_df
+
+
+** Solution #2 (revised, converting month number to month name)
+# 1. Extract the month from the activity_date column
+inspections_df["month_num"] = inspections_df["activity_date"].dt.month
+
+# 2. Count the number of inspections for each month
+result_df = (
+    inspections_df.groupby("month_num")["serial_number"]
+    .count()
+    .reset_index(name="number_of_inspections")
+)
+
+# 3. Filter for the month with the lowest number of inspections across all years
+result_df = result_df[
+    result_df["number_of_inspections"] == result_df["number_of_inspections"].min()    
+]
+
+# 4. Convert month number to month name
+result_df["month"] = (
+    pd.to_datetime(result_df["month_num"], format='%m')
+    .dt.month_name()
+)
+
+# 5. Select relevant columns
+result_df = result_df[["month", "number_of_inspections"]]
+
+
+** Solution #3 (method chaining)
+result_df = (
+    inspections_df
+    # 1. Extract the month from the activity_date column
+    .assign(month_num = lambda x: x["activity_date"].dt.month)
+    # 2. Count the number of inspections for each month
+    .groupby("month_num")["serial_number"]
+    .count()
+    .reset_index(name="number_of_inspections")
+    # 3. Filter for the month with the lowest number of inspections across all years
+    .loc[lambda x: x["number_of_inspections"] == x["number_of_inspections"].min()]
+    # 4. Convert month number to month name
+    .assign(month = lambda x: pd.to_datetime(x["month_num"], format="%m").dt.month_name())
+    # 5. Select relevant columns
+    [["month", "number_of_inspections"]]
+)
+
+Notes:
+- The data quality check revealed the serial_number column has all unique values but the record_id column
+  has multiple duplicated values. I chose to use the serial_number column as the unique identifier for
+  each inspection.
+- I started off my approach to this problem by extracting the month name from the activity_date column
+  using the dt.month_name() function. Next, I counted the number of inspections for each month using the
+  group_by(), count() and reset_index() functions. From there, I filtered for the month with the lowest
+  number of inspections across all years using comparison operators and the min() function.
+- Initially, I had used dt.month() for a numerical representation of the month. I switched to the
+  dt.month_name() function for presentation purposes.
+
+Suggestions and Final Thoughts:
+- As with the R problem from earlier, I should stay in a numeric or integer datatype then perform the 
+  aggregation. Changing the format to a character or string data type should occur at the end of code for
+  display purposes.
+  ex.
+      inspections_df["month_num"] = inspections_df["activity_date"].dt.month
+- To a convert a month number to month name, use the pd.to_datetime() function and dt.month_name() function.
+  Specify the '%m' parameter for format in the pd.to_datetime() function.
+  ex.
+      result_df["month"] = (
+          pd.to_datetime(result_df["month_num"], format="%m")
+          .dt.month_name()
+      )
+- The assign() function is similar to the mutate() function in R programming. It can be used to create new
+  columns in the DataFrame in conjunction with the lambda x function. 
+  ex.
+      inspections_df.assign(lambda x: x["activity_date"].dt.month)
+- The loc[] function is similar to the filter() function in R programming. It can be used to filter in a chain.
+  ex.
+      inspections_df.loc[lambda x: x["number_of_inspections"] == x["number_of_inspections"].min()]
+- Solution #1 and Solution #2 would be my initial approaches and Solution #3 is the evolution into a method
+  chaining approach for production scripts.
+
+Solve Duration:
+16 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+30 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10547
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Google - Actor Rating Difference Analysis
+You are given a dataset of actors and the films they have been involved in, including each film's release date and rating. 
+For each actor, calculate the difference between the rating of their most recent film and their average rating across all previous films (the average rating excludes the most recent one).
+Return a list of actors along with their average lifetime rating, the rating of their most recent film, and the difference between the two ratings. 
+Round the difference calculation to 2 decimal places. 
+If an actor has only one film, return 0 for the difference and their only film’s rating for both the average and latest rating fields.
+
+Data Dictionary:
+Table name = 'actor_rating_shift'
+actor_name: varchar (str)
+film_rating: float (flt)
+film_title: varchar (str)
+release_date: date (d)
+
+Code:
+** Solution #1
+-- Question:
+-- You are given a dataset of actors and the films they have been involved in,
+-- including each film's release date and rating.
+-- For each actor, calculate the difference between the rating of their most recent film and
+-- their average rating across all previous films
+-- (the average rating excludes the most recent one).
+-- Return a list of actors along with their average liftime rating, the rating of their most recent film,
+-- and the difference between the two ratings.
+-- Round the difference calculation to 2 decimal places.
+-- If an actor has only one film, return 0 for the difference and their only film's rating for both
+-- the average and latest rating fields.
+
+-- Output:
+-- actor_name, average_lifetime_rating, recent_film_rating, rating_difference
+
+-- Preview data:
+SELECT TOP 5* FROM actor_rating_shift;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 45 x 4
+-- Duplicates - 0
+-- Nulls - 0
+-- Value Counts - actor_name, film_rating, film_title
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN actor_name IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN film_rating IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN film_title IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN release_date IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM actor_rating_shift;
+
+SELECT -- Duplicates
+    actor_name, film_rating, film_title, release_date,
+    COUNT(*) AS duplicate_count
+FROM actor_rating_shift
+GROUP BY 
+    actor_name, film_rating, film_title, release_date
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    actor_name,
+    COUNT(*) AS frequency
+FROM actor_rating_shift
+GROUP BY actor_name
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    film_rating,
+    COUNT(*) AS frequency
+FROM actor_rating_shift
+GROUP BY film_rating
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    film_title,
+    COUNT(*) AS frequency
+FROM actor_rating_shift
+GROUP BY film_title
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Rank the release dates for each actor
+-- 2. Find most recent film rating for each actor using rank
+-- 3. Calculate average lifetime film rating for each actor, don't include recent film
+-- 4. Count the number of films for each actor
+-- 5. For actors with one film, average_life_rating and recent_film_rating should be same
+-- 6. Calculate the difference between ratings, round to 2 decimal places
+--    For actors with one film, return 0 for difference
+-- 7. Arrange by actor_name in ASC order
+WITH RankedActorDateRating AS (
+    SELECT 
+        actor_name,
+        release_date,
+        film_rating,
+        DENSE_RANK() OVER(PARTITION BY actor_name ORDER BY release_date DESC) AS date_rank
+    FROM actor_rating_shift
+),
+ActorRatingsFilmCount AS (
+    SELECT
+        actor_name,
+        AVG(CASE WHEN date_rank > 1 THEN film_rating END) AS average_lifetime_rating,
+        MAX(CASE WHEN date_rank = 1 THEN film_rating END) AS recent_film_rating,
+        COUNT(*) AS film_count
+    FROM RankedActorDateRating
+    GROUP BY actor_name
+)
+SELECT
+    actor_name,
+    COALESCE(average_lifetime_rating, recent_film_rating) AS average_lifetime_rating,
+    recent_film_rating,
+    CASE
+        WHEN film_count = 1 
+        THEN 0
+        ELSE ROUND(1.0 * (recent_film_rating - average_lifetime_rating), 2)
+    END AS rating_difference
+FROM ActorRatingsFilmCount
+ORDER BY actor_name ASC;
+
+-- Result:
+WITH RankedActorDateRating AS (
+    SELECT 
+        actor_name,
+        release_date,
+        film_rating,
+        -- 1. Rank the release dates for each actor
+        DENSE_RANK() OVER(
+            PARTITION BY actor_name 
+            ORDER BY release_date DESC
+        ) AS date_rank
+    FROM 
+        actor_rating_shift
+),
+ActorRatingsFilmCount AS (
+    SELECT
+        actor_name,
+        -- 2. Calculate average lifetime film rating for each actor, don't include recent film
+        AVG(CASE WHEN date_rank > 1 THEN film_rating END) AS average_lifetime_rating,
+        -- 3. Find most recent film rating for each actor using rank
+        MAX(CASE WHEN date_rank = 1 THEN film_rating END) AS recent_film_rating,
+        -- 4. Count the number of films for each actor
+        COUNT(*) AS film_count
+    FROM 
+        RankedActorDateRating
+    GROUP BY 
+        actor_name
+)
+SELECT
+    actor_name,
+    -- 5. For actors with one film, average_life_rating and recent_film_rating should be same
+    COALESCE(average_lifetime_rating, recent_film_rating) AS average_lifetime_rating,
+    recent_film_rating,
+    -- 6. Calculate the difference between ratings, round to 2 decimal places
+    --    For actors with one film, return 0 for difference
+    CASE
+        WHEN film_count = 1 
+        THEN 0
+        ELSE ROUND(1.0 * COALESCE(average_lifetime_rating, recent_film_rating)), 2)
+    END AS rating_difference
+FROM 
+    ActorRatingsFilmCount
+ORDER BY 
+    -- 7. Arrange by actor_name in ASC order
+    actor_name ASC;
+
+Notes:
+- The data quality check revealed duplicate values for the film_rating column. 
+- I began my approach to this problem by ranking the release dates in descending order for each actor using
+  the DENSE_RANK() function and placing this step into a common table expression (CTE) named
+  RankedctorDateRating. 
+- From there, I queried this CTE to perform a number of aggregation calculations. I calculated the average 
+  lifetime rating for each actor without including the recent film rating based on ranking using CASE WHEN
+  statements and the AVG() function. I calculated the recent film rating for each actor based on ranking
+  using CASE WHEN statments and the MAX() function. I calculated the number of films for each actor using
+  the COUNT() function. These calculations were placed into a second CTE called ActorRatingsFilmCount. 
+- The second CTE was queried to perform the final steps. For actors with one film, I filled in NULL values 
+  in the average_lifetime_rating column with the recent_film_rating value using the COALESCE() function. 
+  Next, I calculated the difference between average and recent ratings then rounded to 2 decimal places using
+  CASE WHEN statements and the ROUND() function. If actors had only one film then the difference was 
+  returned as 0. Lastly, I arranged the output by the actor_name column in ascending order.
+
+Suggestions and Final Thoughts:
+- Since I used COALESCE() for filling NULLS in the average_lifetime_rating column then that should also be
+  included in the difference calculation to account for potential NULLS as well.
+  ex.
+      ROUND(1.0 * (recent_film_rating - COALESCE(average_lifetime_rating, recent_film_rating)), 2);
+- I normally use DENSE_RANK() more often than RANK() or ROW_NUMBER() because it accounts for potential edge
+  cases where ties would be present. ROW_NUMBER() would work fine in the context of this problem since there
+  were no tied release_dates.
+  ex.
+      ROW_NUMBER OVER(
+          PARTITION BY actor_name 
+          ORDER BY release_date DESC
+      ) AS date_row;
+- I noticed that a lot of other approaches to this problem used joins to combine the average_lifetime_rating
+  and recent_film_ratings columns that were found in different CTEs. I initially had thought of this approach
+  but I remembered the MAX() function combined with CASE WHEN statements to create pivoted filtered
+  aggregations so decided to go with that instead. This skipped the need for a JOIN and overall had less CTE
+  steps.
+- ISNULL() is more performant and fitting for T-SQL Server specific contexts than COALESCE(). COALESCE() is 
+  a viable solution overall for all general SQL dialects. ISNULL() replaces NULL values in a column, with the
+  value of another column. It's limited to only 2 arguments where as COALESCE() has unlimited arguments.
+  ex.
+      ISNULL(average_lifetime_rating, recent_film_rating);
+
+Solve Duration:
+50 minutes
+
+Notes Duration:
+10 mnutes
+
+Suggestions and Final Thoughts Duration:
+15 minutes
+
+############################################################################################################
