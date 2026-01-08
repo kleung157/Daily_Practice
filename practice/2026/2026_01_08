@@ -1,0 +1,732 @@
+Date: 01/08/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9609
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Google - Find Nexus5 control group users in Italy who don't speak Italian
+Find user id, language, and location of all Nexus 5 control group users in Italy who do not speak Italian. 
+Sort the results in ascending order based on the occurred_at value of the playbook_experiments dataset.
+
+Data Dictionary:
+Table name = 'playbook_experiments'
+user_id: numeric (num)
+occurred_at: POSIXct, POSIXt (dt)
+experiment: character (str)
+experiment_group: character (str)
+location: character (str)
+device: character (str)
+
+Table name = 'playbook_users'
+user_id: numeric (num)
+company_id: numeric (num)
+created_at: POSIXct, POSIXt (dt)
+language: character (str)
+activated_at: POSIXct, POSIXt (dt)
+state: character (str)
+
+Code:
+** Solution #1
+## Question:
+# Find user id, language, and location of all Nexus 5 control group users in Italy who do not speak Italian.
+# Sort the results in ascending order based on the occurred_at value of the playbook_experiments dataset.
+
+## Output:
+# user_id, language, location
+
+## Import libraries
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#playbook_experiments <- read_csv("playbook_experiments.csv")
+#playbook_users <- read_csv("playbook_users.csv")
+experiments_df <- data.frame(playbook_experiments)
+users_df <- data.frame(playbook_users)
+experiments_df |> head(5)
+users_df |> head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - experiments: 180 x 6
+#            - users: 222 x 6
+# Duplicates - experiments: 0
+#            - users: 0
+# Nulls - experiments: 0
+#       - users: activated_at(2)
+# Value Counts - experiments: user_id, experiment, experiment_group, location, device 
+#              - users: user_id, company_id, language, state
+experiments_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+users_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+experiments_df |> dim()
+users_df |> dim()
+
+experiments_df |> duplicated() |> sum()
+users_df |> duplicated() |> sum()
+
+experiments_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+users_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+experiments_df$user_id |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+experiments_df$experiment |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+experiments_df$experiment_group |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+experiments_df$location |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+experiments_df$device |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+users_df$user_id |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+users_df$company_id |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+users_df$language |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+users_df$state |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+
+## Iteration:
+result_df <- experiments_df |> 
+    select(user_id, occurred_at, experiment_group, location, device) |>
+    inner_join(
+        # 1. Join experiments and users DataFrames by user_id
+        users_df |> select(user_id, language),
+        by="user_id"
+    ) |>
+    filter(
+        # 2. Filter for 'control group' in experiment_group column
+        (str_to_lower(experiment_group) == "control_group") &
+        # 3. Filter for 'nexus 5' in device column
+        (str_to_lower(device) == "nexus 5") &
+        # 4. Filter for not 'Italian' in language column
+        (str_to_lower(language) != "italian") &
+        # 5. Filter for 'Italy' in location column
+        (str_to_lower(location) == "italy")
+    ) |>
+    arrange(
+        # 6. Sort in ascending order by occurred_at column
+        occurred_at
+    ) |>
+    group_by(user_id, location) |>
+    summarise(
+        # 7. Convert multiple languages to a list for each user_id and location combination
+        language_list = paste(language, collapse = ", "),
+        .groups="drop"
+    ) |>
+    select(
+        # 8. Select relevant columns
+        user_id, language_list, location
+    )
+## Result:
+result_df
+
+
+** Solution #2 (revised with suggestions)
+result_df <- experiments_df |> 
+    select(user_id, occurred_at, experiment_group, location, device) |>
+    inner_join(
+        # 1. Join experiments and users DataFrames by user_id
+        users_df |> select(user_id, language),
+        join_by(user_id)
+    ) |>
+    filter(
+        # 2. Filter for 'control group' in experiment_group column
+        (str_to_lower(experiment_group) == "control_group") &
+        # 3. Filter for 'nexus 5' in device column
+        (str_to_lower(device) == "nexus 5") &
+        # 4. Filter for not 'Italian' in language column
+        (str_to_lower(language) != "italian") &
+        # 5. Filter for 'Italy' in location column
+        (str_to_lower(location) == "italy")
+    ) |>
+    group_by(user_id, location) |>
+    summarise(
+        first_seen = min(occurred_at),
+        # 6. Convert multiple languages to a list for each user_id and location combination
+        language_list = paste(unique(language), collapse = ", "),
+        .groups="drop"
+    ) |>
+    arrange(
+        # 7. Sort in ascending order by 'occurred_at' column
+        first_seen
+    ) |>
+    select(
+        # 8. Select relevant columns
+        user_id, language_list, location
+    )
+    
+Notes:
+- The data quality check revealed the value "control_group" in the experiment_group column, the value
+  "nexus 5" in the device column, the value "italian" in the langauge column, and the value "italy" in the
+  location column. The user_id column in the users DataFrame contains multiple repeated values indicating 
+  that a column may be duplicated when joining. 
+- I started my approach to this problem by selecting the necessary columns from both the experiments and
+  users DataFrames then inner joining them by the user_id column using the select() and inner_join() 
+  functions. From there, I filtered for Nexus 5 control group users in Italy who do not speak Italian using
+  comparison operators and the filter() and str_to_lower() functions. Next, I sorted the results in ascending
+  order by the occured_at column. Afterwards, I converted multiple languages to a list for each user_id
+  and location combination using the group_by(), summarise() and paste() functions. Lastly, I selected
+  the final relevant output columns.
+- The prompt does not specify whether to display individual users with multiple languages as multiple rows or 
+  have the languages be converted into a list to make each user a single row. I went with my intuition to
+  display them as a single row and the languages as a list.
+
+Suggestions and Final Thoughts:
+- To ensure unique values and no duplicates in the language list, the unique() function can be used within
+  the summarise() and paste() functions.
+  ex.
+      summarise(
+          language_list = paste(unique(language), collapse=", ")
+      )
+- To keep the earliest time for each user using the occurred_at column, the min() function can be used in
+  the summarise() function. In addition, having the earliest time can be used to arrange the results in
+  ascending order after the summarise() step rather than before.
+  ex.
+      group_by(user_id, location) |>
+      summarise(
+          first_seen = min(occured_at),
+          language_list = paste(unique(language), collapse = ", "),
+          .groups="drop"
+      ) |>
+      arrange(first_seen)
+- To avoid having to use quotation strings and c in the by clause of the inner_join() function, the 
+  join_by() function allows you to write unquoted syntax, compare mismatched names directly, and support
+  inequalities.
+  ex.
+      inner_join(
+           experiments_df, users_df,
+           join_by(user_id)
+      )
+- Since I knew which columns I needed from each DataFrame, I decided to select the columns I needed first
+  from each one before joining them together into a single DataFrame. This avoids having to join any
+  unnecessary columns.
+- The function for summarization can be performed using either summarise() or summarize().
+
+Solve Duration:
+31 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+20 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9710
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+TripAdvisor - Owners With 3 Grades
+Find the owners who have at least one facility with all 3 grades.
+
+Data Dictionary:
+Table name = 'la_restaurant_health_inspections'
+serial_number: object (str)
+activity_date: datetime64 (dt)
+facility_name: object (str)
+score: int64 (int)
+grade: object (str)
+service_code: int64 (int)
+service_description: object (str)
+employee_id: object (str)
+facility_address: object (str)
+facility_city: object (str)
+facility_id: object (str)
+facility_state: object (str)
+facility_zip: object (str)
+owner_id: object (str)
+owner_name: object (str)
+pe_description: object (str)
+program_element_pe: int64 (int)
+program_name: object (str)
+program_status: object (str)
+record_id: object (str)
+
+Code:
+** Solution #1
+## Question:
+# Find the owners who have at least one facility with all 3 grades.
+
+## Output:
+# owner_name
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#la_restaurant_health_inspections = pd.read_csv("la_restaurant_health_inspections.csv")
+inspections_df = pd.DataFrame(la_restaurant_health_inspections)
+inspections_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 300 x 20
+# Duplicates - 0
+# Nulls - program_name(2)
+# Value Counts - serial_number, facility_name, grade, service_description, employee_id, facility_address,
+#                facility_city, facility_id, facility_state, facility_zip, owner_id, owner_name, 
+#                pe_description, program_name, program_status, record_id
+#inspections_df.info()
+
+inspections_df.shape
+
+inspections_df.duplicated().sum()
+
+inspections_df.isna().sum().reset_index(name="na_count")
+
+inspections_df["serial_number"].value_counts().reset_index(name="frequency")
+inspections_df["facility_name"].value_counts().reset_index(name="frequency")
+inspections_df["grade"].value_counts().reset_index(name="frequency")
+inspections_df["service_description"].value_counts().reset_index(name="frequency")
+inspections_df["employee_id"].value_counts().reset_index(name="frequency")
+inspections_df["facility_address"].value_counts().reset_index(name="frequency")
+inspections_df["facility_city"].value_counts().reset_index(name="frequency")
+inspections_df["facility_id"].value_counts().reset_index(name="frequency")
+inspections_df["facility_state"].value_counts().reset_index(name="frequency")
+inspections_df["facility_zip"].value_counts().reset_index(name="frequency")
+inspections_df["owner_id"].value_counts().reset_index(name="frequency")
+inspections_df["owner_name"].value_counts().reset_index(name="frequency")
+inspections_df["pe_description"].value_counts().reset_index(name="frequency")
+inspections_df["program_name"].value_counts().reset_index(name="frequency")
+inspections_df["program_status"].value_counts().reset_index(name="frequency")
+inspections_df["record_id"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# Assign grade categories to a variable
+target_grades = ["A", "B", "C"]
+
+# 1. Clean the owner_name column, fix misspellings
+inspections_df["owner_name_cleaned"] = np.where(
+    inspections_df["owner_name"].str.contains("."),
+    inspections_df["owner_name"].str.replace(".", "").str.strip(),
+    inspections_df["owner_name"]
+)
+
+# Check if values were cleaned
+inspections_df["owner_name_cleaned"].value_counts().reset_index(name="frequency")
+
+# 2. Find unique grades for each owner_name, facility_id combination
+result_df = (
+    inspections_df
+    .groupby(["owner_name_cleaned", "facility_id"])["grade"]
+    .unique()
+    .reset_index(name="grade_list")
+)
+
+# 3. Filter for owners who have at least one facility with all 3 grades
+result_df = result_df[
+    result_df["grade_list"].apply(lambda x: all(grade in x for grade in target_grades))
+]
+
+result_df = (
+    # 4. Select relevant columns
+    result_df[["owner_name_cleaned"]]
+    .rename(columns={"owner_name_cleaned" : "owner_name"})
+    # 5. Arrange by owner_name in ascending order
+    .sort_values(by="owner_name", ascending=True)
+)
+
+## Result:
+print("Owners who have at least one facility with all 3 grades: ")
+result_df
+
+
+** Solution #2 (revised with suggestions and more optimized)
+# 1. Clean the owner_name column, fix misspellings
+inspections_df["owner_name_cleaned"] = (
+    inspections_df["owner_name"]
+    .str.replace(".", "", regex=False)
+    .str.strip()
+    .str.upper()
+)
+
+# 2. Find unique grades for each owner_name, facility_id combination
+result_df = (
+    inspections_df
+    .groupby(["owner_name_cleaned", "facility_id"])["grade"]
+    .unique()
+    .reset_index(name="grade_list")
+)
+
+# 3. Filter for owners who have at least one facility with all 3 grades
+target_grades = {"A", "B", "C"}
+result_df = result_df[
+    result_df["grade_list"].apply(lambda x: target_grades.issubset(set(x)))
+]
+
+result_df = (
+    # 4. Select relevant columns
+    result_df[["owner_name_cleaned"]]
+    .rename(columns={"owner_name_cleaned" : "owner_name"})
+    .drop_duplicates()
+    # 5. Arrange by owner_name in ascending order
+    .sort_values(by="owner_name", ascending=True)
+)
+
+
+** Solution #3 (method chaining)
+target_grades = {"A", "B", "C"}
+
+result_df = (
+    inspections_df
+    # 1. Clean the owner_name column, fix misspellings
+    .assign(owner_name_cleaned = lambda df: df["owner_name"]
+            .str.replace(".", "", regex=False)
+            .str.strip()
+            .str.upper())
+    # 2. Find unique grades for each owner_name, facility_id combination
+    .groupby(["owner_name_cleaned", "facility_id"])["grade"]
+    .unique()
+    .reset_index(name="grade_list")
+    # 3. Filter for owners who have at least one facility with all 3 grades
+    .loc[lambda df: df["grade_list"].apply(lambda x: target_grades.issubset(set(x)))]
+    # 4. Select, rename, and deduplicate relevant columns
+    [["owner_name_cleaned"]]
+    .rename(columns={"owner_name_cleaned": "owner_name"})
+    .drop_duplicates()
+    # 5. Arrange by owner_name in ascending order
+    .sort_values(by="owner_name", ascending=True)
+)
+
+Notes:
+- The data quality checks revealed 3 categories for the grade column and a few misspelled but repeated 
+  values in the owner_name column.
+- My approach to this problem started with cleaning the owner_name column and fixing any possible misspellings
+  using the np.where(), str.contains(), str.replace(), and str.strip() functions. Next, I returned unique
+  grades for each owner_name and facility_id combination using the groupby(), unique(), and reset_index()
+  functions. From there, I filtered for owners who had at least one facility with all 3 grade categories
+  using a list comprehension and the apply() and all() functions. Finally, I selected and renamed the 
+  relevant output columns and arranged by the owner_name column in ascending order using the rename() and
+  sort_values() functions.
+
+Suggestions and Final Thoughts:
+- The np.where() function isn't necessary for the cleaning of the owner_name column. The cleaning steps
+  can be applied directly to the owner_name column with the str.replace(), str.strip(), and str.upper()
+  functions.
+  ex.
+      inspections_df["owner_name_cleaned"] = (
+          inspections_df["owner_name"]
+          .str.replace(".", "")
+          .str.strip()
+          .str.upper()
+      )
+- Assigning grade categories to a set rather than a list is much more performant when filtering for owners
+  who have a facility with all 3 grades. It can be combined with the lambda x, apply(), is.subset(), and
+  set() functions.
+  ex.
+      target_grades = {"A", "B", "C"}
+      result_df = result_df[
+          result_df["grade_list"].apply(lambda x: target_grades.issubset(set(x)))
+      ]
+- In case any owners have multiple facilities with all 3 grades present, then a drop_duplicates() function
+  would be helpful to keep only distinct values in the owner name column.
+  ex.
+      result_df = (
+          result_df[["owner_name_cleaned"]]
+          .rename(columns={"owner_name_cleaned": "owner_name"})
+          .drop_duplicates()
+          .sort_values(by="owner_name", ascending=True)
+- For str.replace(), specifying regex = False as a parameter is safer because the special character "." in
+  regular expressions means any character.
+- The assign() function is for data transformation (cleaning), the groupby() function is for aggregation, the
+  loc[] function is for filtering, and the pipe() function is for observability.
+
+Solve Duration:
+35 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+30 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10548
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Google - Top Actor Ratings by Genre
+Find the top actors based on their average movie rating within the genre they appear in most frequently.
+•  For each actor, determine their most frequent genre (i.e., the one they’ve appeared in the most).
+•   If there is a tie in genre count, select the genre where the actor has the highest average rating.
+•   If there is still a tie in both count and rating, include all tied genres for that actor.
+Rank all resulting actor + genre pairs in descending order by their average movie rating.
+•  Return all pairs that fall within the top 3 ranks (not simply the top 3 rows), including ties.
+•  Do not skip rank numbers — for example, if two actors are tied at rank 1, the next rank is 2 (not 3).
+
+Data Dictionary:
+Table name = 'top_actors_rating'
+actor_name: varchar (str)
+genre: varchar (str)
+movie_rating: float (flt)
+movie_title: varchar (str)
+production_company: varchar (str)
+release_date: date (d)
+
+Code:
+** Solution #1
+-- Question:
+-- Find the top actors based on their average movie rating within the genre they appear in most frequently.
+--    For each actor, determine their most frequent genre (i.e., the one they've appeared in the most).
+--    If there is a tie in genre count, select the genre where the actor has the highest average rating.
+--    If there is still a tie in both count and rating, include all tied genres for that actor.
+-- Rank all resulting actor + genre pairs in descending order by their average movie rating.
+--    Return all pairs that fall within the top 3 ranks (not simply the top 3 rows), including ties.
+--    Do not skip rank numbers -- for example, if two actors are tied at rank 1, the next rank is 2 (not 3).
+
+-- Output:
+-- actor_name, frequent_genre, average_movie_rating
+
+-- Preview data:
+SELECT TOP 5* FROM top_actors_rating;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 50 x 6 
+-- Duplicates - 0
+-- Nulls - 0
+-- Value Counts - actor_name, genre, movie_title, production_company
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN actor_name IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN genre IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN movie_rating IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN movie_title IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN production_company IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN release_date IS NULL THEN 1 ELSE 0 END) AS col6,
+    COUNT(*) AS total_rows
+FROM top_actors_rating;
+
+SELECT -- Duplicates
+    actor_name, genre, movie_rating, movie_title, production_company, release_date,
+    COUNT(*) AS duplicate_count
+FROM top_actors_rating
+GROUP BY
+    actor_name, genre, movie_rating, movie_title, production_company, release_date
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    actor_name,
+    COUNT(*) AS frequency
+FROM top_actors_rating
+GROUP BY actor_name
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    genre,
+    COUNT(*) AS frequency
+FROM top_actors_rating
+GROUP BY genre
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    movie_title,
+    COUNT(*) AS frequency
+FROM top_actors_rating
+GROUP BY movie_title
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    production_company,
+    COUNT(*) AS frequency
+FROM top_actors_rating
+GROUP BY production_company
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Count the number of times an actor appeared in a genre
+-- 2. Calculate the average movie rating for each actor_name, genre
+-- 3. Rank genre count and average rating for each actor in descending order, include ties
+--    For genre_count ties, select genre with highest average rating
+--    For count and rating ties, select all tied genres
+-- 4. Filter for most frequent genre
+-- 5. Rank actor and genre pairs by average movie rating in descending order and include ties
+-- 6. Filter for top 3 ranks
+WITH RankedActorGenreRatings AS (
+    SELECT
+        actor_name,
+        genre,
+        COUNT(genre) AS genre_count,
+        AVG(movie_rating) AS average_movie_rating,
+        DENSE_RANK() OVER(
+            PARTITION BY actor_name 
+            ORDER BY COUNT(genre) DESC, AVG(movie_rating) DESC
+        ) AS genre_rank
+    FROM top_actors_rating
+    GROUP BY actor_name, genre
+),
+RankedTopActorGenreRatings AS (
+    SELECT
+        actor_name,
+        genre,
+        average_movie_rating,
+        DENSE_RANK() OVER(
+            ORDER BY average_movie_rating DESC
+        ) AS rating_rank
+    FROM RankedActorGenreRatings
+    WHERE genre_rank = 1
+)
+SELECT
+    actor_name,
+    genre,
+    average_movie_rating
+FROM RankedTopActorGenreRatings
+WHERE rating_rank <= 3;
+
+-- Result:
+WITH RankedActorGenreRatings AS (
+    SELECT
+        actor_name,
+        genre,
+        -- 1. Count the number of times an actor appeared in a genre
+        COUNT(genre) AS genre_count,
+        -- 2. Calculate the average movie rating for each actor_name, genre
+        AVG(movie_rating) AS average_movie_rating,
+        -- 3. Rank genre count and average rating for each actor in descending order, include ties
+        --    For genre_count ties, select genre with highest average rating
+        --    For count and rating ties, select all tied genres
+        DENSE_RANK() OVER(
+            PARTITION BY actor_name 
+            ORDER BY COUNT(genre) DESC, AVG(movie_rating) DESC
+        ) AS genre_rank
+    FROM 
+        top_actors_rating
+    GROUP BY 
+        actor_name, genre
+),
+RankedTopActorGenreRatings AS (
+    SELECT
+        actor_name,
+        genre,
+        average_movie_rating,
+        -- 5. Rank actor and genre pairs by average movie rating in descending order and include ties
+        DENSE_RANK() OVER(
+            ORDER BY average_movie_rating DESC
+        ) AS rating_rank
+    FROM 
+        RankedActorGenreRatings
+    WHERE 
+        -- 4. Filter for most frequent genre
+        genre_rank = 1
+)
+SELECT
+    actor_name,
+    genre,
+    average_movie_rating
+FROM 
+    RankedTopActorGenreRatings
+WHERE 
+    -- 5. Filter for top 3 ranks
+    rating_rank <= 3;
+
+
+** Solution #2 (including the rating rank column for final output)
+WITH RankedActorGenreRatings AS (
+    SELECT
+        actor_name,
+        genre,
+        -- 1. Count the number of times an actor appeared in a genre
+        COUNT(genre) AS genre_count,
+        -- 2. Calculate the average movie rating for each actor_name, genre
+        AVG(movie_rating) AS average_movie_rating,
+        -- 3. Rank genre count and average rating for each actor in descending order, include ties
+        --    For genre_count ties, select genre with highest average rating
+        --    For count and rating ties, select all tied genres
+        DENSE_RANK() OVER(
+            PARTITION BY actor_name 
+            ORDER BY COUNT(genre) DESC, AVG(movie_rating) DESC
+        ) AS genre_rank
+    FROM 
+        top_actors_rating
+    GROUP BY 
+        actor_name, genre
+),
+RankedTopActorGenreRatings AS (
+    SELECT
+        actor_name,
+        genre,
+        average_movie_rating,
+        -- 5. Rank actor and genre pairs by average movie rating in descending order and include ties
+        DENSE_RANK() OVER(
+            ORDER BY average_movie_rating DESC
+        ) AS rating_rank
+    FROM 
+        RankedActorGenreRatings
+    WHERE 
+        -- 4. Filter for most frequent genre
+        genre_rank = 1
+)
+SELECT
+    actor_name,
+    genre,
+    average_movie_rating,
+    rating_rank
+FROM 
+    RankedTopActorGenreRatings
+WHERE 
+    -- 5. Filter for top 3 ranks
+    rating_rank <= 3;
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts in the data quality check.
+- I began my approach to this problem by counting the number of times an actor appeared in a genre using
+  the COUNT() function. Next, I calculated the average movie rating for each actor name and genre using
+  the AVG() function. From there, I ranked genre count and average movie rating for each actor in
+  descending order and included ties using the DENSE_RANK() function. The purpose of the DENSE_RANK() was
+  to account for the criterias of "for genre count ties, select genre with highest average rating." and
+  "for count and rating ties, select all tied genres". These steps were placed into a common table
+  expression (CTE) called RankedActorGenreRatings.
+- The RankedActorGenreRatings CTE was queried into a second CTE called RankedTopActorGenreRatings. This
+  CTE filtered for most frequent genre for each actor, and ranked actors and genre pairs by average movie 
+  rating in descending order and included ties using the DENSE_RANK() Function. 
+- The RankedTopActorGenreRatings CTE was also queried to create the final output by selecting the relevant
+  output columns and filtering for top 3 rankings based on highest average movie rating.
+- The prompt does not specify whether to include the rating rank column but the expected output solution does
+  have the rating rank column included. My Solution #1 only contains actor_name, genre, and 
+  average_movie_rating. As that was what I gathered as my intepretation of the problem.
+
+Suggestions and Final Thoughts:
+- The QUALIFY clause is used in modern SQL dialects like (BigQuery, Snowflake, DuckdB) and allows a user
+  to filter the results of a window function directly within the same query instead of using the WHERE clause
+  in a subsequent query after a CTE is created for the window function. It unfortunately is not present in
+  strict standard dialects like Oracle, MS SQL Server, or PostgreSQL.
+  ex.
+      SELECT 
+          actor_name,
+          genre,
+          avg_rating,
+          DENSE_RANK() OVER (ORDER BY avg_rating DESC) as final_rank
+      FROM FinalActorGenrePairs
+      QUALIFY final_rank <= 3;
+
+Solve Duration:
+40 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
