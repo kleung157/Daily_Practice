@@ -1,0 +1,561 @@
+Date: 01/09/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9610
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+General Assembly - Find students at median writing
+Identify the IDs of students who scored exactly at the median for the SAT writing section.
+
+Data Dictionary:
+Table name = 'sat_scores'
+school: character (str)
+teacher: character (str)
+student_id: numeric (num)
+sat_writing: numeric (num)
+sat_verbal: numeric (num)
+sat_math: numeric (num)
+hrs_studied: numeric (num)
+id: numeric (num)
+average_sat: numeric (num)
+love: POSIXct, POSIXt (dt)
+
+Code:
+** Solution #1
+## Question:
+# Identify the IDs of students who scored exactly at the median for the SAT writing section.
+
+## Output:
+# student_id
+
+## Import libraries
+#install.packages(tidyverse)
+library(tidyverse)
+
+## Load and preview data:
+#sat_scores <- read_csv("sat_scores.csv")
+scores_df <- data.frame(sat_scores)
+scores_df |> head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 135 x 10
+# Duplicates - 0
+# Nulls - hrs_studied(7), love(135)
+# Value Counts - school, teacher, student_id, id
+scores_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+scores_df |> dim()
+
+scores_df |> duplicated() |> sum()
+
+scores_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+scores_df$school |> table() |> enframe(name="index", value="frequency")
+scores_df$teacher |> table() |> enframe(name="index", value="frequency")
+scores_df$student_id |> table() |> enframe(name="index", value="frequency")
+scores_df$id |> table() |> enframe(name="index", value="frequency")
+
+## Iteration:
+# 1. Calculate the median SAT writing score
+target_median_score <- scores_df$sat_writing |> quantile(0.50)
+
+result_df <- scores_df |>
+    filter(
+        # 2. Filter for students with the median score
+        sat_writing == target_median_score
+    ) |>
+    select(
+        # 3. Select relevant columns
+        student_id
+    ) |>
+    arrange(
+        # 4. Sort by student_id in ascending order
+        student_id
+    )
+
+## Result:
+result_df
+
+
+** Solution #2 (revised, added na.rm=TRUE and used median() function)
+# 1. Calculate the median SAT writing score
+target_median_score <- scores_df$sat_writing |> median(na.rm=TRUE)
+
+result_df <- scores_df |>
+    filter(
+        # 2. Filter for students with the median score
+        sat_writing == target_median_score
+    ) |>
+    select(
+        # 3. Select relevant columns
+        student_id
+    ) |>
+    arrange(
+        # 4. Sort by student_id in ascending order
+        student_id
+    )
+
+Notes:
+- The data quality check revealed unique values for the student_id column.
+- I began my approach to this problem by calculating the median SAT writing score using the quantile() function.
+  From there, I filtered for students with the median score using comparison operators and the filter()
+  function. Next, I selected the relevant output columns and sorted by the student_id column in ascending
+  order using the select() and arrange() functions.
+
+Suggestions and Final Thoughts:
+- The quantile() function has a parameter where null values can be removed from the calculation. Similar to
+  other aggregation functions where you can add na.rm = TRUE. The median() function is slightly faster and
+  readable for intent than using the quantile() function but the quantile() function has more general purpose
+  usages.
+  ex.
+      target_median_score <- scores_df$sat_writing |> quantile(0.50, na.rm=TRUE)
+  ex.
+      target_median_score <- scores_df$sat_writing |> median(na.rm=TRUE)
+
+Solve Duration:
+10 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+###########################################################################################################
+
+Website:
+StrataScratch - ID 9712
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+City of Los Angeles - Find the first and last times the maximum score was awarded
+Find the first and last times the maximum score was awarded
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+serial_number: object (str)
+activity_date: datetime64 (dt)
+facility_name: object (str)
+score: int64 (int)
+grade: object (str)
+service_code: int64 (int)
+service_description: object (str)
+employee_id: object (str)
+facility_address: object (str)
+facility_city: object (str)
+facility_id: object (str)
+facility_state: object (str)
+facility_zip: object (str)
+owner_id: object (str)
+owner_name: object (str)
+pe_description: object (str)
+program_element_pe: int64 (int)
+program_name: object (str)
+program_status: object (str)
+record_id: object (str)
+
+Code:
+** Solution #1
+## Question:
+# Find the first and last times the maximum score was awarded
+
+## Output:
+# first_max_score, last_max_score
+
+## Import libraries:
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#los_angeles_restaurant_health_inspections = pd.read_csv("los_angeles_restaurant_health_inspections.csv")
+inspections_df = pd.DataFrame(los_angeles_restaurant_health_inspections)
+inspections_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 299 x 20
+# Duplicates - 0
+# Nulls - program_name(2)
+# Value Counts - serial_number, facility_name, grade, service_description, employee_id, facility_address,
+#                facility_city, facility_id, facility_state, facility_zip, owner_id, owner_name,
+#                pe_description, program_name, program_status, record_id
+#inspections_df.info()
+
+inspections_df.shape
+
+inspections_df.duplicated().sum()
+
+inspections_df.isna().sum().reset_index(name="na_count")
+
+inspections_df["serial_number"].value_counts().reset_index(name="frequency")
+inspections_df["facility_name"].value_counts().reset_index(name="frequency")
+inspections_df["grade"].value_counts().reset_index(name="frequency")
+inspections_df["service_description"].value_counts().reset_index(name="frequency")
+inspections_df["employee_id"].value_counts().reset_index(name="frequency")
+inspections_df["facility_address"].value_counts().reset_index(name="frequency")
+inspections_df["facility_city"].value_counts().reset_index(name="frequency")
+inspections_df["facility_id"].value_counts().reset_index(name="frequency")
+inspections_df["facility_state"].value_counts().reset_index(name="frequency")
+inspections_df["facility_zip"].value_counts().reset_index(name="frequency")
+inspections_df["owner_id"].value_counts().reset_index(name="frequency")
+inspections_df["owner_name"].value_counts().reset_index(name="frequency")
+inspections_df["pe_description"].value_counts().reset_index(name="frequency")
+inspections_df["program_name"].value_counts().reset_index(name="frequency")
+inspections_df["program_status"].value_counts().reset_index(name="frequency")
+inspections_df["record_id"].value_counts().reset_index(name="frequency")
+
+## Iteration:
+# 1. Calculate the maximum score
+target_max_score = inspections_df["score"].max()
+
+result_df = (
+    inspections_df
+    # 2. Filter for inspections with max score
+    .loc[lambda df: df["score"] == target_max_score]
+    # 3. Calculate the first and last instances where max score was awarded
+    .groupby("score")
+    .agg(first_max_score = ("activity_date", "min"),
+         last_max_score = ("activity_date", "max"))
+    .reset_index()
+    # 4. Select relevant columns
+    [["first_max_score", "last_max_score"]]
+)
+
+## Result:
+print("The first and last times the maximum score was awarded: ")
+result_df
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts found in the data quality check that were
+  relevant for solving the problem at hand.
+- I started my approach to this problem by calculating the maximum score in the score column and assigning
+  it to a separate variable using the max() function. From there, I filtered for inspections with the
+  maximum score using the loc[] function. Next, I calculated the first and last instances where the max
+  score was awarded using the groupby(), agg(), min(), max(), and reset_index() functions. Lastly, I
+  selected the relevant output columns.
+
+Suggestions and Final Thoughts:
+- A for loop can be used to automate the value counts and avoid repeating the code. This can be combined
+  with temporarily setting the interpreter to show all rows and columns in the print statement.
+  ex.
+      columns = ["serial_number", "facility_name", "grade"]
+      for col in columns:
+          print(f"---{col}---")
+          with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+              print(inspections_df[col].value_counts().reset_index(name="frequency"))
+              print("")
+- For changing the entire script to show all columns and rows rather than temporarily, the pd.set_option() 
+  function can be used with different parameters. The pd.reset_option("all") can be used to reset all settings.
+  ex.
+      pd.set_option('display.max_columns', None)
+      pd.set_option('display.max_rows', None)
+      
+      columns = ["serial_number", "facility_name", "grade"]
+      for col in columns:
+          print(f"---{col}---")
+          print(inspections_df[col].value_counts().reset_index(name="frequency")
+          print("")
+- Initially created separated steps in my original approach and then refined it to be a method chain when
+  I realized I could combine some steps together when fully writing out the solution.
+
+Solve Duration:
+19 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+###########################################################################################################
+
+Website:
+StrataScratch - ID 10550
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (PostgreSQL)
+
+Question:
+Visa - Five-Year Sales Growth Regions
+Find all regions where sales have increased for five consecutive years. 
+A region qualifies if, for each of the five years, sales are higher than in the previous year. 
+Return the region name along with the starting year of the five-year growth period.
+
+Data Dictionary:
+Table name = 'regional_sales'
+region_name: text (str)
+sales: double preicison (flt)
+year: bigint (int)
+
+Code:
+Attempt #1
+-- Question:
+-- Find all regions where sales have increased for five consecutive years.
+-- A region qualifies if, for each of the five years, sales are higher than in the previous year.
+-- Return the region name along with the starting year of the five-year growth period.
+
+-- Output:
+-- region_name, starting_year
+
+-- Preview data:
+SELECT * FROM regional_sales LIMIT 5;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 59 x 3
+-- Duplicates - 3
+-- Nulls - 0
+-- Value Counts - region_name
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN region_name IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN sales IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN year IS NULL THEN 1 ELSE 0 END) AS col3,
+    COUNT(*) AS total_rows
+FROM regional_sales;
+
+SELECT -- Duplicates
+    region_name, sales, year,
+    COUNT(*) AS duplicate_count
+FROM regional_sales
+GROUP BY 
+    region_name, sales, year
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    region_name,
+    COUNT(*) AS frequency
+FROM regional_sales
+GROUP BY region_name
+ORDER BY frequency DESC;
+
+-- Iteration:
+WITH UniqueRegionalSales AS (
+    -- Remove duplicate rows
+    SELECT DISTINCT
+       region_name, 
+       year,
+       sales
+    FROM 
+        regional_sales
+),
+RegionYearGroups AS (
+    -- Create year groupings for consecutive years
+    SELECT
+        region_name, 
+        year,
+        year - ROW_NUMBER() OVER(PARTITION BY region_name ORDER BY year) AS group_id
+    FROM 
+        UniqueRegionalSales
+    GROUP BY 
+       region_name, 
+        year
+),
+RegionConsecutiveYears AS (
+    -- Find the start and end years of consecutive streaks and the length of the streak
+    SELECT
+        region_name,
+        MIN(year) AS start_year,
+        MAX(year) AS end_year,
+        COUNT(*) AS consecutive_length
+    FROM 
+       RegionYearGroups
+    GROUP BY 
+        region_name,
+        group_id
+),
+RegionTotalSalesDifference AS (
+    -- Calculate total sales for each year and the difference between each year
+    SELECT
+        region_name,
+        year,
+        SUM(sales) AS total_sales,
+        SUM(sales) - LAG(SUM(sales)) OVER(PARTITION BY region_name ORDER BY year) AS total_sales_difference
+    FROM 
+        UniqueRegionalSales
+    GROUP BY 
+        region_name,
+        year
+)
+-- Select unique region_name and start_year combinations
+SELECT DISTINCT
+    rtsd.region_name,
+    rcy.start_year
+FROM 
+    RegionTotalSalesDifference AS rtsd
+JOIN 
+    -- Join sales difference table and consecutive years table by region_name
+    RegionConsecutiveYears AS rcy
+    ON rtsd.region_name = rcy.region_name
+WHERE 
+   -- Filter for consecutive streaks greater than or equal to 5 
+   rcy.consecutive_length >= 5
+   -- Filter for years between the consecutive streaks
+   AND rtsd.year BETWEEN rcy.start_year AND rcy.end_year
+   -- Filter for sales that have increased for each consecutive year
+   AND rtsd.total_sales_difference > 0
+ORDER BY
+    region_name,
+    start_year
+
+
+** Solution #1 (Incorporates LAG(), CASE WHEN flags, and ROW_NUMBER()
+WITH UniqueRegionalSales AS (
+    -- Remove duplicate rows
+    SELECT DISTINCT
+       region_name, 
+       year,
+       sales
+    FROM 
+        regional_sales
+),
+TotalSalesTrends AS (
+    -- Compare current total sales with previous year sales for each region
+    SELECT
+        region_name,
+        year,
+        SUM(sales) AS total_sales,
+        LAG(SUM(sales)) OVER (PARTITION BY region_name ORDER BY year) AS prev_total_sales,
+        LAG(year) OVER (PARTITION BY region_name ORDER BY year) AS prev_year
+    FROM 
+        UniqueRegionalSales
+    GROUP BY
+        region_name,
+        year
+),
+GrowthFlag AS (
+    -- Flag rows where sales increased AND it's a consecutive year
+    SELECT
+        region_name,
+        year,
+        total_sales,
+        prev_total_sales,
+        prev_year,
+        CASE
+            WHEN total_sales > prev_total_sales AND year = prev_year + 1 
+            THEN 1
+            ELSE 0
+        END AS is_growth
+    FROM 
+        TotalSalesTrends
+),
+StreakGroups AS (
+    -- Use row number to group consecutive growth years
+    SELECT
+        region_name,
+        year,
+        year - ROW_NUMBER() OVER(PARTITION BY region_name, is_growth ORDER BY year) AS group_id
+    FROM 
+        GrowthFlag
+    WHERE 
+        is_growth = 1
+),
+StreakCounts AS (
+    -- Count the length of the growth streak
+    SELECT
+        region_name,
+        MIN(year) - 1 AS start_year, -- -1 because the first growth 'jump' started the year prior
+        COUNT(*) AS growth_duration
+    FROM 
+        StreakGroups
+    GROUP BY 
+        region_name, 
+        group_id
+)
+-- Filter for streaks of 4 jumps (which covers 5 consecutive years)
+SELECT
+    region_name,
+    start_year
+FROM 
+    StreakCounts
+WHERE 
+    growth_duration >= 4
+ORDER BY
+    region_name,
+    start_year;
+
+Notes:
+- The data quality check revealed 3 duplicate rows.
+- My approach to this problem was removing duplicate rows using the DISTINCT function and placing the step
+  into a common table expression (CTE) called UniqueRegionalSales. 
+- From there, I queried the deduplicated CTE to create year groupings for consecutive years using the 
+  ROW_NUMBER() function. This step was wrapped in a second CTE called RegionYearGroups. 
+- Next, I queried the RegionYearGroups CTE to find the start and end years of consecutive streaks and the 
+  length of the streak using the MIN(), MAX(), and COUNT() functions. This step was placed into a third CTE
+  called RegionConsecutiveYears.
+- After that, I queried the UniqueRegionalSales CTE to calculate the total sales for each year and the
+  difference between each year using the SUM() and LAG() functions. This step was enclosed into a fourth
+  CTE called RegionTotalSalesDifference
+- For the last query, I inner joined the RegionTotalSalesDifference and RegionConsecutiveYears CTEs by the
+  region_name column. Then I filtered for consecutive streaks greater than or equal to 5, filtered for years
+  between the consecutive streaks, and filtered for sales that have increased for each consecutive year.
+  Finally, I made sure to select the unique region_name and start_year combinations using the DISTINCT
+  function in the SELECT statement.
+- Couldn't quite figure out how to group consecutive years of 5 rather than having consecutive years that
+  exceeded 5 for each region_name.
+- I did notice that each region_name and year combination did have different sales for each year and that
+  they needed to be summed before performing the sales differences.
+- The final query didn't show accurate consecutive years and sales. There were some streaks that didn't have
+  consecutive years, streaks were too long, and sales differences may have not been correct.
+- I initially had tried to use a LAG() approach but couldn't get the right configurations compared to using
+  the island grouping approach using ROW_NUMBER().
+
+Suggestions and Final Thoughts:
+- I kept the deduplication CTE when writing the revised approach.
+- Rather than splitting the sales and years calculations into separate CTEs and having to join them back
+  together for the final query, it is better to have both calculations in the same CTE steps. 
+- The second CTE created compared the current total sales with previous year sales for each region using
+  the SALES and LAG() functions.
+  ex.
+      SUM(sales) AS total_sales,
+      LAG(SUM(sales)) OVER (PARTITION BY region_name ORDER BY year) AS prev_total_sales,
+      LAG(year) OVER (PARTITION BY region_name ORDER BY year) AS prev_year;
+- The third CTE flagged rows where sales increased AND where a consecutive year occurred using a CASE WHEN
+  statement to categorize as 1 or 0.
+  ex.
+      CASE
+          WHEN total_sales > prev_total_sales AND year = prev_year + 1 
+          THEN 1
+          ELSE 0
+      END AS is_growth;
+- The fourth CTE filtered for consecutive growth years using flagged categorical values and grouped 
+  consecutive growth years using the ROW_NUMBER() function.
+  ex.
+      year - ROW_NUMBER() OVER(PARTITION BY region_name, is_growth ORDER BY year) AS group_id;
+- The fifth CTE counted the length of the growth streak and calculated the start year substracting by 1
+  because the first growth 'jump' started the year prior. These steps were performed using the MIN() and
+  COUNT() functions.
+  ex.
+      MIN(year) - 1 AS start_year,
+      COUNT(*) AS growth_duration;
+- The last query filtered for streaks of 4 jumps which covers 5 consecutive years using the WHERE clause.
+  ex.
+      WHERE growth_duration >= 4;
+- My initial attempt at this problem involved going back and forth between using LAG() and ROW_NUMBER() but
+  it turns out that some of the logic was in line with how to solve the problem. I just had to find a way to
+  bridge the gap together. It has been a while since a SQL problem has stumped me and I ended up giving up.
+- This type of SQL problem is called Gaps and Islands.
+
+Solve Duration:
+111 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+30 minutes
+
+###########################################################################################################
