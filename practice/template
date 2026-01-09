@@ -29,6 +29,90 @@ Suggestions and Final Thoughts Duration:
 
 ############################################################################################################
 
+R - Code Format:
+## Question:
+
+## Output:
+
+## Import libraries:
+
+## Load and preview data:
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions -
+# Duplicates -
+# Nulls -
+# Value Counts -
+
+# R
+New Method:
+df <- old_df |> data.frame()
+df |> head(5)
+stocks_df |> lapply(class) |> unlist() |> enframe(name="column", value="type")
+df |> dim()
+df |> duplicated() |> sum()
+df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+df$col |> table() |> enframe(name="index", value="frequency") |> arrange(desc(frequency))
+
+columns <- c("col1", "col2", "col3")
+for (col in columns) {
+    cat(paste0("---", col, "---\n"))
+    freq_table <- df[[col]] |> 
+        table() |> 
+        enframe(name="index", value="frequency") |> 
+        arrange(desc(frequency))
+    print(freq_table)
+    cat("\n")
+}
+
+Old Method:
+data.frame(lapply(df, class))
+dim(df)
+sum(duplicated(df))
+enframe(colSums(is.na(df)), name="index", value="null_count")
+enframe(table(df$col), name="index", value="value_count")
+
+## Iteration:
+
+## Result:
+
+############################################################################################################
+
+Python - Code Format:
+## Question:
+
+## Output:
+
+## Import libraries:
+
+## Load and preview data:
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions -
+# Duplicates -
+# Nulls -
+# Value Counts -
+
+# Python
+df.info()
+df.shape
+df.duplicated().sum()
+df.isna().sum().reset_index()
+df['col'].value_counts().reset_index()
+
+columns = ["col1", "col2, "col3"]
+for col in columns:
+    print(f"---{col}---")
+    with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+        print(df[col].value_counts().reset_index(name="frequency"))
+        print("")
+
+## Iteration:
+
+## Result:
+
+############################################################################################################
+
 SQL - Code Format:
 -- Question:
 
@@ -36,7 +120,7 @@ SQL - Code Format:
 
 -- Preview data:
 
--- Check dimensions, duplicates, nulls, and unique value counts:
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
 -- Dimensions -
 -- Duplicates -
 -- Nulls -
@@ -65,50 +149,5 @@ ORDER BY frequency DESC;
 -- Iteration:
 
 -- Result:
-
-############################################################################################################
-
-R & Python - Code Format:
-## Question:
-
-## Output:
-
-## Import libraries:
-
-## Load and preview data:
-
-## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
-# Dimensions -
-# Duplicates -
-# Nulls -
-# Value Counts -
-
-# R
-New Method:
-df <- old_df |> data.frame()
-df |> head(5)
-stocks_df |> lapply(class) |> unlist() |> enframe(name="column", value="type")
-df |> dim()
-df |> duplicated() |> sum()
-df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
-df$col |> table() |> enframe(name="index", value="frequency") |> arrange(desc(frequency))
-
-Old Method:
-data.frame(lapply(df, class))
-dim(df)
-sum(duplicated(df))
-enframe(colSums(is.na(df)), name="index", value="null_count")
-enframe(table(df$col), name="index", value="value_count")
-
-# Python
-df.info()
-df.shape
-df.duplicated().sum()
-df.isna().sum().reset_index()
-df['col'].value_counts().reset_index()
-
-## Iteration:
-
-## Result:
 
 ############################################################################################################
