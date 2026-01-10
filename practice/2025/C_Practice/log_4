@@ -2804,7 +2804,24 @@ Output:
 the 7
 
 Notes:
+- Followed the instructions of the problem and simply copy and pasted the TreeMap put(), get(), and next()
+  functions along with the rest of the TreeMap code. 
+- The main program code that was provided in the lecture was slightly different than the one provided for
+  this particular question for reading, parsing and counting words.
+- The while and for loop scans over each word in the file. They store the words as keys and the counts of
+  the words as values in a dictionary like mapping.
+- The second while loop advances an iterator and searches through the dictionary like map and returns 
+  the word with the highest count in the text file.
 
 Suggestions and Final Thoughts:
+- The while loop (ingestion phase) reads every word from the input until the end of the file. It cleans
+  each word by stripping non-alphabetic characters like punctuation using isalpha(), converts all letters to
+  lowercase using tolower(), and increments the tally for each word using map->get() and map->put().
+- The iterator (analysis phase) walks through the sorted linked list of all unique words found and keeps
+  track of the word and highest count using map->iter().
+- The most common word and its count is printed, and memory is managed by deleting the iterator and entire
+  treemap using iter->del(iter); annd map->del(map);.
+- The char word[100] declaration is dangerous because buffer overflow can occur if the user inputs a word
+  longer than 99 characters. It is safer to use fgets() or scanf() with a width of %99s.
 
 ############################################################################################################
