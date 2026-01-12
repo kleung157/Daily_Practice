@@ -1,0 +1,534 @@
+Date: 01/12/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9611
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+General Assembly - Find the 80th percentile of hours studied
+Find the 80th percentile of hours studied. 
+Output hours studied value at specified percentile.
+
+Data Dictionary:
+Table name = 'sat_scores'
+id: numeric (num)
+school: character (str)
+teacher: character (str)
+student_id: numeric (num)
+sat_writing: numeric (num)
+sat_verbal: numeric (num)
+sat_math: numeric (num)
+hrs_studied: numeric (num)
+average_sat: numeric (num)
+love: POSIXct, POSIXt (dt)
+
+Code:
+** Solution #1
+## Question:
+# Find the 80th percentile of hours studied.
+# Output hours studied value at specified percentile.
+
+## Output:
+# hrs_studied_80th_percentile
+
+## Import libraries:
+#install.packages("tidyverse")
+library(tidyverse)
+
+## Load and preview data:
+#sat_scores <- read.csv("sat_scores.csv")
+scores_df <- data.frame(sat_scores)
+scores_df |> head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 135 x 10
+# Duplicates - 0
+# Nulls - hrs_studied(7), love(13%)
+# Value Counts - id, school, teacher, student_id
+scores_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+scores_df |> dim()
+
+scores_df |> duplicated() |> sum()
+
+scores_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+scores_df$id |> table() |> enframe(name="index", value="frequency")
+scores_df$school |> table() |> enframe(name="index", value="frequency")
+scores_df$teacher |> table() |> enframe(name="index", value="frequency")
+scores_df$student_id |> table() |> enframe(name="index", value="frequency")
+
+## Iteration:
+result_df <- scores_df |> 
+    filter(
+        # 1. Filter for non-null values in hrs_studied column
+        !is.na(hrs_studied)
+    ) |> 
+    summarise(
+        # 2. Calculate the 80th percentile of hrs_studied
+        hrs_studied_80th_percentile = quantile(hrs_studied, probs=0.80, na.rm=TRUE)
+    )
+
+## Result:
+result_df
+
+Notes:
+- The data quality check revealed 7 null values in the hrs_studied column.
+- My approach to this problem started with filtering for non null values in the hrs_studied column using the
+  filter() and !is.na() functions. Next, I calculated the 80th percentile of the hrs_studied column using
+  the summarise(), and quantile() functions.
+
+Suggestions and Final Thoughts:
+- The quantile() function has the parameters quantile(x, probs, na.rm). The x is the column, the probs is
+  the probability between 0 and 1, and na.rm is whether to remove null values.
+  ex.
+      hrs_studied_80th_percentile = quantile(hrs_studied, probs=0.80, na.rm=TRUE)
+- The approach could be simplified to a single step by assigning the 80th percentile to a variable. I had
+  considered this inititally but wanted to check for edge cases and account for nulls.
+  ex.
+      hrs_studied_80th_percentile <- quantile(scores_df$hrs_studied, probs=0.80, na.rm=TRUE)
+
+Solve Duration:
+13 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9724
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+City of San Francisco - Find the postal code which has the highest average inspection score
+Find the postal code which has the highest average inspection score.
+Output the corresponding postal code along with the result.
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_id: int64 (int)
+business_name: object (str)
+business_address: object (str)
+business_city: object (str)
+business_state: object (str)
+business_postal_code: float64 (flt)
+business_latitude: float64 (flt)
+business_longitude: float64 (flt)
+business_location: object (str)
+business_phone_number: float64 (flt)
+inspection_id: object (str)
+inspection_date: datetime64 (dt)
+inspection_score: float64 (flt)
+inspection_type: object (str)
+violation_id: object (str)
+violation_description: object (str)
+risk_category: object (str)
+
+Code:
+** Solution #1
+## Question:
+# Find the postal code which has the highest average inspection score.
+# Output the corresponding postal code along with the result.
+
+## Output:
+# business_postal_code, average_inspection_score
+
+## Import libraries
+import pandas as pd
+
+## Load and preview data:
+#sf_restaurant_health_violations = pd.read_csv("sf_restaurant_health_violations.csv")
+violations_df = pd.DataFrame(sf_restaurant_health_violations)
+violations_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 297 x 17
+# Duplicates - 0
+# Nulls - business_postal_code(10), business_latitude(133), business_longitude(133), business_location(133),
+#         business_phone_number(214), inspection_score(73), violation_id(72), violation_description(72),
+#         risk_category(72)
+# Value Counts - business_id, business_name, business_address, business_city, business_state,
+#                business_location, inspection_id, inspection_type, violation_id, violation_description,
+#                risk_category, inspection_score, business_postal_code
+#violations_df.info()
+
+violations_df.shape
+
+violations_df.duplicated().sum()
+
+violations_df.isna().sum().reset_index(name="na_count")
+
+columns = ["business_id", "business_name", "business_address", "business_city", "business_state",
+           "business_location", "inspection_id", "inspection_type", "violation_id", "violation_description",
+           "risk_category", "inspection_score", "business_postal_code"]
+
+#for col in columns:
+#    print(f"---{col}---")
+#    with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+#        print(violations_df[col].value_counts().reset_index(name="frequency"))
+#        print("")
+
+## Iteration:
+result_df = (
+    violations_df
+    # 1. Filter for non-null values in business_postal_code and inspection_score columns 
+    .loc[lambda df: df["business_postal_code"].notna() & 
+                    df["inspection_score"].notna()]
+    # 2. Calculate the average inspection score for each postal code
+    .groupby("business_postal_code")["inspection_score"]
+    .mean()
+    .round(2)
+    .reset_index(name="average_inspection_score")
+    # 3. Filter for postal code with highest average inspection score
+    .loc[lambda df: df["average_inspection_score"] == df["average_inspection_score"].max()]
+    .sort_values(by="business_postal_code", ascending=True)
+)
+
+## Result:
+print("Postal code with the highest average inspection score: ")
+result_df
+
+Notes:
+- The data quality check revealed 10 null values in the business_postal_code column and 73 null values in the
+  inspection_score column.
+- I began my approach to this problem by filtering for non-null values in the business_postal_code and
+  inspection_score columns using lambda x, loc[], and notna() functions. From there, I calculated the average
+  inspection score for each postal code using the groupby(), mean(), round(), and reset_index() functions.
+  Next, I filtered for postal codes with highest average inspection score using the lambda x, loc[], and max()
+  functions. Lastly, I arranged the output by the business_postal_code column in ascending order in case of
+  potential ties.
+
+Suggestions and Final Thoughts:
+- I initially had used dropna() but could not remember the parameters for the function to work. The subset
+  parameter was the one that I was looking for since I put the columns into a list. The dropna() function
+  is more direct and optimal than using the loc[] to filter for non-null values. 
+  ex.
+      dropna(subset=["business_postal_code", "inspection_score"])
+- If it was known that the highest average inspection score was a single value for a single postal code then
+  the use of idmax() would have been more efficient with the loc[] function. However, I wanted to include
+  potential edge cases if there are ties in the data.
+  ex.
+      loc[lambda df: df["average_inspection_score"].idmax()]
+- Used a for loop to perform the value counts data quality check. Not a fan of how it prints in the console
+  but it does save a lot more time by not having to repeat myself with code. Will eventually get used to how
+  it looks and try to implement it more.
+- To account for potential hidden nulls, the replace() function and numpy package with np.nan can be used to
+  look for common placeholders that act as nulls and replace those values with true nulls.
+  ex.
+      result_df = (
+      df
+      .replace(["", " ", "0", 0, "N/A", "None"], np.nan)
+      .dropna(subset=["col1", "col2"])
+- Implemented a method chain approach for this problem. It felt a lot more intuitive since I write pipe chains
+  in R more often. In the event that I can't chain for a problem then I would write everything step by
+  step for the initial solution then revise to a chain later on for production scripts.
+
+Solve Duration:
+22 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+15 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10557
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Nvidia - Minimum CPUs for Task Scheduling
+You are managing a task scheduling system where each task has a specific start and end time. 
+Multiple tasks can run simultaneously if there are enough CPUs available, but each CPU can only run one task at a time.
+Given a list of task execution intervals, determine the minimum number of CPUs required to execute all tasks without any conflicts. 
+When processing the data, duplicate task entries should only be counted once, and tasks with missing start or end times should be excluded from the calculation. 
+Tasks without names can still be included as long as they have valid execution times. 
+Note that when a task ends at the exact moment another task starts, they do not conflict since the CPU can be reused immediately.
+Return the minimum number of CPUs required.
+
+Data Dictionary:
+Table name = 'task_schedule'
+end_time: datetime2 (dt)
+start_time: datetime2 (dt)
+task_id: bigint (int)
+task_name: varchar (str)
+
+Code:
+** Attempt #1
+-- Question:
+-- You are managing a task scheduling system where each task has a specific start and end time.
+-- Multiple tasks can run simultaneously if there are enough CPUs available, 
+-- but each CPU can only run one task at a time.
+-- Given a list of task execution intervals, 
+-- determine the minimum number of CPUs required to execute all tasks without any conflicts.
+-- When processing the data, duplicate task entries should only be counted once,
+-- and tasks with missing start or end times should be excluded from the calculation.
+-- Tasks without names can still be included as long as they have valid execution times.
+-- Note that when a task ends at the exact moment another task starts,
+-- they do not conflict since the CPU can be reused immediately.
+-- Return the minimum number of CPUs required.
+
+-- Output:
+-- minimum_CPUs_required
+
+-- Preview data:
+SELECT TOP 5* FROM task_schedule;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 25 x 4
+-- Duplicates - 0
+-- Nulls - start_time(1), task_name(2)
+-- Value Counts - task_id, task_name
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN end_time IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN start_time IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN task_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN task_name IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM task_schedule;
+
+SELECT -- Duplicates
+    end_time, start_time, task_id, task_name,
+    COUNT(*) AS duplicate_count
+FROM task_schedule
+GROUP BY 
+    end_time, start_time, task_id, task_name
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts, task_id 5 has two counts
+    task_id,
+    COUNT(*) AS frequency
+FROM task_schedule
+GROUP BY task_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, task_name that is NULL has two counts
+    task_name,
+    COUNT(*) AS frequency
+FROM task_schedule
+GROUP BY task_name
+ORDER BY frequency DESC;
+
+-- Iteration:
+WITH CleanedUniqueTasks AS (
+    -- Remove duplicate task entries
+    -- Include tasks without names that have valid times
+    SELECT DISTINCT
+        task_id,
+        start_time,
+        end_time
+    FROM 
+        task_schedule
+    WHERE
+        -- Remove tasks with missing start or end times
+        start_time IS NOT NULL
+        AND end_time IS NOT NULL
+),
+TaskComparisons AS (
+    SELECT
+        cut1.task_id AS task1,
+        cut1.start_time AS task1_start_time,
+        cut1.end_time AS task1_end_time,
+        cut2.task_id AS task2,
+        cut2.start_time AS task2_start_time,
+        cut2.end_time AS task2_end_time
+    FROM 
+        CleanedUniqueTasks AS cut1
+    JOIN 
+        -- Self join by not matching task id to have row by row comparisons
+        CleanedUniqueTasks AS cut2
+        ON cut1.task_id != cut2.task_id
+    WHERE
+        -- When a task ends at exactly when another task starts
+        cut1.start_time = cut2.end_time
+        OR cut2.end_time = cut1.start_time
+        -- When two tasks are not within the same interval
+        OR cut1.end_time < cut2.start_time
+        OR cut2.end_time < cut1.start_time
+),
+TaskCPUCounts AS (
+    SELECT
+        task1,
+        -- Count the number of CPUs required for all task combinations
+        COUNT(*) AS CPU_count
+    FROM 
+        TaskComparisons
+    GROUP BY 
+        task1
+)
+SELECT
+    -- Calculate the minimum number of CPUs required
+    MIN(CPU_count) AS minimum_CPUs_required
+FROM 
+    TaskCPUCounts;
+
+
+** Solution #1 ( using UNION and SUM() OVER() approach )
+WITH CleanedUniqueTasks AS (
+    -- Remove duplicate task entries
+    SELECT DISTINCT
+        task_id,
+        start_time,
+        end_time
+    FROM 
+        task_schedule
+    WHERE
+        -- Remove tasks with missing start or end times
+        start_time IS NOT NULL
+        AND end_time IS NOT NULL
+),
+Events AS (
+    -- Unpivot the table
+    -- Every start is a (+1) CPU demand
+    SELECT 
+        start_time as event_time, 1 AS cpu_delta
+    FROM 
+        CleanedUniqueTasks
+    
+    UNION ALL
+    
+    -- Every end is a (-1) CPU demand
+    SELECT 
+        end_time as event_time, -1 AS cpu_delta
+    FROM 
+        CleanedUniqueTasks
+),
+RunningTotal AS (
+    -- Calculate concurrent tasks using a window function
+    -- When event_times are equal, -1 comes before 1 due to the second SORT column
+    SELECT
+       SUM(cpu_delta) OVER(
+           ORDER BY 
+               event_time ASC, 
+               cpu_delta ASC
+       ) AS concurrent_tasks
+    FROM 
+        Events
+)
+-- The maximum concurrent tasks equals the minimum CPUs required
+SELECT
+    MAX(concurrent_tasks) AS min_cpus_required
+FROM RunningTotal;
+
+
+** Solution #2 ( uses self-join ) 
+WITH CleanedUniqueTasks AS (
+    -- Remove duplicate task entries
+    SELECT DISTINCT
+        task_id,
+        start_time,
+        end_time
+    FROM 
+        task_schedule
+    WHERE
+        -- Remove tasks with missing start or end times
+        start_time IS NOT NULL
+        AND end_time IS NOT NULL
+),
+ConcurrencyCount AS (
+    SELECT
+        a.task_id,
+        a.start_time,
+        -- Count all tasks (B) that are active when Task (A) begins
+        COUNT(b.task_id) AS overlapping_tasks
+    FROM 
+        CleanedUniqueTasks AS a
+    JOIN 
+        CleanedUniqueTasks AS b
+        -- B started before or when A started
+        ON a.start_time >= b.start_time    -- Task B must have already started
+        -- B hasn't finished yet when A starts
+        AND a.start_time < b.end_time    -- Task B must NOT have finished yet
+    GROUP BY
+        a.task_id, a.start_time
+)
+SELECT 
+    MAX(overlapping_tasks) AS minimum_CPUs_required
+FROM 
+    ConcurrencyCount;
+
+Notes:
+- The data quality check revealed 1 null value in the start_time column and 2 null values in the task_name
+  column. There were multiple counts for a single id found in the task_id column.
+- I started my approach to this problem by removing duplicate task entries using the DISTINCT clause in the
+  SELECT statement, and removing tasks with missing start or end times using the filter IS NOT NULL in the
+  WHERE clause. These steps were placed in a common table expression (CTE) called CleanedUniqueTasks.
+- Next, I self inner joined the CleanedUniqueTasks CTE by not matching the task_id column to have row by
+  row comparisons. The rows were filtered in the WHERE clause for when a task ends at exactly when another
+  task starts, and when two tasks are not within the same interval. These steps were placed into a second 
+  CTE named TaskComparisons.
+- From there, I counted the number of CPUs required for all task combinations using the COUNT() function and
+  formed another CTE labeled TaskCPUCounts.
+- Finally, I calculated the minimum number of CPUs required using the MIN() function using the previous
+  TaskCPUCounts CTE.
+
+Suggestions and Final Thoughts:
+- The most optimal approach to this problem is using UNION to unpivot the provided task_schedule table 
+  and setting values (1 or -1) to each datetime row. From there, a running total can be calculated using
+  the SUM() and OVER() functions to order the datetimes in ascending order and the value changes in ascending
+  order. The last step is calculating the maximum concurrent tasks for the minimum number of CPUs required
+  using the MAX() function. This approach is seen in Solution #1 and is called the Sweeping Line method. It
+  has O(NLogN) performance.
+- Sticking with my original approach of using a self-join, the speed for the approach is O(N^2) which would
+  be super slow compared to the Sweeping Line Method. It does not seem to produce the correct answer 
+  consistently when performing row by row operations using filters. Solution #2 tries to find the same
+  answer as Solution #1 but is off by 1 meaning there may be values being recounted.
+- The self-join method was not the best approach. This question ended up stumping me even though the answer
+  that I obtained using my self join method matched Solution #2's self join answer. Stick to using the
+  Sweeping Line method to avoid all the headache.
+- After double checking the Sweepling Line Method, the UNION for unpivoting the table should have been
+  UNION ALL. This removed shared date times when all the date times should be included. The correct
+  answer was 8 and is consistent across all the solutions.
+- The self-join logic is using task 1's start time to check if it is between task 2's start and end time
+  startB <= startA < endB. It was the approach I initially envisioned but couldn't figure out how to do in
+  a WHERE clause or JOIN clause. The problem has a special case "task ends at the exact moment another task
+  starts, they do not conflict since the CPU can be reused immediately" which makes both comparisons not
+  inclusive meaning the BETWEEN solution would not work for the filter. Hence the two separate filters instead
+  of a single BETWEEN filter.
+  ex.
+      -- Correct filter, exclusive end
+      JOIN 
+          CleanedUniqueTasks AS b
+          ON a.start_time >= b.start_time
+          AND a.start_time < b.end_time;
+  ex.
+      -- Inclusive filter 
+      WHERE
+          a.start_time BETWEEN b.start_time and b.end_time;
+      WHERE
+          a.start_time >= b.start_time
+          AND a.start_time <= b.end_time;
+
+Solve Duration:
+114 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+60 minutes
+
+############################################################################################################
