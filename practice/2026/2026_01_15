@@ -1,0 +1,603 @@
+Date: 01/15/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9614
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Airbnb - Find the average difference between booking and check-in dates
+Find the average number of days between the booking and check-in dates for AirBnB hosts. 
+Order the results based on the average number of days in descending order.
+
+Data Dictionary:
+Table name = 'airbnb_contacts'
+n_guests: numeric (num)
+n_messages: numeric (num)
+id_guest: character (str)
+id_host: character (str)
+id_listing: character (str)
+ts_contact_at: POSIXct, POSIXt (dt)
+ts_reply_at: POSIXct, POSIXt (dt)
+ts_accepted_at: POSIXct, POSIXt (dt)
+ts_booking_at: POSIXct, POSIXt (dt)
+ds_checkin: POSIXct, POSIXt (dt)
+ds_checkout: POSIXct, POSIXt (dt)
+
+Code:
+** Solution #1
+## Question:
+# Find the average number of days between the booking and check-in dates for AirBnB hosts.
+# Order the results based on the average number of days in descending order.
+
+## Output:
+# id_host, average_days_between_booking_and_checkin
+
+# Import libraries
+#install.packages("tidyverse")
+library(tidyverse)
+
+# Load and preview data:
+#airbnb_contacts <- read.csv("airbnb_contacts.csv")
+contacts_df <- data.frame(airbnb_contacts)
+contacts_df |> head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 100 x 11
+# Duplicates - 0
+# Nulls - ts_reply_at(6), ts_accepted_at(61), ts_booking_at(77)
+# Value Counts - id_guest, id_host, id_listing, ts_booking_at, ds_checkin
+contacts_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+contacts_df |> dim()
+
+contacts_df |> duplicated() |> sum()
+
+contacts_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+contacts_df$id_guest |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+contacts_df$id_host |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+contacts_df$id_listing |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+contacts_df$ts_booking_at |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+contacts_df$ds_checkin |> table() |> enframe(name="index", value="frequency") |>
+    arrange(desc(frequency))
+
+## Iteration:
+result_df <- contacts_df |>
+    filter(
+        # 1. Filter for non-null values in ts_booking_at column
+        !is.na(ts_booking_at)
+    ) |>
+    group_by(id_host) |>
+    summarise(
+        # 3. Calculate the average difference in days between booking and check-in dates for hosts
+        average_days_between_booking_and_checkin = mean(
+            # 2. Extract date from datetime columns 
+            as.numeric(difftime(as.Date(ds_checkin), as.Date(ts_booking_at), units="days")), 
+            na.rm=TRUE
+        ),
+        .groups="drop"
+    ) |>
+    arrange(
+        # 4. Sort by average number of days in descending order
+        desc(average_days_between_booking_and_checkin)
+    )
+
+## Result:
+result_df
+
+Notes:
+- The data quality check revealed 77 nulls values in the ts_booking_at column and non unique value counts
+  for the id_host column.
+- I started my approach to this problem by filtering for non-null values in the ts_booking_at column using
+  the filter() and !is.na() functions. Next, I extracted the date from datetime columns using the as.Date()
+  function. From there, I calculated the average difference in days between booking and check-in dates for
+  hosts using the difftime(), mean(), summarise(), and group_by() function. Finally, I sorted the results
+  in descending order by the average_number_between_booking_and_checkin column.
+
+Suggestions and Final Thoughts:
+- The difftime() function has the parameters difftime(time1, time2, tz, units). Time1 is the end date, 
+  time2 is the start date, tz is the timezone, and units is the desired time unit. difftime() returns a
+  difftime class object stored as a double (numeric). Adding as.numeric() converts the difference into
+  a safer and manageable class object.
+  ex.
+      as.numeric(difftime(as.Date(ds_checkin), as.Date(ts_booking_at), units="days"))
+- Couldn't quite configure the Python R environment to enable using the timediff() function that is in
+  the timechange package. The timediff() function would have been a bit more precise than the difftime()
+  function and allow for multiple units to be calculated between two datetime columns.
+  ex.
+      timediff(start, end, units = c("years", "months"))
+- When I initially used the difftime() function, I noticed that negative values were appearing when
+  calculating the difference in days between booking and check in dates. The ts_booking_at column had date
+  and time while the ds_checkin column only had date. I made sure both columns only contained the dates to
+  get a more suitable positive whole number for days rather than a fractional representation of the days.
+
+Solve Duration:
+30 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+20 minutes
+
+###########################################################################################################
+
+Website:
+StrataScratch - ID 9726
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+City of San Francisco - Classify Business Type
+Classify each business as either a restaurant, cafe, school, or other.
+•	A restaurant should have the word 'restaurant' in the business name.
+  This includes common international or accented variants, such as “restaurante”, “restauranté”, etc.
+•	A cafe should have either 'cafe', 'café', or 'coffee' in the business name.
+•	A school should have the word 'school' in the business name.
+•	All other businesses should be classified as 'other'.
+• Ensure each business name appears only once in the final output. 
+  If multiple records exist for the same business, retain only one unique instance.
+The final output should include only the distinct business names and their corresponding classifications.
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_id: int64 (int)
+business_name: object (str)
+business_address: object (str)
+business_city: object (str)
+business_state: object (str)
+business_postal_code: float64 (flt)
+business_latitude: float64 (flt)
+business_longitude: float64 (flt)
+business_location: object (str)
+business_phone_number: float64 (flt)
+inspection_id: object (str)
+inspection_date: datetime64 (dt)
+inspection_score: float64 (flt)
+inspection_type: object (str)
+violation_id: object (str)
+violation_description: object (str)
+risk_category: object (str)
+
+Code:
+** Solution #1
+## Question:
+# Classify each business as either a restaurant, cafe, school, or other.
+# - A restaurant should have the word 'restaurant' in the business name.
+#   This includes common international or accented variants such as "restaurante", "restaurante", etc.
+# - A cafe should have either 'cafe', 'café', or 'coffee' in the business name.
+# - A school should have the word 'school' in the business name.
+# - All other businesses should be classified as 'other'.
+# Ensure each business name appears only once in the final output. 
+# If multiple records exist for the same business, retain only one unique instance.
+# The final output should include only the distinct business names and their corresponding classifications.
+
+## Output:
+# business_name, business_type
+
+## Import packages
+import numpy as np
+import pandas as pd
+
+## Load and preview data:
+#sf_restaurant_health_violations = pd.read_csv("sf_restaurant_health_violations.csv")
+violations_df = pd.DataFrame(sf_restaurant_health_violations, copy=True)
+violations_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 297 x 17
+# Duplicates - 0
+# Nulls - business_postal_code(10), business_latitude(133), business_longitude(133), business_location(133),
+#         business_phone_number(214), inspection_score(73), violation_id(72), violation_description(72),
+#         risk_category(72)
+# Value Counts - business_id, business_name, business_address, business_city, business_state,
+#                business_location, inspection_id, inspection_type, violation_id, violation_description,
+#                risk_category
+#violations_df.info()
+
+violations_df.shape
+
+violations_df.duplicated().sum()
+
+violations_df.isna().sum().reset_index(name="na_count")
+
+columns = ["business_id", "business_name", "business_address", "business_city", "business_state", 
+           "business_location", "inspection_id", "inspection_type", "violation_id", "violation_description",
+           "risk_category"]
+
+#for col in columns:
+#    print(f"---{col}---")
+#    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+#        print(violations_df[col].value_counts().reset_index(name="frequency"))
+#        print("")
+
+## Iteration:
+# 1. Classify each business_name by business_type based on specified criteria
+conditions = [
+    violations_df["business_name"].str.lower().str.contains("restaurant|restaurante|restauranté"),
+    violations_df["business_name"].str.lower().str.contains("cafe|café|coffee"),
+    violations_df["business_name"].str.lower().str.contains("school"),
+]
+
+choices = ["restaurant", "cafe", "school"]
+
+violations_df["business_type"] = np.select(conditions, choices, default="other")
+
+result_df = (
+    violations_df[["business_name", "business_type"]]
+    # 2. Find unique business names
+    .drop_duplicates(subset=["business_name"])
+    # 3. Sort by business_type and business_name in ascending order
+    .sort_values(by=["business_type", "business_name"], ascending=[True, True])
+)
+
+## Result:
+print("Business names classified with business type: ")
+result_df
+
+
+** Solution #2 (revised, filter then classify)
+# 1. Filter for unique business names
+unique_businesses = violations_df[["business_name"]].drop_duplicates().copy()
+
+# 2. Classify each business_name by business_type based on specified criteria
+conditions = [
+    unique_businesses["business_name"].str.contains("restaurant|restaurante|restauranté", case=False, na=False),
+    unique_businesses["business_name"].str.contains("cafe|café|coffee", case=False, na=False),
+    unique_businesses["business_name"].str.contains("school", case=False, na=False)
+]
+
+choices = ["restaurant", "cafe", "school"]
+
+unique_businesses["business_type"] = np.select(conditions, choices, default="other")
+
+result_df = (
+    unique_businesses[["business_name", "business_type"]]
+    # 3. Sort by business_type and business_name in ascending order
+    .sort_values(by=["business_type", "business_name"], ascending=[True, True])
+)
+
+Notes:
+- The data quality check revealed multiple values that were duplicated in the business_name column and
+  values that matched the classification criteria of the prompt in the business_name column.
+- My approach to this problem began with classifying each business name into a business type based on the
+  specified criteria of the prompt using the np.select(), str.lower(), and str.contains() functions. If the
+  business name contained "restaurant", "restaurante", or "restauranté" then it was classified as a restaurant,
+  if the business name contained "cafe", "café", or "coffee" then it was classified as a cafe, if the
+  business name contained "school" then it was classified as a school, and if the business name did not match
+  any of the criteria then it was defaulted as other. 
+- After classifying the business names, I selected the relevant columns from the violations DataFrame and
+  filtered for unique business names using the drop_duplicates() function. Lastly, I sorted the results in
+  ascending order by the business_type and business_name column using the sort_values() function.
+
+Suggestions and Final Thoughts:
+- When filtering for unique values, the drop_duplicates() function can be used in a method chain. Another
+  approach is to use .loc[] with the duplicated() function and a tilde ~.
+  ex.
+      violations_df[["business_name", "business_type"]]
+      .drop_duplicates(subset=["business_name"])
+  ex.
+      violations_df[["business_name", "business_type"]]
+      .loc[~violations_df["business_name"].duplicated()]
+- Before classifying a column, is better to filter out duplicates first to perform the classification
+  operations on a smaller set of specific data rather than on all the data.
+- Use the copy() function when planning to create a new variable from a subset of another, when adding new 
+  columns to a new variable, and to ensure that any cleaning doesn't overwrite the raw source data. The copy()
+  creates an independent object in the computer's memory rather than a view or pointer back to the original
+  DataFrame. Adding the copy parameter to the pd.DataFrame() function is another safety step in not messing
+  with the original DataFrame. If the data is already a DataFrame then the copy() function can be used too.
+  ex. 
+      unique_businesses = violations_df[["business_name"]].drop_duplicates().copy()
+  ex.
+      violations_df = pd.DataFrame(sf_restaurant_health_violations, copy=True)
+  ex. 
+      violations_df = sf_restaurant_health_violations.copy()
+- The str.contains() function has parameters str.contains("string", case, na). The string can be a single
+  or multiple strings using the (|) operator. The case can be specified to False and account for lower and
+  upper case letters in a string. The na can be specified to False is a safety measure where missing values
+  will return False instead of an error and later be classified as the default value.
+  ex.
+      unique_businesses["business_name"]
+      .str.contains("restaurant|restaurante|restauranté", case=False, na=False)
+
+Solve Duration:
+46 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+45 minutes
+
+###########################################################################################################
+
+Website:
+StrataScratch - ID 10563
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Amazon - Multi-Status Order Tracking by Week
+Amazon tracks orders through multiple stages from placement to delivery. 
+Each order has three key dates: when it was ordered, when it was shipped, and when it was received by the customer.
+Create a weekly report showing the count of orders in each status, with weeks starting on Monday. 
+An order's status is determined by its most recent state change: if an order was placed in week 1 and shipped in week 2, it counts as pending in week 1 and shipped in week 2. 
+Orders that have been received should be counted as delivered.
+Output the week start date, count of pending orders, count of shipped orders, and count of delivered orders.
+
+Data Dictionary:
+Table name = 'shipment_tracking'
+delivered_date: date (d)
+order_amount: float (flt)
+order_id: bigint (int)
+ordered_date: date (d)
+shipped_date: date (d)
+user_id: bigint (int)
+
+Code:
+** Attempt #1 (using UNION for separate week rows)
+-- Question:
+-- Amazon tracks orders through multiple stages from placement to delivery.
+-- Each order has three key dates: when it was ordered, when it was shipped,
+-- and when it was received by the customer.
+-- Create a weekly report showing the count of orders in each status, with weeks starting on Monday.
+-- An order's status is determined by its most recent state change:
+--    - If an order was placed in week 1 and shipped in week 2,
+--      it counts as pending in week 1 and shipped in week 2
+--    - Orders that have been received should be counted as delivered.
+-- Output the week start date, count of pending orders, count of shipped orders, count of delivered orders
+
+-- Output:
+-- week_start_date, pending_orders_count, shipped_orders_count, delivered_orders_count
+
+-- Preview data:
+SELECT TOP 5* FROM shipment_tracking;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 40 x 6
+-- Duplicates - 0
+-- Nulls - delivered_date(18), shipped_date(8)
+-- Value Counts - order_id, user_id, ordered_date, shipped_date, delivered_date
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN delivered_date IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN order_amount IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN order_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN ordered_date IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN shipped_date IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col6,
+    COUNT(*) AS total_rows
+FROM shipment_tracking;
+
+SELECT -- Duplicates
+    delivered_date, order_amount, order_id, ordered_date, shipped_date, user_id,
+    COUNT(*) AS duplicate_count
+FROM shipment_tracking
+GROUP BY
+    delivered_date, order_amount, order_id, ordered_date, shipped_date, user_id
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    order_id,
+    COUNT(*) AS frequency
+FROM shipment_tracking
+GROUP BY order_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    user_id,
+    COUNT(*) AS frequency
+FROM shipment_tracking
+GROUP BY user_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    ordered_date,
+    COUNT(*) AS frequency
+FROM shipment_tracking
+GROUP BY ordered_date
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, 8 dates with null
+    shipped_date,
+    COUNT(*) AS frequency
+FROM shipment_tracking
+GROUP BY shipped_date
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, 18 dates with null
+    delivered_date,
+    COUNT(*) AS frequency
+FROM shipment_tracking
+GROUP BY delivered_date
+ORDER BY frequency DESC;
+
+-- Iteration:
+WITH OrderDates AS (
+SELECT
+    order_id,
+    DATEADD(week, DATEDIFF(week, 0, ordered_date), 0) AS week_start_date,
+    DATEADD(day, 6, DATEADD(week, DATEDIFF(week, 0, ordered_date), 0)) AS week_end_date,
+    ordered_date,
+    shipped_date,
+    delivered_date,
+    'Week 1' AS week_label
+FROM shipment_tracking
+
+UNION ALL
+
+SELECT
+    order_id,
+    DATEADD(week, DATEDIFF(week, 0, ordered_date), 0) AS week_start_date,
+    DATEADD(day, 6, DATEADD(week, DATEDIFF(week, 0, ordered_date), 0)) AS week_end_date,
+    ordered_date,
+    shipped_date,
+    delivered_date,
+    'Week 2' AS week_label
+FROM shipment_tracking
+)
+SELECT
+    CASE 
+        WHEN (ordered_date BETWEEN week_start_date AND week_end_date) 
+             AND shipped_date > week_end_date
+             AND week_label = 'Week 1'
+        THEN 1
+        ELSE 0
+    END AS pending_count,
+    CASE 
+        WHEN (ordered_date BETWEEN week_start_date AND week_end_date) 
+             AND shipped_date > week_end_date
+             AND week_label = 'Week 2'
+        THEN 1
+        ELSE 0
+    END AS shipped_count
+FROM OrderDates
+ORDER BY order_id, week_label;
+
+
+** Attempt #2 (categorizing by single rows)
+WITH OrderDates AS (
+SELECT
+    order_id,
+    DATEADD(week, DATEDIFF(week, 0, ordered_date), 0) AS week_start_date,
+    DATEADD(day, 7, DATEADD(week, DATEDIFF(week, 0, ordered_date), 0)) AS next_week_date,
+    ordered_date,
+    shipped_date,
+    delivered_date
+FROM shipment_tracking
+)
+SELECT *,
+    CASE 
+        WHEN (ordered_date >= week_start_date AND ordered_date < next_week_date) 
+            AND shipped_date < next_week_date
+            AND delivered_date >= next_week_date
+        THEN 1
+        ELSE 0
+    END AS pending_count,
+    CASE 
+        WHEN (ordered_date >= week_start_date AND ordered_date < next_week_date) 
+            AND shipped_date > next_week_date
+        THEN 1
+        ELSE 0
+    END AS shipped_count,
+    CASE
+        WHEN (delivered_date >= week_start_date AND delivered_date < next_week_date)
+            AND delivered_date IS NOT NULL
+        THEN 1
+        ELSE 0
+    END AS delivered_count
+FROM OrderDates;
+
+
+** Solution #1
+WITH DateRange AS (
+     -- Find the overall start and end weeks for the report
+    SELECT
+        CAST(DATEADD(week, DATEDIFF(week, 0, MIN(ordered_date)), 0) AS DATE) AS week_start,
+        CAST(DATEADD(week, DATEDIFF(week, 0, MAX(COALESCE(delivered_date, shipped_date, ordered_date))), 0) AS DATE) AS max_week
+    FROM 
+        shipment_tracking
+    
+    UNION ALL
+    
+    -- Generate all Monday weeks in between
+    SELECT  
+        DATEADD(week, 1, week_start),
+        max_week
+    FROM 
+        DateRange
+    WHERE 
+        DATEADD(week, 1, week_start) <= max_week
+),
+WeeklyStatus AS (
+    -- Join every order to every week it could possibly be active
+    SELECT 
+        dr.week_start,
+        s.order_id,
+        CASE
+            WHEN s.delivered_date IS NOT NULL AND s.delivered_date <= DATEADD(day, 6, dr.week_start) THEN 'delivered'
+            WHEN s.shipped_date IS NOT NULL AND s.shipped_date <= DATEADD(day, 6, dr.week_start) THEN 'shipped'
+            WHEN s.ordered_date <= DATEADD(day, 6, dr.week_start) THEN 'pending'
+        END AS current_status
+    FROM 
+        DateRange AS dr
+    JOIN 
+        shipment_tracking AS s
+        ON s.ordered_date <= DATEADD(day, 6, dr.week_start) -- Order must exist by that week
+)
+-- Final Aggregation
+SELECT
+    week_start,
+    COUNT(CASE WHEN current_status = 'pending' THEN 1 END) AS pending_orders,
+    COUNT(CASE WHEN current_status = 'shipped' THEN 1 END) AS shipped_orders,
+    COUNT(CASE WHEN current_status = 'delivered' THEN 1 END) AS delivered_orders
+FROM
+    WeeklyStatus
+WHERE 
+    current_status IS NOT NULL
+GROUP BY 
+    week_start
+ORDER BY
+    week_start;
+       
+Notes:
+- The data quality checks revealed 18 nulls in the delivered_date column, 8 nulls in the shipped_date
+  column, and all unique values in the order_id column.
+- My initial approach to this problem was extracting the week start date on Mondays with the date
+  from the ordered_date column using the DATEADD() and DATEDIFF() functions. The first date of 2024 was a 
+  Monday and the subsequent weeks could be calculated using the latest date in the ordered_date column.
+- Next I classified orders as pending, shipped, or delivered based on the prompt criteria using CASE WHEN
+  statements. If orders were placed in week 1 and shipped in week 2, then the order was considered 'pending'
+  in week 1 and 'shipped' in week 2. For all other orders that were received then it was counted as 'delivered'.
+- From there, I calculated the number of pending, shipped and delivered orders for each start date using 
+  SUM() or COUNT() functions along with CASE WHEN statements.
+- Lastly, I sorted by the week start date in ascending order.
+- I tried two different approaches where I used UNION ALL in a CTE to create separate week rows and categorized
+  each row accordingly. The other approach was going straight to categorizing after having a start and end date
+  in mind.
+- In the end, the categorization criteria didn't line up with my the pivot table that I was trying to assemble
+  and I seemed to be missing a critical step. 
+  
+Suggestions and Final Thoughts:
+- When looking over the solution method for this problem, the first CTE DateRange required finding the range
+  of dates that the shipment_tracking table had using MIN AND MAX() functions and applying a recursive 
+  function for each week starting with Monday and the final maximum week which was also a Monday.
+- With the DateRange CTE, the original shipment_tracking table could be joined to have every order be placed
+  in a week where it could possibly be active. This duplicates the order_id column to allow for tracking of
+  orders within each possible week. CASE WHEN statements were applied to meet the classification criteria of
+  the prompt. 
+- After joining and categorizing the data, the final aggregation was possible by pivoting the data and counting
+  the number of pending, shipped, and delivered orders in separate columns for each week_start group using
+  the COUNT() function and CASE WHEN statements.
+- Both of my previous attempts were close to solving the problem but ultimately got stumped on trying to get
+  the logic of the CASE WHEN statement correct and creating the range of dates correctly for duplicating the
+  order_id column.
+
+Solve Duration:
+168 minutes (failed)
+
+Notes Duration:
+15 minutes
+
+Suggestions and Final Thoughts Duration:
+15 minutes
+
+###########################################################################################################
