@@ -1,0 +1,657 @@
+Date: 01/20/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9624
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Airbnb - Accommodates-To-Bed Ratio
+Find the average accommodates-to-beds ratio for shared rooms in each city. 
+Sort your results by listing cities with the highest ratios first.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+id: numeric (num)
+accommodates: numeric (num)
+bathrooms: numeric (num)
+number_of_reviews: numeric (num)
+zipcode: numeric (num)
+bedrooms: numeric (num)
+beds: numeric (num)
+price: numeric (num)
+property_type: character (str)
+room_type: character (str)
+amenities: character (str)
+bed_type: character (str)
+cancellation_policy: character (str)
+cleaning_fee: logical (bool)
+city: character (str)
+host_identity_verified: character (str)
+host_response_rate: character (str)
+host_since: POSIXct, POSIXt (dt)
+neighbourhood: character (str)
+review_scores_rating: numeric (num)
+
+Code:
+** Solution #1
+## Question:
+# Find the average accommodates-to-beds ratio for shared rooms in each city.
+# Sort your results by listing cities with the highest ratios first.
+
+## Output:
+# city, avg_accommodates_to_beds_ratio
+
+## Import libraries:
+#install.packages("tidyverse")
+library(tidyverse)
+
+## Load and preview data:
+#airbnb_search_details <- read.csv("airbnb_search_details.csv")
+searches_df <- data.frame(airbnb_search_details)
+searches_df |> head(5)
+
+# Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 160 x 20
+# Duplicates - 0
+# Nulls - host_response_rate(32), neighbourhood(15), review_scores_rating(37)
+# Value Counts - id, property_type, room_type, amenities, bed_type, cancellation_policy, cleaning_fee,
+#                city, host_identity_verified, host_response_rate, neighbourhood
+searches_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+searches_df |> dim()
+
+searches_df |> duplicated() |> sum()
+
+searches_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+searches_df$id |> table() |> enframe(name="index", value="frequency") |> 
+    arrange(desc(frequency))
+searches_df$property_type |> table() |> enframe(name="index", value="frequency") |> 
+    arrange(desc(frequency))
+searches_df$room_type |> table() |> enframe(name="index", value="frequency") |> 
+    arrange(desc(frequency))
+searches_df$amenities |> table() |> enframe(name="index", value="frequency") |> 
+    arrange(desc(frequency))
+searches_df$bed_type |> table() |> enframe(name="index", value="frequency") |> 
+    arrange(desc(frequency))
+searches_df$cancellation_policy |> table() |> enframe(name="index", value="frequency") |> 
+    arrange(desc(frequency))
+searches_df$cleaning_fee |> table() |> enframe(name="index", value="frequency") |> 
+    arrange(desc(frequency))
+searches_df$city |> table() |> enframe(name="index", value="frequency") |> 
+    arrange(desc(frequency))
+searches_df$host_identity_verified |> table() |> enframe(name="index", value="frequency") |> 
+    arrange(desc(frequency))
+searches_df$host_response_rate |> table() |> enframe(name="index", value="frequency") |> 
+    arrange(desc(frequency))
+searches_df$neighbourhood |> table() |> enframe(name="index", value="frequency") |> 
+    arrange(desc(frequency))
+    
+## Iteration:
+result_df <- searches_df |>
+    filter(
+        # 1. Filter for 'shared room' in room_type column
+        str_to_lower(room_type) == "shared room"
+    ) |>
+    group_by(city) |>
+    summarise(
+        # 3. Calculate average accommodates to beds ratio for each city
+        average_accommodates_to_beds_ratio = mean(
+            # 2. Calculate accommodates to beds ratio for each row
+            accommodates / na_if(beds, 0),
+            na.rm=TRUE
+        ),
+        .groups="drop"
+    ) |>
+    arrange(
+        # 4. Sort by highest average accommodates to beds ratio
+        desc(average_accommodates_to_beds_ratio)
+    )
+    
+## Result:
+result_df
+
+Notes:
+- The data quality check revealed the value "shared room" in the room_type column.
+- My approach to this problem began with filtering for rows with 'shared room' in the room_type column using
+  the str_to_lower() and filter() functions. Next, I calculated the average accommodates to beds ratio for
+  each city using the na_if(), mean(), summarise(), and group_by() functions. Finally, I sorted the
+  aggregated results by highest average accommodates to beds ratio in descending order.
+  
+Suggestions and Final Thoughts:
+- When using na_if() for a division by 0 operation, place the function in the denominator rather than encasing
+  the whole division by na_if().
+  ex.
+      ratio = accommodates / na_if(beds, 0)
+- For value count checks, the count() function includes NA values and can sort frequencies of each unique
+  value. The table() function does not include NA values. Conversely, in Python, the value_counts() function
+  does not include NA values and has to be specified in order to opt-in to see them.
+  ex.
+      df |> count(col, sort=TRUE)
+  ex. 
+      df['city'].value_counts(dropna=False)
+
+Solve Duration:
+20 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9727
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+City of San Francisco - Find the number of violations that each school had
+Find the number of violations that each school had. 
+Any inspection is considered a violation if its risk category is not null.
+Output the corresponding business name along with the result.
+Order the result based on the number of violations in descending order.
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_id: int64 (int)
+business_name: object (str)
+business_address: object (str)
+business_city: object (str)
+business_state: object (str)
+business_postal_code: float64 (flt)
+business_latitude: float64 (flt)
+business_longitude: float64 (flt)
+business_location: object (str)
+business_phone_number: float64 (flt)
+inspection_id: object (str)
+inspection_date: datetime64 (dt)
+inspection_score: float64 (flt)
+inspection_type: object (str)
+violation_id: object (str)
+violation_description: object (str)
+risk_category: object (str)
+
+Code:
+** Solution #1
+## Question:
+# Find the number of violations that each school had.
+# Any inspection is considered a violation if its risk category is not null.
+# Output the corresponding business name along with the result.
+# Order the result based on the number of violations in descending order.
+
+## Output:
+# business_name, number_of_violations
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#sf_restaurant_health_violations = pd.read_csv("sf_restaurant_health_violations.csv")
+violations_df = pd.DataFrame(sf_restaurant_health_violations, copy=True)
+violations_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 297 x 17
+# Duplicates - 0
+# Nulls - business_postal_code(10), business_latitude(133), business_longitude(133), business_location(133),
+#         business_phone_number(214), inspection_score(73), violation_id(72), violation_description(72),
+#         risk_category(72)
+# Value Counts - business_id, business_name, business_address, business_city, business_state,
+#                business_location, inspection_id, inspection_type, violation_id, violation_description,
+#                risk_category
+#violations_df.info()
+
+violations_df.shape
+
+violations_df.duplicated().sum()
+
+violations_df.isna().sum().reset_index(name="na_count")
+
+columns = ["business_id", "business_name", "business_address", "business_city", "business_state",
+           "business_location", "inspection_id", "inspection_type", "violation_id", "violation_description",
+           "risk_category"]
+           
+#for col in columns:
+#    print(f"---{col}---")
+#    with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+#        print(violations_df[col].value_counts(dropna=False).reset_index(name="frequency"))
+#        print("")
+
+## Iteration:
+result_df = (
+    violations_df
+    # 1. Filter for 'school' in business_name column
+    .loc[lambda df: df["business_name"].str.contains("school", case=False, na=False)]
+    # 2. Drop null values in risk_category column
+    .dropna(subset="risk_category")
+    # 3. Count the number of violations for each school
+    .groupby("business_name")["risk_category"]
+    .count()
+    .reset_index(name="number_of_violations")
+    # 4. Arrange by number of violations in descending order
+    .sort_values(by="number_of_violations", ascending=False)
+)
+
+## Result:
+print("Number of violations for each school: ")
+result_df
+
+Notes:
+- The data quality check revealed values with "school" in the business_name column and 72 null values in the
+  risk_category column.
+- I started my approach to this problem by filtering for 'school' in the business_name column using the
+  loc[] and str.contains() functions. From there, I dropped null values in the risk_category column using
+  the dropna() function. Next, I counted the number of violations for each school using the groupby(),
+  count(), and reset_index() functions. Lastly, I arranged the aggregated results by number of violations
+  in descending order using the sort_values() function.
+
+Suggestions and Final Thoughts:
+- An alternative approach to filtering for non null values and aggregating their counts would be to use
+  the notna() function in the loc[] function and the size() function for aggregation. This method performs
+  better on larger datasets and the original DataFrame is still preserved without dropping any values.
+  ex.
+      violations_df
+      .loc[
+          lambda df: 
+          df["business_name"].str.contains("school", case=False, na=False) &
+          df["risk_category"].notna()
+       ]
+      .groupby("business_name")["risk_category"]
+      .size()
+      .reset_index(name="number_of_violations")
+      .sort_values(by="number_of_violations", ascending=False)
+
+Solve Duration:
+21 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+15 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10564
+
+Difficulty:
+Hard
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Visa - Product Engagement Momentum Shifts
+Identify all products that experienced a turnaround in user engagement: 
+at least 3 consecutive months of declining monthly active users followed by at least 3 consecutive months of growth.
+For each product that matches this pattern, return the product name, the month when the decline started, the month when growth resumed, and the growth ratio from the lowest point to the most recent peak, calculated as: 
+(peak_users - lowest_users) / lowest_users.
+
+Data Dictionary:
+Table name = 'product_engagement'
+month_start: date (d)
+monthly_active_users: bigint (int)
+product_id: bigint (int)
+product_name: varchar (str)
+
+Code:
+** Attempt #1
+-- Question:
+-- Identify all products that experienced a turnaround in user engagement:
+-- at least 3 consecutive months of declining monthly active users followed by
+-- at least 3 consecutive months of growth
+-- For each product that matches this pattern, return the product name,
+-- the month when the decline started, the month when the growth resumed,
+-- and the growth ratio from lowest point to the most recent peak, calculated as:
+-- (peak_users - lowest_users) / lowest_users.
+
+-- Output:
+-- product_name, month_decline_start, month_growth_resumed, growth_ratio
+
+-- Preview data:
+SELECT TOP 5* FROM product_engagement;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 69 x 4
+-- Duplicates - 0
+-- Nulls - 0
+-- Value Counts - product_name, product_id
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN month_start IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN monthly_active_users IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN product_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN product_name IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM product_engagement;
+
+SELECT -- Duplicates
+    month_start, monthly_active_users, product_id, product_name,
+    COUNT(*) AS duplicate_count
+FROM product_engagement
+GROUP BY
+    month_start, monthly_active_users, product_id, product_name
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    product_name,
+    COUNT(*) AS frequency
+FROM product_engagement
+GROUP BY product_name
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    product_id,
+    COUNT(*) AS frequency
+FROM product_engagement
+GROUP BY product_id
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Find at least 3 consecutive months of decline 
+-- 2. Find at least 3 consecutive months of growth 
+-- 3. Find month when decline started
+-- 4. Find month when growth resumed
+-- 5. Find lowest users at last decline month
+-- 6. Find peak users at last growth month
+-- 7. Calculate growth ratio, ratio = (peak_users - lowest_users) / lowest_user
+
+-- Result:
+WITH UserTrends AS (
+    -- Compare current monthly active users with previous month users for each product_name
+    SELECT
+        product_name,
+        month_start,
+        monthly_active_users,
+        LAG(monthly_active_users) OVER(PARTITION BY product_name ORDER BY month_start) AS prev_month_users,
+        LAG(month_start) OVER(PARTITION BY product_name ORDER BY month_start) AS prev_month_start
+    FROM 
+        product_engagement
+),
+DeclineGrowthFlags AS (
+    -- Flag rows where current monthly active users declined or grew AND it's a consecutive month 
+    SELECT
+        product_name,
+        month_start,
+        monthly_active_users,
+        prev_month_users,
+        prev_month_start,
+        CASE
+            WHEN monthly_active_users < prev_month_users 
+                 AND month_start = DATEADD(month, 1, prev_month_start)
+            THEN 1
+            ELSE NULL
+        END is_decline,
+        CASE
+            WHEN monthly_active_users > prev_month_users 
+                AND month_start = DATEADD(month, 1, prev_month_start)
+            THEN 1
+            ELSE NULL
+        END AS is_growth
+    FROM 
+        UserTrends
+),
+StreakGroups AS (
+    -- Use row number to group consecutive decline/growth months
+    SELECT
+        product_name,
+        month_start,
+        is_decline,
+        is_growth,
+        MONTH(month_start) - ROW_NUMBER() OVER(PARTITION BY product_name ORDER BY month_start) AS group_id
+    FROM 
+        DeclineGrowthFlags
+    WHERE 
+        is_decline = 1 
+        OR is_growth = 1
+),
+StreakCounts AS (
+    -- Count the length of the decline and growth streaks
+    SELECT
+        product_name,
+        group_id,
+        DATEADD(month, -1, (MIN(month_start))) AS month_start,
+        COUNT(is_decline) AS decline_duration,
+        COUNT(is_growth) AS growth_duration
+    FROM 
+        StreakGroups
+    GROUP BY
+        product_name,
+        group_id
+),
+TurnaroundProducts AS (
+    -- Filter for streaks of 2 jumps (which covers 3 consecutive months)
+    SELECT
+        product_name,
+        month_start AS month_decline_start,
+        DATEADD(month, decline_duration + 1, month_start) AS month_growth_resumed,
+        decline_duration,
+        growth_duration,
+        DATEADD(month, decline_duration, month_start) AS lowest_point_month,
+        DATEADD(month, decline_duration + growth_duration, month_start) AS peak_month
+    FROM 
+        StreakCounts
+    WHERE 
+        decline_duration >= 2
+        AND growth_duration >= 2
+),
+ProductLowestUsers AS (
+    -- Find lowest users at last decline month
+    SELECT
+        tp.product_name,
+        tp.month_decline_start,
+        tp.month_growth_resumed,
+        pe.monthly_active_users AS lowest_users
+    FROM 
+        TurnaroundProducts AS tp
+    JOIN 
+        product_engagement AS pe
+        ON tp.product_name = pe.product_name
+    WHERE 
+        tp.lowest_point_month = pe.month_start
+),
+ProductHighestUsers AS (
+    -- Find peak users at last growth month
+    SELECT
+        tp.product_name,
+        tp.month_decline_start,
+        tp.month_growth_resumed,
+        pe.monthly_active_users AS peak_users
+    FROM 
+        TurnaroundProducts AS tp
+    JOIN 
+        product_engagement AS pe
+        ON tp.product_name = pe.product_name
+    WHERE 
+        tp.peak_month = pe.month_start
+)
+-- Calculate growth ratio, ratio = (peak_users - lowest_users) / lowest_users
+SELECT 
+    plu.product_name,
+    plu.month_decline_start,
+    plu.month_growth_resumed,
+    ROUND(
+        1.0 * (phu.peak_users - plu.lowest_users) / NULLIF(plu.lowest_users, 0)
+    , 2) AS growth_ratio
+FROM 
+    ProductLowestUsers AS plu
+JOIN 
+    ProductHighestUsers AS phu
+    ON plu.product_name = phu.product_name;
+
+
+** Solution #1
+WITH UserTrends AS (
+    -- Get current and previous users, and a continuous month index
+    SELECT
+        product_name,
+        month_start,
+        monthly_active_users,
+        LAG(monthly_active_users) OVER(
+            PARTITION BY product_name 
+            ORDER BY month_start
+        ) AS prev_users,
+        DATEDIFF(month, '2000-01-01', month_start) AS month_idx
+    FROM 
+        product_engagement
+),
+TrendFlags AS (
+    -- Label each month as G (Growth), D (Decline), or S (Stable)
+    SELECT
+        product_name,
+        month_start,
+        monthly_active_users,
+        prev_users,
+        month_idx,
+        CASE
+            WHEN monthly_active_users > prev_users THEN 'G'
+            WHEN monthly_active_users < prev_users THEN 'D'
+            ELSE 'S'
+        END AS direction
+    FROM 
+        UserTrends
+    WHERE 
+        prev_users IS NOT NULL
+),
+Islands AS (
+    -- month_idx - ROW_NUMBER() creates a unique ID for CONSECUTIVE months
+    -- If a month is missing then the month_idx jumps by 2,
+    -- but ROW_NUMBER only jumps by 1, creating a NEW island_id
+    SELECT
+        product_name,
+        month_start,
+        monthly_active_users,
+        prev_users,
+        month_idx,
+        direction,
+        month_idx - ROW_NUMBER() OVER(
+            PARTITION BY product_name, direction
+            ORDER BY month_start
+        ) AS island_id
+    FROM 
+        TrendFlags
+),
+StreakSummary AS (
+    -- Calculate the stats for every single "Island" of growth or decline
+    SELECT
+        product_name,
+        direction,
+        island_id,
+        MIN(month_start) AS streak_start,
+        MAX(month_start) AS streak_end,
+        COUNT(*) AS duration,    -- Number of consecutive changes
+        MIN(monthly_active_users) AS min_val,   
+        MAX(monthly_active_users) AS max_val
+    FROM
+        Islands
+    GROUP BY
+        product_name,
+        direction,
+        island_id
+),
+TurnaroundMatch AS (
+    -- JOIN the Decline Island to the Growth Island that starts immediately after
+    SELECT
+        d.product_name,
+        DATEADD(month, -1, d.streak_start) AS decline_started,
+        g.streak_start AS growth_resumed,
+        d.min_val AS lowest_users,
+        g.max_val AS peak_users
+    FROM 
+        StreakSummary AS d
+    JOIN 
+        StreakSummary AS g
+        ON d.product_name = g.product_name
+        AND d.direction = 'D'
+        AND g.direction = 'G'
+        AND g.streak_start = DATEADD(month, 1, d.streak_end)
+    -- ADDED CHECK: The month before the decline island MUST exist in the raw data 
+    INNER JOIN 
+        product_engagement AS pe
+        ON d.product_name = pe.product_name
+        AND pe.month_start = DATEADD(month, -1, d.streak_start)
+    WHERE 
+        d.duration >= 2
+        AND g.duration >= 2
+)
+SELECT
+    product_name,
+    decline_started,
+    growth_resumed,
+    ROUND(
+        1.0 * (peak_users - lowest_users) / NULLIF(lowest_users, 0)
+    , 2) AS growth_ratio
+FROM 
+    TurnaroundMatch
+ORDER BY 
+    product_name;
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts found in the data quality check.
+- The approach that I used for solving this problem was similar to a past Gaps and Islands problem. I started
+  off by comparing current monthly active users with previous month users for each product_name using the
+  LAG() function. Next, I flagged rows where current monthly active users declined or grew AND it was a
+  consecutive month using a CASE WHEN statement and the DATE_ADD() function. From there, I formed a group
+  id to group consecutive decline and growth months using the MONTH() AND ROW_NUMBER() functions. After
+  grouping, I counted the length of the decline and growth streaks for each product_name. Once counted, I
+  filtered for streaks of 2 jumps for decline and growth duration which covers 3 consecutive months. With
+  the products that experienced turnarounds, I joined back to the original table to find the lowest users at
+  the last decline month and the peak users at the last growth month using the DATEADD() function to calculate
+  the lowest_point_month and peak_month. Finally, I calculated the growth ratio by subtracting the
+  peak_users and the lowest_users columns then dividing the difference by lowest_users using the ROUND() and
+  NULLIF() functions.
+- I encountered a number of hurdles when trying to keep consecutive declines and growth months within the
+  same group. One of the product names turned out to not be a true 3 consecutive month decline and I couldn't
+  quite figure out how to fix it with the code that I had. The other product names met the criteria of the
+  prompt. Also couldn't quite figure out how to get the lowest_user and peak_users values from the original
+  table without having to JOIN twice. I am sure there is a far more simpler way of obtaining those values.
+  Seems as though there is a lot of redundancy in some of the CTEs that I created.
+
+Suggestions and Final Thoughts:
+- The way to check for true consecutive month declines is to include a join that matches back to the original
+  table to confirm that the month before the decline island exists in the raw data.
+  ex.
+      INNER JOIN 
+           product_engagement AS pe
+           ON d.product_name = pe.product_name
+           AND pe.month_start = DATEADD(month, -1, d.streak_start)
+- Instead of using MONTH(), the DATEDIFF() function ensures that the months in a date are a continuous
+  sequence through a year rollover rather than resetting from 12 to 1 when using MONTH().
+  ex.
+      DATEDIFF(month, '2000-01-01', month_start)
+- Initially, I had experimented with having a single column to determine the status change between months.
+  The problem I ran into was trying to separate filters for growth and decline while still maintaining a
+  consecutive trend. Solution #1 shows a method in which using a self join to categorize growth and decline
+  is a way to bridge the decline and growth islands together.
+- Calculating the stats for every single Island of growth or decline is the better way to have a summary
+  table without having to JOIN back multiple times to the original table.
+- For the most part, my original Attempt #1 wasn't too far off from Solution #1. I had the right idea in
+  trying to implement a Gaps and Islands approach to the problem but the execution was a little off as I
+  had not ever experienced having to do multiple islands instead of a single island. It was definitely a
+  challenging problem but at least I wasn't completely stumped. My result answer ended up being fairly close
+  to the solution.
+
+Solve Duration:
+124 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+60 minutes
+
+############################################################################################################
