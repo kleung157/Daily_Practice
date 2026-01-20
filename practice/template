@@ -53,6 +53,7 @@ df |> dim()
 df |> duplicated() |> sum()
 df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
 df$col |> table() |> enframe(name="index", value="frequency") |> arrange(desc(frequency))
+df |> count(col, sort=TRUE)
 
 columns <- c("col1", "col2", "col3")
 for (col in columns) {
