@@ -1,0 +1,507 @@
+Date: 01/21/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9629
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Airbnb - Find the count of verified and non-verified Airbnb hosts
+Find how many hosts are verified by the Airbnb staff and how many aren't. 
+Assume that in each row you have a different host.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+id: numeric (num)
+accommodates: numeric (num)
+bathrooms: numeric (num)
+number_of_reviews: numeric (num)
+zipcode: numeric (num)
+bedrooms: numeric (num)
+beds: numeric (num)
+price: numeric (num)
+property_type: character (str)
+room_type: character (str)
+amenities: character (str)
+bed_type: character (str)
+cancellation_policy: character (str)
+cleaning_fee: logical (bool)
+city: character (str)
+host_identity_verified: character (str)
+host_response_rate: character (str)
+host_since: POSIXct, POSIXt (dt)
+neighbourhood: character (str)
+review_scores_rating: numeric (num)
+
+Code:
+** Solution #1
+## Question:
+# Find how many hosts are verified by the Airbnb staff and how many aren't.
+# Assume that in each row you have a different host.
+
+## Output:
+# verified_hosts, unverified_hosts
+
+## Import libraries:
+#install.packages("tidyverse")
+library(tidyverse)
+
+## Load and preview data:
+#airbnb_search_details <- read.csv("airbnb_search_details.csv")
+searches_df <- data.frame(airbnb_search_details)
+searches_df |> head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts
+# Dimensions - 160 x 20
+# Duplicates - 0
+# Nulls - host_response_rate(32), neighbourhood(15), review_scores_rating(37)
+# Value Counts - id, property_type, room_type, amenities, bed_type, 
+#              - cancellation_policy, cleaning_fee, city,
+#              - host_identity_verified, host_response_rate, neighbourhood
+searches_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+searches_df |> dim()
+
+searches_df |> duplicated() |> sum()
+
+searches_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+searches_df |> count(id, sort=TRUE)
+searches_df |> count(property_type, sort=TRUE)
+searches_df |> count(room_type, sort=TRUE)
+searches_df |> count(amenities, sort=TRUE)
+searches_df |> count(bed_type, sort=TRUE)
+searches_df |> count(cancellation_policy, sort=TRUE)
+searches_df |> count(cleaning_fee, sort=TRUE)
+searches_df |> count(city, sort=TRUE)
+searches_df |> count(host_identity_verified, sort=TRUE)
+searches_df |> count(host_response_rate, sort=TRUE)
+searches_df |> count(neighbourhood, sort=TRUE)
+
+## Iteration:
+result_df <- searches_df |>
+    summarise(
+        # 1. Count the number of verified hosts
+        verified_hosts = n_distinct(id[host_identity_verified == 't']),
+        # 2. Count the number of unverified hosts
+        unverified_hosts = n_distinct(id[host_identity_verified == 'f'])
+    )
+
+## Result:
+result_df
+
+Notes:
+- The data quality check revealed 't' and 'f' values for the host_identity_verified
+  column and all unique values for the id column.
+- My approach to this problem was to count the number of verified hosts and count
+  the number of unverified hosts using the summarise() and n_distinct() functions.
+- The count() function could have been used to display the value counts directly
+  in different rows but I wanted to see if I could perform a summarise() function
+  and create a single row with multiple aggregated columns for the counts.
+
+Suggestions and Final Thoughts:
+- Another aggregation function to use within summarise() is the sum() function.
+  Since each host is unique, the filter can be placed within the sum() function
+  and tallied up based on the categories of the host_identity_verified column.
+  ex.
+      summarise(
+          verified_hosts = sum(host_identity_verified == 't', na.rm=TRUE),
+          unverified_hosts = sum(host_identity_verified == 'f', na.rm=TRUE)
+      )
+- To account for potentital null values in the row by row aggregation, the approach
+  proposed in Solution #1 should have a '%in%' operator instead of '=='. If a null
+  value were to appear then %in% makes the row FALSE, whereas the == does not account
+  for null values. n_distinct() isn't necessary to use since all the host id columns
+  are unique as stated in the prompt and confirmed in the data quality check.
+  ex.
+      summarise(
+          verified_hosts = n_distinct(id[host_identity_verified %in% 't']),
+          unverified_hosts = n_distinct(id[host_identity_verified %in% 'f'])
+      )
+- For a grouping and aggregating approach and having separate rows for each category,
+  the group_by(), summarise(), and n() functions can be used. Afterwards, the
+  mutate() and case_match() functions can be used to rename categorical values in
+  a single column like in the host_identity_verified column which has 't' and 'f'.
+  ex.
+      result_df <- searches_df |>
+          group_by(host_identity_verified) |>
+          summarise(
+              host_count = n()
+          ) |>
+          mutate(
+              host_identity_verified = case_match(
+                  host_identity_verified,
+                  "t" ~ "Verified",
+                  "f" ~ "Not Verified",
+                  .default = "Unknown"
+          )
+      
+Solve Duration:
+24 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+20 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9729
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+City of San Francisco - Inspections Per Risk Category
+Count the number of inspections per each risk category.
+Categorize records with null values under the 'No Risk' category.
+Sort the result based on the number of inspections in descending order.
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_id: int64 (int)
+business_name: object (str)
+business_address: object (str)
+business_city: object (str)
+business_state: object (str)
+business_postal_code: float64 (flt)
+business_latitude: float64 (flt)
+business_longitude: float64 (flt)
+business_location: object (str)
+business_phone_number: float64 (flt)
+inspection_id: object (str)
+inspection_date: datetime64 (dt)
+inspection_score: float64 (flt)
+inspection_type: object (str)
+violation_id: object (str)
+violation_description: object (str)
+risk_category: object (str)
+
+Code:
+** Solution #1
+## Question:
+# Count the number of inspections per each risk category.
+# Categorize records with null values under the 'No Risk' category.
+# Sort the result based on the number of inspections in descending order.
+
+## Output:
+# risk_category, number_of_inspections
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data: 
+#sf_restaurant_health_violations = pd.read_csv("sf_restaurant_health_violatons.csv")
+violations_df = pd.DataFrame(sf_restaurant_health_violations, copy=True)
+violations_df.head(5)
+
+# Check datatypes, dimensions, duplicate, nulls, and unique vlue counts:
+# Dimensions - 297 x 17
+# Duplicates - 0
+# Nulls - business_postal_code(10), business_latitude(133),
+#       - business_longitude(133), business_location(133),
+#       - business_phone_number(214), inspection_score(73),
+#       - violation_id(72), violation_description(72), risk_category(72)
+# Value Counts - business_id, business_name, business_address, business_city,
+#              - business_state, business_location, inspection_id,
+#              - inspection_type, violation_id, violation_description,
+#              - risk_category
+#violations_df.info()
+
+violations_df.shape
+
+violations_df.duplicated().sum()
+
+violations_df.isna().sum().reset_index(name="na_count")
+
+columns = ["business_id", "business_name", "business_address", "business_city",
+           "business_state", "business_location", "inspection_id",
+           "inspection_type", "violation_id", "violation_description",
+           "risk_category"]
+
+#for col in columns:
+#    print(f"---{col}---")
+#    with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+#        print(violations_df[col].value_counts(dropna=False).reset_index(name="frequency"))
+#        print("")
+
+## Iteration:
+result_df = (
+    violations_df
+    # 1. Categorize null values in risk category column as 'No Risk'
+    .assign(
+        risk_category = lambda df: df["risk_category"].fillna("No Risk")
+    )
+    # 2. Count the number of inspections for each risk category
+    .groupby("risk_category")["inspection_id"]
+    .size()
+    .reset_index(name="number_of_inspections")
+    # 3. Arrange result in descending order by number of inspections
+    .sort_values(by="number_of_inspections", ascending=False)
+)
+
+## Result:
+print("Number of inspections per each risk category: ")
+result_df
+
+Notes:
+- The data quality check revealed 72 null values in the risk category column and
+  multiple duplicated values in the inspection_id column.
+- I began my approach to this problem by categorizing null values in the risk
+  category column as 'No Risk' using the assign() and fillna() functons. From there,
+  I counted the number of inspections for each risk category using the groupby(),
+  size(), and reset_index() functions. Lastly, I arranged the results in
+  descending order by the number of inspections column using the sort_values()
+  function.
+
+Suggestions and Final Thoughts:
+- Alternative approaches to replacing null values with a different value to be used
+  in a categorical column involve the replace() function or a combination of the
+  assign() and fillna() function. Using assign() and fillna() is more explicit and
+  does not affect the original DataFrame until the end. Replace() is a single step
+  and functon.
+  ex.
+      violations_df
+      .assign(
+          risk_category = lambda x: x["risk_category"].fillna("No Risk")
+      )
+  ex.
+      import numpy as np
+      
+      violations_df
+      .replace({"risk_category": {np.nan: "No Risk"}})
+- To replace multiple values in a categorical column, a dictionary can be created
+  and the map() function can be implemented in a method chain with assign(). For
+  a safety net, fillna() can also be used at the end to catch any potential values
+  not being replaced.
+  ex.
+      import numpy as np
+      
+      rename_risk_category = {
+          "Low Risk": "Small Risk",
+          "Moderate Risk": "Medium Risk",
+          "High Risk": "Large Risk", 
+          np.nan: "No Risk"
+      }
+      
+      violations_df
+      .assign(
+          risk_category = lambda x: x["risk_category"].map(rename_risk_category).fillna("Other")
+      )
+  
+Solve Duration:
+25 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+30 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10571
+
+Difficulty:
+Medium
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Tesla - Vehicle Gear Usage
+A company tracks data from its delivery vehicles.
+Every time a driver changes gears, the system records which vehicle ('car_id'), when it happened (timestamp in Unix epoch seconds), and which gear: P (Park), D (Drive), or R (Reverse).
+Calculate how many total hours all vehicles spent in each gear. 
+To determine the duration of a gear period, calculate the time difference between when that gear was engaged and when the next gear change occurred. 
+For each vehicle's final gear change (which has no subsequent change recorded), assume the shift ended 2 hours after that final timestamp. 
+Return gear and total hours.
+
+Data Dictionary:
+Table name = 'vehicle_telemetry'
+car_id: varchar (str)
+gear: varchar (str)
+timestamp_epoch: bigint (int)
+
+Code:
+** Solution #1
+-- Question:
+-- A company tracks data from its delivery vehicles.
+-- Everytime a driver changes gears, the system records which vehicle ('car_id'),
+-- when it happened (timestamp in Unix epoch seconds), and which gear:
+-- P (Park), D (Drive), or R (Reverse).
+-- Calculate how many total hours all vehicles spent in each gear.
+-- To determine the duration of a gear period,
+-- calculate the time difference between when that gear was engaged
+-- and when the next gear change occured.
+-- For each vehicle's final gear change
+-- (which has no subsequent change recorded),
+-- assume the shift ended 2 hour after that final timestamp.
+-- Return gear and total hours.
+
+-- Output:
+-- gear, total_hours
+
+-- Preview data:
+SELECT TOP 5* FROM vehicle_telemetry;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 53 x 3
+-- Duplicates - 0
+-- Nulls - 0
+-- Value Counts -
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN car_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN gear IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN timestamp_epoch IS NULL THEN 1 ELSE 0 END) AS col3,
+    COUNT(*) AS total_rows
+FROM vehicle_telemetry;
+
+SELECT -- Duplicates
+    car_id, gear, timestamp_epoch,
+    COUNT(*) AS duplicate_count
+FROM vehicle_telemetry
+GROUP BY
+    car_id, gear, timestamp_epoch
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    car_id,
+    COUNT(*) AS frequency
+FROM vehicle_telemetry
+GROUP BY car_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    gear,
+    COUNT(*) AS frequency
+FROM vehicle_telemetry
+GROUP BY gear
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Convert Unix epoch seconds into timestamp and hours
+-- 2. Calculate time difference in hours between gear engaged and next gear 
+--    occurred for each vehicle
+-- 3. For each vehicle, assume final gear change was 2 hours after
+--    the final timestamp
+-- 4. Calculate the total hours for each gear 
+
+-- Result:
+WITH FormattedVehicleData AS (
+    SELECT
+        car_id,
+        gear,
+        -- 1. Convert Unix epoch seconds into timetamp and hours
+        CAST(DATEADD(s, timestamp_epoch, '19700101') AS DATETIME) AS timestamp,
+        timestamp_epoch / 3600.00 AS hours
+    FROM 
+        vehicle_telemetry
+),
+VehicleGearDuration AS (
+    SELECT
+        car_id,
+        gear,
+        timestamp,
+        -- 2. Calculate time difference in hours between gear engaged and next 
+        --    gear occurred for each vehicle
+        LEAD(hours) OVER(
+            PARTITION BY car_id 
+            ORDER BY hours ASC) 
+        - hours AS gear_duration
+    FROM
+        FormattedVehicleData
+)
+SELECT
+    gear,
+    -- 4. Calculate the total hours for each gear 
+    SUM(
+        -- 3. For each vehicle, assume final gear change was 2 hours after
+        --    the final timestamp
+        COALESCE(gear_duration, 2)
+    ) AS total_hours
+FROM 
+    VehicleGearDuration
+GROUP BY
+    gear
+ORDER BY 
+    total_hours DESC;
+
+
+** Solution #2 (revised and optimized)
+WITH VehicleGearDuration AS (
+    SELECT
+        gear,
+        CAST(DATEADD(s, timestamp_epoch, '19700101') AS DATETIME) AS timestamp,
+        -- 1. Calculate time difference in hours between gear engaged and next 
+        --    gear occurred for each vehicle
+        -- 2. For each vehicle, assume final gear change was 2 hours after
+        --    the final timestamp
+        LEAD(timestamp_epoch, 1, timestamp_epoch + 7200) OVER(
+            PARTITION BY car_id 
+            ORDER BY timestamp_epoch ASC) 
+        - timestamp_epoch AS gear_duration
+    FROM
+        vehicle_telemetry
+)
+SELECT
+    gear,
+    -- 3. Calculate the total hours for each gear 
+    SUM(gear_duration / 3600.00) AS total_hours
+FROM 
+    VehicleGearDuration
+GROUP BY
+    gear
+ORDER BY 
+    total_hours DESC;
+
+Notes:
+- There were no duplicates, nulls, or abnormal value counts in the data quality check.
+- My approach to this problem started with converting the Unix epoch seconds in the
+  timestamp_epoch column into separate timestamp and hour columns using the DATEADD()
+  and CAST() functions. Next, I calculated the time difference in hours between the 
+  gear engaged and the next gear that occurred for each vehicle using the LEAD() 
+  function. From there, each vehicle's final gear change was filled in as 2 
+  hours after the final timestamp using the COALESCE() function. Finally, I calculated 
+  the total hours for each gear using the SUM() function.
+  
+Suggestions and Final Thoughts:
+- To account for precision, conversion to hours should be performed in the final step
+  after the calculation steps have occurred.
+  ex.
+      SUM(
+          duration_seconds / 3600
+      ) AS total_hours
+- To optimize the initial approach in Solution #1, the number of CTEs can be brought
+  down from 2 to 1. The CTE would contain the time difference calculation using the
+  timestamp_epoch column. A helper column can be added to confirm the time difference
+  was correct by converting the timestamp_epoch column into a readable timestamp. For
+  meeting the criteria of the prompt where the final gear change was 2 hours after
+  the final timestamp, the LEAD() function has a parameter to account for this. After
+  the CTE is established, the time difference can be converted to hours and a sum
+  aggregation can occur for each gear group. These steps are seen in Solution #2.
+- Try to perform as many calculations using the given integer datatypes as much as
+  possible before having to convert to a different datatype.
+
+Solve Duration:
+52 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+30 minutes
+
+############################################################################################################
