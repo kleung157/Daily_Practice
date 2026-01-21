@@ -481,9 +481,7 @@ Suggestions and Final Thoughts:
 - To account for precision, conversion to hours should be performed in the final step
   after the calculation steps have occurred.
   ex.
-      SUM(
-          duration_seconds / 3600
-      ) AS total_hours
+      SUM(duration_seconds / 3600) AS total_hours;
 - To optimize the initial approach in Solution #1, the number of CTEs can be brought
   down from 2 to 1. The CTE would contain the time difference calculation using the
   timestamp_epoch column. A helper column can be added to confirm the time difference
