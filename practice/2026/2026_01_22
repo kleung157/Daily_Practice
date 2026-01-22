@@ -1,0 +1,451 @@
+Date: 01/22/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9632
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+You are given a table named airbnb_host_searches that contains listings shown to users during Airbnb property searches. 
+Each record represents a property listing (not the user's search query).
+Determine the minimum, average, and maximum rental prices for each host popularity rating based on the property's number_of_reviews.
+The host’s popularity rating is defined as below:
+•   0 reviews: "New"
+•   1 to 5 reviews: "Rising"
+•   6 to 15 reviews: "Trending Up"
+•   16 to 40 reviews: "Popular"
+•   More than 40 reviews: "Hot"
+Tip: The id column in the table refers to the listing ID.
+Output host popularity rating and their minimum, average and maximum rental prices. 
+Order the solution by the minimum price.
+
+Data Dictionary:
+Table name = 'airbnb_host_searches'
+id: numeric (num)
+accommodates: numeric (num)
+bathrooms: numeric (num)
+number_of_reviews: numeric (num)
+zipcode: numeric (num)
+bedrooms: numeric (num)
+beds: numeric (num)
+price: numeric (num)
+property_type: character (str)
+room_type: character (str)
+amenities: character (str)
+bed_type: character (str)
+cancellation_policy: character (str)
+cleaning_fee: logical (bool)
+city: character (str)
+host_identity_verified: character (str)
+host_response_rate: character (str)
+host_since: POSIXct, POSIXt (dt)
+neighbourhood: character (str)
+review_scores_rating: numeric (num)
+
+Code:
+** Solution #1
+## Question:
+# You are given a table named airbnb_host_searches that contains listing shown 
+# to users during Airbnb property searches.
+# Each record represents a property listing (not the user's search query).
+# Determine the minimum, average, and maximum rental prices for each host
+# popularity rating based on the property's number of reviews.
+# The host's popularity rating is defined as below:
+# - 0 reviews: "New"
+# - 1 to 5 reviews: "Rising"
+# - 6 to 15 reviews: "Trending Up"
+# - 16 to 40 reviews: "Popular"
+# - More than 40 reviews: "Hot"
+# The id column in the table refers to the listing ID.
+# Output host popularity rating and their minimum, average, and maximum rental prices.
+# Order the solution by the minimum price.
+
+## Output:
+# host_popularity_rating, min_price, avg_price, max_price
+
+## Import libraries:
+#install.packages("tidyverse")
+library(tidyverse)
+
+## Load and preview data:
+#airbnb_host_searches <- read_csv("airbnb_host_searches.csv")
+searches_df <- as.data.frame(airbnb_host_searches)
+searches_df |> head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 167 x 20
+# Duplicates - 0
+# Nulls - host_response_rate(32), neighbourhood(15), review_scores_rating(40)
+# Value Counts - id, property_type, room_type, amenities, bed_type, cancellation_policy,
+#                cleaning_fee, city, host_identity_verified, host_response_rate, neighbourhood
+searches_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+searches_df |> dim()
+
+searches_df |> duplicated() |> sum()
+
+searches_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+searches_df |> count(id, sort=TRUE)
+searches_df |> count(property_type, sort=TRUE)
+searches_df |> count(room_type, sort=TRUE)
+searches_df |> count(amenities, sort=TRUE)
+searches_df |> count(bed_type, sort=TRUE)
+searches_df |> count(cancellation_policy, sort=TRUE)
+searches_df |> count(cleaning_fee, sort=TRUE)
+searches_df |> count(city, sort=TRUE)
+searches_df |> count(host_identity_verified, sort=TRUE)
+searches_df |> count(host_response_rate, sort=TRUE)
+searches_df |> count(neighbourhood, sort=TRUE)
+
+## Iteration:
+# Input
+# airbnb_host_searches
+# Process
+# 1. Categorize each host's host popularity rating using number of reviews
+# 2. Calculate the minimum, average, and maximum rental prices for each host
+# 3. Sort by minimum price in ascending order
+# Output
+# host_popularity_rating, min_price, avg_price, max_price
+
+## Result:
+result_df <- searches_df |>
+    mutate(
+        # 1. Categorize each host's host popularity rating using number of reviews
+        host_popularity_rating = case_when(
+            number_of_reviews == 0 ~ "New",
+            number_of_reviews <= 5 ~ "Rising",
+            number_of_reviews <= 15 ~ "Trending Up",
+            number_of_reviews <= 40 ~ "Popular",
+            number_of_reviews > 40 ~ "Hot",
+            TRUE ~ "Unknown"
+        )
+    ) |>
+    group_by(host_popularity_rating) |>
+    summarise(
+        # 2. Calculate the minimum, average, and maximum rental prices for each host
+        min_price = min(price, na.rm=TRUE),
+        avg_price = mean(price, na.rm=TRUE),
+        max_price = max(price, na.rm=TRUE),
+        .groups="drop"
+    ) |>
+    arrange(
+        # 3. Sort by minimum price in ascending order
+        min_price
+    )
+    
+result_df
+
+Notes:
+- The data quality check revealed unique values in the id column.
+- My approach to this problem began with categorizing each host's popularity rating based on the
+  number_of_reviews column using the mutate() and case_when() functions. Next, I calculated the minimum,
+  average, and maximum rental prices for each host using the group_by(), summarise(), min(), mean(), and
+  max() functions. Lastly, I sorted the aggregated results in ascending order by the minimum price column.
+
+Suggestions and Final Thoughts:
+- Initially, I had thought that I needed to count the number of reviews for each host using a grouping for
+  the host id and counting the number of review_scores_rating rows. Which would have meant accounting for the
+  null values that existed in the review_scores_rating column. This was a mistake because there was
+  already a column that contained the number of reviews for each host id.
+- I decided to not explictly show the entire range of values in the conditions for categorizing host
+  popularity based on number of reviews. A single condition for each category that builds upon one another
+  and considers a an edge case seemed more efficient and less redundant.
+- For the Iteration section of my practice problem logs, that will be the area where I show the initial
+  planned pseudocode and the Result section will be the refined code with pseudocode entries alongside
+  relevant areas to show proper documentation.
+
+Solve Duration:
+38 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9731
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+City of San Francisco - Find all businesses whose lowest and highest inspection scores are different
+Find all businesses whose lowest and highest inspection scores are different.
+Output the corresponding business name and the lowest and highest scores of each business. 
+HINT: you can assume there are no different businesses that share the same business name
+Order the result based on the business name in ascending order.
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_id: int64 (int)
+business_name: object (str)
+business_address: object (str)
+business_city: object (str)
+business_state: object (str)
+business_postal_code: float64 (flt)
+business_latitude: float64 (flt)
+business_longitude: float64 (flt)
+business_location: object (str)
+business_phone_number: float64 (flt)
+inspection_id: object (str)
+inspection_date: datetime64 (dt)
+inspection_score: float64 (flt)
+inspection_type: object (str)
+violation_id: object (str)
+violation_description: object (str)
+risk_category: object (str)
+
+Code:
+** Solution #1
+## Question:
+# Find all businesses whose lowest and highest inspection scores are different.
+# Output the corresponding business name and the lowest and highest scores of each business.
+# Hint, you can assume there are no different businesses that share the same business name.
+# Order the result based on the business name in ascending order.
+
+## Output:
+# business_name, lowest_score, highest_score
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#sf_restaurant_health_violations = pd.read_csv("sf_restaurant_health_violations.csv")
+violations_df = sf_restaurant_health_violations.copy()
+violations_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 297 x 17
+# Duplicates - 0
+# Nulls - business_postal_code(10), business_latitude(133), business_longitude(133),
+#         business_location(133), business_phone_number(214), inspection_score(73),
+#         violation_id(72), violation_description(72), risk_category(72)
+# Value Counts - business_id, business_name, business_address, business_city, business_state, 
+#                business_location, inspection_id, inspection_type, violation_id,
+#                violation_description, risk_category
+#violations_df.info()
+
+violations_df.shape
+
+violations_df.duplicated().sum()
+
+violations_df.isna().sum().reset_index(name="na_count")
+
+columns = ["business_id", "business_name", "business_address", "business_city", "business_state", 
+           "business_location", "inspection_id", "inspection_type", "violation_id",
+           "violation_description", "risk_category"]
+           
+#for col in columns:
+#    print(f"-----{col}-----")
+#    with pd.option_context("display.max_row", None, "display.max_column", None):
+#        print(violations_df[col].value_counts(dropna=False).reset_index(name="frequency"))
+#        print("")
+
+## Iteration:
+# Input
+# sf_restaurant_health_violations 
+# Process
+# 1. Filter for non null values in inspection_score column
+# 2. Calculate the lowest and highest inspection score for each business_name
+# 3. Filter for businesses that have different lowest and highest inspection scores
+# 4. Arrange in ascending order by business_name
+# Output
+# business_name, lowest_score, highest_score
+
+## Result:
+result_df = (
+    violations_df
+    # 1. Filter for non null values in inspection_score column
+    .loc[lambda x: x["inspection_score"].notna()]
+    # 2. Calculate the lowest and highest inspection score for each business_name
+    .groupby("business_name")
+    .agg(
+        lowest_score=("inspection_score", "min"),
+        highest_score=("inspection_score", "max")
+    )
+    .reset_index()
+    # 3. Filter for businesses that have different lowest and highest inspection scores
+    .loc[lambda x: x["lowest_score"] != x["highest_score"]]
+    # 4. Arrange in ascending order by business_name
+    .sort_values(by="business_name", ascending=True)
+)
+
+print("Businesses whose lowest and highest inspection scores are different: ")
+result_df
+
+Notes:
+- The data quality check revealed 73 null values for the inspection_score column and multiple duplicated
+  values in the business_name column.
+- I started my approach to this problem by filtering for non null values in the inspection_score column
+  using lambda x, and the loc[] and notna() functions. From there, I calculated the lowest and highest
+  inspection score for each business name using the groupby(), agg(), and reset_index() functions. Next,
+  I filtered for businesses that have different lowest and highest inspection scores using the lambda x
+  and loc[] function. Finally, I sorted the results in ascending order by the business_name column.
+
+Suggestions and Final Thoughts:
+- Normally aggregation functions skip null values but to ensure any potential edge cases and tackle the
+  null values early on, I filtered for non-null values before aggregation.
+- Sticking to the method chain approach to avoid creating too many intermediate variables or DataFrames.
+
+Solve Duration:
+21 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10570
+
+Difficulty:
+Medium
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Tesla - Car Part Price
+An automotive parts supplier maintains a database of car part prices across different model years. 
+s parts are redesigned or manufacturing costs change, prices fluctuate from year to year. 
+The procurement team needs to analyze these price trends to identify which parts have seen the most significant price increases or decreases.
+Calculate the price change for each car part compared to its previous model year. 
+The price change should show the difference in dollars (current price minus previous price). 
+For the first occurrence of each part, the price change should be NULL since there's no prior data to compare against. 
+Return all columns from the original table plus a column showing the change from the previous model year.
+If the dataset contains duplicates, remove them before calculating price changes, keeping only one entry per unique car_part_id, model_year combination. 
+Note that some parts may have gaps in their model year sequences. 
+In these cases, calculate the price change against whichever entry comes immediately before in the dataset, regardless of how many years have passed.
+
+Data Dictionary:
+Table name = 'car_parts'
+car_part_id: varchar (str)
+model_year: bigint (int)
+price: float (flt)
+
+Code:
+** Solution #1
+-- Question:
+-- An automotive parts supplier maintains a database of car part prices across different model years.
+-- As parts are redesigned or manufacturing costs change, prices fluctuate from year to year.
+-- The procurement team needs to analyze these price trends to identify which parts have seen the most
+-- significant price increases or decreases.
+-- Calculate the price change for each car part compared to its previous model_year.
+-- The price change should show the difference in dollars (current price minus previous price).
+-- For the first occurence of each part, the price change should be NULL since there's no prior data to
+-- compare against.
+-- Return all columns from the original table plus a column showing the change from the previous model year.
+-- If the dataset contains duplicates, remove them before calculating price changes,
+-- keeping only one entry per unique car_part_id, model_year combination.
+-- Note that some parts may have gaps in their model year sequences.
+-- In these cases, calculate the price change against whichever entry comes immediately before in the dataset,
+-- regardless of how many years have passed.
+
+-- Output:
+-- car_part_id, model_year, price, price_change
+
+-- Preview data:
+SELECT TOP 5* FROM car_parts;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 47 x 3
+-- Duplicates - 2
+-- Nulls - 0
+-- Value Counts - car_part_id
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN car_part_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN model_year IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN price IS NULL THEN 1 ELSE 0 END) AS col3,
+    COUNT(*) AS total_rows
+FROM car_parts;
+
+SELECT -- Duplicates
+    car_part_id, model_year, price,
+    COUNT(*) AS duplicate_count
+FROM car_parts
+GROUP BY
+    car_part_id, model_year, price
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    car_part_id,
+    COUNT(*) AS frequency
+FROM car_parts
+GROUP By car_part_id
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- Input
+-- car_parts
+-- Process
+-- 1. Remove duplicate rows in the dataset
+-- 2. Calculate price change between each model_year in ASC order for each car_part_id
+-- 3. Arrange by car_part_id and model_year in ascending order
+-- Output
+-- car_part_id, model_year, price, price_change
+
+-- Result:
+WITH UniqueCarParts AS (
+    -- 1. Remove duplicate rows in the dataset
+    SELECT DISTINCT
+        car_part_id,
+        model_year,
+        price
+    FROM 
+        car_parts
+)
+SELECT 
+    car_part_id,
+    model_year,
+    price,
+    -- 2. Calculate price change between each model_year in ASC order for each car_part_id
+    price - LAG(price) OVER(
+        PARTITION BY car_part_id 
+        ORDER BY model_year ASC
+    ) AS price_change
+FROM 
+    UniqueCarParts
+ORDER BY 
+    car_part_id,
+    model_year;
+
+Notes:
+- The data quality check revealed 2 duplicate values in the entire dataset.
+- I began my approach to this problem by removing duplicate rows in the dataset using the DISTINCT
+  clause in the SELECT statement. Next, I calculated the price change between each model year in 
+  ascending order for each car_part_id using the LAG() function. Lastly, I ordered the results in
+  ascending order by car_part_id and model_year columns
+
+Suggestions and Final Thoughts:
+- Today's question involved using the LAG() function while yesterday's required the use of LEAD(). While
+  the medium questions aren't as rigorous as the hard questions on StrataScratch, I believe the medium
+  questions are more reflective of business environment usages. The hard questions are just for unique
+  challenges that really test one's ability to think outside of the box. Also the use cases are far fewer
+  for hard questions.
+
+Solve Duration:
+16 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
