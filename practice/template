@@ -47,7 +47,6 @@ df |> head(5)
 # Nulls -
 # Value Counts -
 
-# R
 New Method:
 df <- old_df |> data.frame()
 df |> head(5)
