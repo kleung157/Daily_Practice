@@ -37,6 +37,9 @@ R - Code Format:
 ## Import libraries:
 
 ## Load and preview data:
+example_df <- read_csv("example_df.csv")
+df <- as.data.frame(example_df)
+df |> head(5)
 
 ## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
 # Dimensions -
@@ -87,6 +90,10 @@ Python - Code Format:
 ## Import libraries:
 
 ## Load and preview data:
+example_df = pd.read_csv("example_df.csv")
+df = pd.DataFrame(example_df, copy=True)
+df = example_df.copy()
+df.head(5)
 
 ## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
 # Dimensions -
@@ -94,7 +101,6 @@ Python - Code Format:
 # Nulls -
 # Value Counts -
 
-# Python
 df.info()
 df.shape
 df.duplicated().sum()
