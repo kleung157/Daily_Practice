@@ -1,0 +1,585 @@
+Date: 01/27/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9634
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Airbnb - Host Response Rates With Cleaning Fees
+Find the average host response rate with a cleaning fee for each zipcode. 
+Present the results as a percentage along with the zip code value.
+Convert the column 'host_response_rate' from TEXT to NUMERIC using type casts and string processing (take missing values as NULL).
+Order the result in ascending order based on the average host response rater after cleaning.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+id: numeric (num)
+accommodates: numeric (num)
+bathroom: numeric (num)
+number_of_reviews: numeric (num)
+zipcode: numeric (num)
+bedrooms: numeric (num)
+beds: numeric (num)
+price: numeric (num)
+property_type: character (str)
+room_type: character (str)
+amenities: character (str)
+bed_type: character (str)
+cancellation_policy: character (str)
+cleaning_fee: logical (bool)
+city: character (str)
+host_identity_verified: character (str)
+host_since: POSIXct, POSIXt (dt)
+neighbourhood: character (str)
+review_scores_rating: numeric (num)
+
+Code:
+** Solution #1
+## Question:
+# Find the average host response rate with a cleaning fee for each zipcode.
+# Present the results as a percentage along with the zip code value.
+# Convert the column 'host_response_rate' from character to numeric using type casts and string processing
+# (take missing values as NULL).
+# Order the result in ascending order based on the average host response rate after cleaning.
+
+## Input:
+# airbnb_search_details
+
+## Output:
+# zipcode, average_host_response_rate
+
+## Import libraries:
+#install.packages("tidyverse")
+library(tidyverse)
+
+## Load and preview data:
+#airbnb_search_details <- read_csv("airbnb_search_details.csv")
+searches_df <- data.frame(airbnb_search_details)
+searches_df |> head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 160 x 20
+# Duplicates - 0
+# Nulls - host_response_rate(32), neighbourhood(15), review_scores_rating(37)
+# Value Counts - id, property_type, room_type, amenities, bed_type, cancellation_policy, cleaning_fee,
+#                city, host_identity_verified, host_response_rate, neighbourhood, zipcode
+searches_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+searches_df |> dim()
+
+searches_df |> duplicated() |> sum()
+
+searches_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+searches_df |> count(id, sort=TRUE)
+searches_df |> count(property_type, sort=TRUE)
+searches_df |> count(room_type, sort=TRUE)
+searches_df |> count(amenities, sort=TRUE)
+searches_df |> count(bed_type, sort=TRUE)
+searches_df |> count(cancellation_policy, sort=TRUE)
+searches_df |> count(cleaning_fee, sort=TRUE)
+searches_df |> count(city, sort=TRUE)
+searches_df |> count(host_identity_verified, sort=TRUE)
+searches_df |> count(host_response_rate, sort=TRUE)
+searches_df |> count(neighbourhood, sort=TRUE)
+searches_df |> count(zipcode, sort=TRUE)
+
+## Iteration:
+# 1. Filter for where cleaning fee is TRUE
+# 2. Clean text for 'host_response_rate' column and convert to numeric datatype
+# 3. Calculate the average host response rate for each zipcode
+# 4. Sort in ascending order by average_host_response_rate
+# 5. Convert average rate to percentage
+
+## Result:
+result_df <- searches_df |>
+    filter(
+        # 1. Filter for where cleaning fee is TRUE
+        cleaning_fee == TRUE
+    ) |>
+    mutate(
+        # 2. Clean text for 'host_response_rate' column and convert to numeric datatype
+        host_response_rate_num = as.numeric(
+            str_trim(
+                str_remove(host_response_rate, "\\%")
+            )
+        )
+    ) |>
+    group_by(zipcode) |>
+    summarise(
+        # 3. Calculate the average host response rate for each zipcode
+        average_host_response_rate = round(
+            mean(host_response_rate_num, na.rm=TRUE),
+            digits=2
+        ),
+        .groups="drop"
+    ) |>
+    arrange(
+        # 4. Sort in ascending order by average_host_response_rate
+        average_host_response_rate
+    ) |>
+    mutate(
+        # 5. Convert average rate to percentage
+        average_host_response_rate = case_when(
+            is.na(average_host_response_rate) ~ "",
+            TRUE ~ str_c(average_host_response_rate, "%")
+        )
+    )
+
+result_df
+
+
+** Solution #2 (revised with suggestions)
+result_df <- searches_df |>
+    filter(
+        # 1. Filter for where cleaning fee is TRUE
+        cleaning_fee == TRUE
+    ) |>
+    mutate(
+        # 2. Clean text for 'host_response_rate' column and convert to numeric datatype
+        host_response_rate_num = as.numeric(str_remove(host_response_rate, "%"))
+    ) |>
+    group_by(zipcode) |>
+    summarise(
+        # 3. Calculate the average host response rate for each zipcode
+        average_host_response_rate = mean(host_response_rate_num, na.rm=TRUE),
+        .groups="drop"
+    ) |>
+    mutate(
+        # 4. Convert average rate to percentage
+        average_host_response_rate_pct = if_else(
+            is.na(average_host_response_rate),
+            NA,
+            str_c(round(average_host_response_rate, 2), "%")
+        )
+    ) |>
+    arrange(
+        # 5. Sort in ascending order by average_host_response_rate
+        average_host_response_rate
+    ) |>
+    select(
+        # 6. Select relevant columns
+        zipcode, average_host_response_rate_pct    
+    )
+
+Notes:
+- The data quality check revealed 32 null values in the host_response_rate column.
+- My approach to this problem was to first filter for rows where the cleaning_fee column was 'TRUE' using the
+  filter() function. Next, I cleaned the text in the host_response_rate column and converted the datatype to
+  numeric using the mutate(), as.numeric(), str_trim(), and str_remove() functions. From there, I calculated
+  the average host response rate for each zipcode using the group_by(), summarise(), round(), and mean()
+  functions. After aggregation, I sorted the results in ascending order by average_host_response_rate using
+  the arrange() function. Lastly, I converted the average rate column to a percentage and handled nulls using
+  the mutate(), is.na(), and str_c() functions.
+
+Suggestions and Final Thoughts:
+- There are average host response rates that are 0 and NULL. I didn't want to convert all the nulls to 0 
+  because that wouldn't be a true representation of the actual 0s of that dataset. 
+- When setting a row value to be NULL, the NA value is best to act as a placeholder instead of a missing 
+  value or empty string.
+  ex.
+      mutate(
+          average_host_response_rate = case_when(
+              is.na(average_host_response_rate) ~ NA,
+              TRUE ~ str_c(average_host_response_rate, "%")
+          )
+      )
+- The as.numeric() function ignores leading and lagging white spaces when converting from a character to a
+  numeric datatype. The str_trim() function would be redundant but still helps to see the cleaning logic. 
+  The % character is not a special character and does not require double backslashes when using the 
+  str_remove() or str_replace() functions.
+  ex.
+      mutate(
+          host_response_rate = as.numeric(str_remove(host_response_rate, "%"))
+      )
+- For single conditions, the if_else() function is faster and more concise than the case_when() function.
+  The case_when() function handles multiple functions.
+  ex.
+      mutate(
+          average_host_response_rate = if_else(
+              is.na(average_host_response_rate),
+              NA,
+              str_c(average_host_response_rate, "%")
+          )
+      )
+- For numeric values that contain a leading zero, R may drop the zeros when importing. The str_pad()
+  function can be used to correct the number of digits in a numeric value such as in a zipcode like 02018
+  being presented as 2108.
+  ex.
+      str_pad(zipcode, width=5, side="left", pad="0")
+
+Solve Duration:
+52 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+25 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9732
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+City of San Francisco - Find the first and last inspection dates for vermin infestations per municipality
+Find the first and last inspections for vermin infestations per municipality.
+Output the result along with the business postal code.
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_id: int64 (int)
+business_name: object (str)
+business_address: object (str)
+business_city: object (str)
+business_state: object (str)
+business_postal_code: float64 (flt)
+business_latitude: float64 (flt)
+business_longitude: float64 (flt)
+business_location: object (str)
+business_phone_number: float64 (flt)
+inspection_id: object (str)
+inspection_date: datetime64 (dt)
+inspection_score: float64 (flt)
+inspection_type: object (str)
+violation_id: object (str)
+violation_description: object (str)
+risk_category: object (str)
+
+Code:
+** Solution #1
+## Question:
+# Find the first and last inspections for vermin infestations per municipality.
+# Output the result along with the business postal code.
+
+## Input:
+#sf_restaurant_health_violations
+
+## Output:
+# business_postal_code, first_inspection, last_inspection
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#sf_restaurant_health_violations = pd.read_csv("sf_restaurant_health_violations")
+violations_df = sf_restaurant_health_violations.copy()
+violations_df.head(5)
+
+## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+# Dimensions - 297 x 17
+# Duplicates - 0
+# Nulls - business_postal_code(10), business_latitude(133), business_longitude(133), business_location(133),
+#         business_phone_number(214), inspection_score(73), violation_id(72), violation_description(72),
+#         risk_category(72)
+# Value Counts - business_id, business_name, business_address, business_city, business_state,
+#                business_location, inspection_id, inspection_type, violation_id,
+#                violation_description, risk_category
+#violations_df.info()
+
+violations_df.shape
+
+violations_df.duplicated().sum()
+
+violations_df.isna().sum().reset_index(name="na_count")
+
+columns = ["business_id", "business_name", "business_address", "business_city", "business_state",
+           "business_location", "inspection_id", "inspection_type", "violation_id",
+           "violation_description", "risk_category"]
+           
+#for col in columns:
+#    print(f"-----{col}-----")
+#    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+#        print(violations_df[col].value_counts(dropna=False).reset_index(name="frequency"))
+#        print("")
+
+## Iteration:
+# 1. Filter for violation descriptions that contain "vermin"
+# 2. Calculate first and last inspection dates for each municipality
+# 3. Sort in ascending order by business_postal_code
+
+## Result:
+result_df = (
+    violations_df
+    # 1. Filter for violation descriptions that contain "vermin"
+    .loc[lambda x:
+        x["business_postal_code"].notna() &
+        x["violation_description"].str.contains("vermin", case=False, na=False)]
+    # 2. Calculate first and last inspection dates for each municipality
+    .groupby("business_postal_code")
+    .agg(first_inspection=("inspection_date", "min"),
+         last_inspection=("inspection_date", "max"))
+    .reset_index()
+    # 3. Sort in ascending order by business_postal_code
+    .sort_values(by="business_postal_code", ascending=True)
+)
+
+print("First and last inspections dates for vermin infestations per municipality: ")
+result_df
+
+
+** Solution #2 (revised with suggestions)
+result_df = (
+    violations_df
+    # 1. Filter for violation descriptions that contain "vermin"
+    .loc[lambda x:
+        x["business_postal_code"].notna() &
+        x["violation_description"].str.contains("vermin", case=False, na=False)]
+    # 2. Calculate first and last inspection dates for each municipality
+    .groupby(["business_city", "business_postal_code"])
+    .agg(first_inspection=("inspection_date", "min"),
+         last_inspection=("inspection_date", "max"))
+    .reset_index()
+    # 3. Extract date from datetime column
+    .assign(first_inspection=lambda x: x["first_inspection"].dt.date,
+            last_inspection=lambda x: x["last_inspection"].dt.date)
+    # 4. Sort in ascending order by business_postal_code
+    .sort_values(by="business_postal_code", ascending=True)
+    ["business_postal_code", "first_inspection", "last_inspection"]]
+)
+
+Notes:
+- The data quality check revealed 72 null values in the violation_description column and 10 null values in
+  the business_postal_code column.
+- I began my approach to this problem by filtering for non null values in the business postal code column
+  and filtering for violation descriptions that contain "vermin" using lambda x and the loc[], notna(), and
+  str.contains() functions. From there, I calculated the first and last inspection dates for each municipality
+  using the groupby(), agg(), and reset_index() functions. Lastly, I arranged the results in ascending order
+  by the business_postal_code column using the sort_values() function.
+
+Suggestions and Final Thoughts:
+- Municipality generally refers to the city name and within those municipalities contain multiple postal codes.
+  The prompt doesn't specify to have the city name in the output, only the postal code. Including city
+  with postal code is a safer way to account for the municipality.
+  ex.
+      violations_df.groupby(["business_city", "business_postal_code"])
+- The inspection_date column is a datetime datatype. The dt.date accessor can be used to pull the date and
+  make sure the time is not included. The assign() function can modify the existing first and last inspection
+  date columns to perform these operations.
+  ex.
+      violations_df
+      .assign(first_inspection=lambda x: x["first_inspection"].dt.date,
+              last_inspection=lambda x: x["last_inspection"].dt.date)
+
+Solve Duration:
+19 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+15 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10569
+
+Difficulty:
+Medium
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Meta - VR App Sessions
+Your company operates a VR gaming platform where users can launch and play various virtual reality applications. 
+The vr_sessions table records every session initiated by users, capturing when they started an app and when they exited. 
+The platform analytics team needs to understand app popularity and usage patterns.
+Calculate the total number of unique sessions for each VR application. 
+A session is identified by a unique session_id.
+If the same session_id appears multiple times in the table (which can happen due to connection retries or logging issues), count it as only one session by keeping the record with the earliest start_time. 
+Include all applications that have at least one session in your results. 
+Return the app name and the total number of sessions.
+
+Data Dictionary:
+Table name = 'vr_sessions'
+app_name: varchar (str)
+end_time: datetime2 (dt)
+session_id: varchar (str)
+start_time: datetime2 (dt)
+user_id: varchar (str)
+
+Code:
+** Solution #1
+-- Question:
+-- Your company operates a VR gaming platform where users can launch and
+-- play various virtual reality applications.
+-- The vr_sessions table records every session initiated by users,
+-- capturing when they started an app and when they exited.
+-- The platform analytics team needs to understand app popularity and usage patterns.
+-- Calculate the total number of unique sessions for each VR application.
+-- A session is identified by a unique session_id.
+-- If the same session_id appears multiple times in the table
+-- (which can happen due to connection retries or logging issues), 
+-- count it as only one session by keeping the record with the earliest start_time.
+-- Include all applications that have at least one session in your results.
+-- Return the app name and the total number of sessions.
+
+-- Input:
+-- vr_sessions
+
+-- Output:
+-- app_name, total_number_of_unique_sessions
+
+-- Preview data:
+SELECT TOP 5* FROM vr_sessions;
+
+-- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Dimensions - 40 x 5
+-- Duplicates - 0
+-- Nulls - 0
+-- Value Counts - app_name, session_id, user_id
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN app_name IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN end_time IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN session_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN start_time IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    COUNT(*) AS total_rows
+FROM vr_sessions;
+
+SELECT -- Duplicates
+    app_name, end_time, session_id, start_time, user_id,
+    COUNT(*) AS duplicate_count
+FROM vr_sessions
+GROUP BY
+    app_name, end_time, session_id, start_time, user_id
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    app_name,
+    COUNT(*) AS frequency
+FROM vr_sessions
+GROUP BY app_name
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    session_id,
+    COUNT(*) AS frequency
+FROM vr_sessions
+GROUP BY session_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    user_id,
+    COUNT(*) AS frequency
+FROM vr_sessions
+GROUP BY user_id
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Find unique session ids, keep record with earliest start_time
+-- 2. Calculate the total number of unique sessions for each VR application
+-- 3. Filter for applications that have at least one session
+-- 4. Arrange in descending order by total number of sessions
+
+-- Result:
+WITH UniqueAppUserSessions AS (
+   -- 1. Find unique session ids, keep record with earliest start_time
+    SELECT
+        app_name,
+        user_id,
+        session_id,
+        MIN(start_time) AS min_start_time
+    FROM
+        vr_sessions
+    GROUP BY 
+        app_name, 
+        user_id, 
+        session_id
+)
+SELECT
+    app_name,
+    -- 2. Calculate the total number of unique sessions for each VR application
+    COUNT(session_id) AS total_number_of_unique_sessions
+FROM 
+    UniqueAppUserSessions
+GROUP BY 
+    app_name
+HAVING
+    -- 3. Filter for applications that have at least one session
+    COUNT(session_id) >= 1
+ORDER BY
+    -- 4. Arrange in descending order by total number of sessions
+    total_number_of_unique_sessions DESC;
+
+
+** Solution #2 (using ROW_NUMBER() to find unique app sessions)
+WITH UniqueAppSessions AS (
+   -- 1. Find unique session ids, keep record with earliest start_time
+    SELECT
+        app_name,
+        session_id,
+        ROW_NUMBER() OVER(
+            PARTITION BY session_id
+            ORDER BY start_time ASC
+        ) AS rn
+    FROM
+        vr_sessions
+)
+SELECT
+    app_name,
+    -- 2. Calculate the total number of unique sessions for each VR application
+    COUNT(session_id) AS total_number_of_unique_sessions
+FROM 
+    UniqueAppSessions
+WHERE
+    -- 3. Filter for earliest start_time
+    rn = 1
+GROUP BY 
+    app_name
+HAVING
+    -- 4. Filter for applications that have at least one session
+    COUNT(session_id) >= 1
+ORDER BY
+    -- 5. Arrange in descending order by total number of sessions
+    total_number_of_unique_sessions DESC;
+
+Notes:
+- The data quality check revealed several values that contained duplicates in the session_id column.
+- My approach to this problem started with finding unique session ids and keeping the single record with
+  the earliest time using the MIN() function. Next, I calculated the total number of unique sessions for each
+  VR application using the COUNT() function. From there, I filtered for applications that had at least one
+  session and arranged the results in descending order by the total number of sessions.
+
+Suggestions and Final Thoughts:
+- For deduplicating the session_id column, ROW_NUMBER() can be used to find overall unique session ids. The
+  method that I used does not include the potential edge case that session ids might be placed in the wrong
+  app name with different start times. However, from a business question stand point, my method does work.
+  The safer way is to use ROW_NUMBER() to account for any discrepancies in the data.
+  ex.
+      SELECT
+          app_name,
+          session_id,
+          ROW_NUMBER() OVER(
+              PARTITION BY session_id
+              ORDER BY start_time ASC
+          ) AS rn
+      FROM
+          vr_sessions;
+          
+Solve Duration:
+23 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
