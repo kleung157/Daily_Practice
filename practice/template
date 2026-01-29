@@ -32,6 +32,8 @@ Suggestions and Final Thoughts Duration:
 R - Code Format:
 ## Question:
 
+## Input:
+
 ## Output:
 
 ## Import libraries:
@@ -41,7 +43,7 @@ example_df <- read_csv("example_df.csv")
 df <- as.data.frame(example_df)
 df |> head(5)
 
-## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+## Data quality:
 # Dimensions -
 # Duplicates -
 # Nulls -
@@ -84,6 +86,8 @@ enframe(table(df$col), name="index", value="value_count")
 Python - Code Format:
 ## Question:
 
+## Input:
+
 ## Output:
 
 ## Import libraries:
@@ -94,7 +98,7 @@ df = pd.DataFrame(example_df, copy=True)
 df = example_df.copy()
 df.head(5)
 
-## Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+## Data quality:
 # Dimensions -
 # Duplicates -
 # Nulls -
@@ -122,11 +126,13 @@ for col in columns:
 SQL - Code Format:
 -- Question:
 
+-- Input:
+
 -- Output:
 
 -- Preview data:
 
--- Check datatypes, dimensions, duplicates, nulls, and unique value counts:
+-- Data quality:
 -- Dimensions -
 -- Duplicates -
 -- Nulls -
