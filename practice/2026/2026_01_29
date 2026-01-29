@@ -566,6 +566,11 @@ Suggestions and Final Thoughts:
   than combined as one. The benefit of separating them is for readability and maintenance. Also window
   functions are calculated after the GROUP BY clause so it is safer to just have them separated if possible.
   Performance wise, its not much of a difference.
+- The DATEDIFF() function has the parameters DATEDIFF(interval, start_date, end_date). The interval parameter
+  can be specified as day, week, month, year. The start_date and end_date can be columns or hard coded as a
+  date.
+  ex.
+      DATEDIFF(day, c.checkout_date, c.return_date;
 
 Solve Duration:
 30 minutes
