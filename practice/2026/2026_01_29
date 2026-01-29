@@ -1,0 +1,579 @@
+Date: 01/29/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9636
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Airbnb - Cheapest Neighborhood With Real Beds And Internet
+Find a neighborhood where you can sleep on a real bed in a villa with internet while paying the lowest price possible.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+id: numeric (num)
+accommodates: numeric (num)
+bathrooms: numeric (num)
+number_of_reviews: numeric (num)
+zipcode: numeric (num)
+bedrooms: numeric (num)
+beds: numeric (num)
+price: numeric (num)
+property_type: character (str)
+room_type: character (str)
+amenities: character (str)
+bed_type: character (str)
+cancellation_policy: character (str)
+cleaning_fee: logical (bool)
+city: character (str)
+host_identity_verified: character (str)
+host_response_rate: character (str)
+host_since: POSIXct, POSIXt (dt)
+neighbourhood: character (str)
+review_scores_rating: numeric (num)
+
+Code:
+** Solution #1
+## Question:
+# Find a neighborhood where you can sleep on a real bed in a villa with internet
+# while paying the lowest price possible.
+
+## Input:
+# airbnb_search_details
+
+## Output:
+# neighbourhood. price
+
+## Import libraries:
+#install.packages("tidyverse")
+library(tidyverse)
+
+## Load and preview data:
+#airbnb_search_details <- read_csv("airbnb_search_details.csv")
+searches_df <- data.frame(airbnb_search_details)
+searches_df |> head(5)
+
+## Data quality:
+# Dimensions - 160 x 20
+# Duplicates - 0
+# Nulls - host_response_rate(32), neighbourhood(15), review_scores_rating(37)
+# Value Counts - id, property_type, room_type, amenities, bed_type, cancellation_policy, cleaning_fee,
+#                city, host_identity_verified, host_response_rate, neighbourhood
+searches_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+searches_df |> dim()
+
+searches_df |> duplicated() |> sum()
+
+searches_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+searches_df |> count(id, sort=TRUE)
+searches_df |> count(property_type, sort=TRUE)    # villa
+searches_df |> count(room_type, sort=TRUE)
+searches_df |> count(amenities, sort=TRUE)    # internet
+searches_df |> count(bed_type, sort=TRUE)    # real bed
+searches_df |> count(cancellation_policy, sort=TRUE)
+searches_df |> count(cleaning_fee, sort=TRUE)
+searches_df |> count(city, sort=TRUE)
+searches_df |> count(host_identity_verified, sort=TRUE)
+searches_df |> count(host_response_rate, sort=TRUE)
+searches_df |> count(neighbourhood, sort=TRUE)
+
+## Iteration:
+# 1. Filter for non null values in neighbourhood column
+# 2. Filter for 'real bed' bed_type
+# 3. Filter for 'villa' property_type 
+# 4. Filter for 'internet' in amenities column
+# 5. Calculate the lowest price for each neighbourhood
+# 6. Filter for neighbourhood with the lowest price
+
+## Result:
+result_df <- searches_df |>
+    filter(
+        # 1. Filter for non null values in neighbourhood column
+        !is.na(neighbourhood) &
+        # 2. Filter for 'real bed' bed_type
+        str_to_lower(bed_type) == 'real bed' &
+        # 3. Filter for 'villa' property_type 
+        str_to_lower(property_type) == 'villa'&
+        # 4. Filter for 'internet' in amenities column
+        str_detect(str_to_lower(amenities), 'internet')
+    ) |>
+    group_by(neighbourhood) |>
+    summarise(
+        # 5. Calculate the lowest price for each neighbourhood
+        minimum_price = min(price, na.rm=TRUE),
+        .groups="drop"
+    ) |>
+    slice_min(
+        # 6. Filter for neighbourhood with the lowest price
+        minimum_price
+    )
+
+result_df
+
+
+** Solution #2 (revised with suggestions)
+result_df <- searches_df |>
+    filter(
+        # 1. Filter for non null values in neighbourhood column
+        !is.na(neighbourhood),
+        # 2. Filter for 'real bed' bed_type
+        str_to_lower(bed_type) == 'real bed',
+        # 3. Filter for 'villa' property_type 
+        str_to_lower(property_type) == 'villa',
+        # 4. Filter for 'internet' in amenities column
+        str_detect(str_to_lower(amenities), 'internet')
+    ) |>
+    group_by(neighbourhood) |>
+    summarise(
+        # 5. Calculate the lowest price for each neighbourhood
+        minimum_price = min(price, na.rm=TRUE),
+        .groups="drop"
+    ) |>
+    slice_min(
+        # 6. Filter for neighbourhood with the lowest price
+        order_by=minimum_price, n=1, with_ties=TRUE
+    )
+
+Notes:
+- The data quality check revealed 15 null values in the neighbourhood column, 'real bed' value in the
+  bed_type column, 'villa' value in the property_type column, and 'internet' value in the amenities column.
+- My approach to this problem started with filtering for non null values in the neighbourhood column,
+  'real bed' values in the bed_type column, 'villa' values in the property_type column, and 'internet' values
+  in the amenities column using the filter(), !is.na(), str_to_lower(), and str_detect() functions. From
+  there, I calculated the lowest price for each neighbourhood using the group_by(), summarise(), and min()
+  functions. Lastly, I filtered for the neighbourhood with the lowest price using the slice_min() function.
+
+Suggestions and Final Thoughts:
+- The comma (,) and ampersand (&) both denote the value of AND in the filter function. The comma looks
+  cleaner but the ampersand is more explicit and more in line with what I am used to seeing in Python. There
+  are not any performance differences between using commas or ampersands.
+- The slice_min() function has the parameters slice_min(order_by, n, with_ties). The order_by parameter is
+  the column to use for ranking, the n parameter is the number of rows to return and the with_ties parameter 
+  is the logical value TRUE or FALSE.
+  ex.
+      slice_min(order_by=minimum_price, n=1, with_ties=TRUE)
+
+Solve Duration:
+23 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9733
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+City of San Francisco - Find the number of complaints that ended in a violation
+Find the number of complaints that ended in a violation.
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_id: int64 (int)
+business_name: object (str)
+business_address: object (str)
+business_city: object (str)
+business_state: object (str)
+business_postal_code: float64 (flt)
+business_latitude: float64 (flt)
+business_longitude: float64 (flt)
+business_location: object (str)
+business_phone_number: float64 (flt)
+inspection_id: object (str)
+inspection_date: datetime64 (dt)
+inspection_score: float64 (flt)
+inspection_type: object (str)
+violation_id: object (str)
+violation_description: object (str)
+risk_category: object (str)
+
+Code:
+** Solution #1
+## Question:
+# Find the number of complaints that ended in a violation
+
+## Input:
+# sf_restaurant_health_violations
+
+## Output:
+# number_of_complaints
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#sf_restaurant_health_violations = pd.read_csv("sf_restaurant_health_violations.csv")
+violations_df = sf_restaurant_health_violations.copy()
+violations_df.head(5)
+
+## Data quality:
+# Dimensions - 297 x 17
+# Duplicates - 0
+# Nulls - business_postal_code(10), business_latitude(133), business_longitude(133), 
+#         business_phone_number(214), inspection_score(73), violation_id(72), violation_description(72),
+#         risk_category(72)
+# Value Counts - business_id, business_name, business_address, business_city, business_state, 
+#                business_location, inspection_id, inspection_type, violation_id, 
+#                violation_description, risk_category
+#violations_df.info()
+
+violations_df.shape
+
+violations_df.duplicated().sum()
+
+violations_df.isna().sum().reset_index(name="na_count")
+
+columns = ["business_id", "business_name", "business_address", "business_city", "business_state",
+           "business_location", "inspection_id", "inspection_type", "violation_id", 
+           "violation_description", "risk_category"]
+
+#for col in columns:
+#    print(f"-----{col}-----")
+#    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+#        print(violations_df[col].value_counts(dropna=False).reset_index(name="frequency"))
+#        print("")
+# 10 'Complaint' values in inspection_type, 72 null values in violation_id
+
+## Iteration:
+# 1. Filter for 'complaint' in inspection_type column
+# 2. Filter for non-null values in violation_id column
+# 3. Count the number of complaints that ended in a violation
+
+## Result:
+result_df = (
+    violations_df
+    # 1. Filter for 'complaint' in inspection_type column
+    .loc[lambda x: x["inspection_type"].str.lower() == 'complaint']
+    # 2. Filter for non-null values in violation_id column
+    .loc[lambda x: x["violation_id"].notna()]
+    # 3. Count the number of complaints that ended in a violation
+    .groupby("inspection_type")
+    .size()
+    .reset_index(name="number_of_complaints")
+    [["number_of_complaints"]]
+)
+
+print("Number of complaints that ended in a violation: ")
+result_df
+
+
+** Solution #2 (revised with suggestions)
+result_df = (
+    violations_df
+    # 1. Filter for 'complaint' in inspection_type column
+    .loc[lambda x: x["inspection_type"].str.contains('complaint', case=False, na=False)]
+    # 2. Filter for non-null values in violation_id column
+    .loc[lambda x: x["violation_id"].notna()]
+    # 3. Count the number of complaints that ended in a violation
+    .shape[0]
+)
+
+Notes:
+- The data quality check revealed 10 'Complaint' values in the inspection_type column and 72 null values in
+  the violation_id column.
+- I began my approach to this problem by filtering for 'complaint' values in the inspection_type column
+  and non-null values in the violation_id column usiong the loc[], str.lower(), and notna() functions.
+  From there, I counted the number of complaints that ended in a violation and selected the relevant output
+  columns using the groupby(), size() and reset_index() functions.
+
+Suggestions and Final Thoughts:
+- I had thought about using str.contains() initially for filtering for 'complaint' values in the
+  inspection_type column but str.lower() and the exact value seemed to be cleaner and more concise than using
+  the general pattern searching function str.contains().
+  ex.
+      violations_df.loc[lambda x: x["inspection_type"].str.contains('complaint', case=False, na=False)]
+- I noticed that the number of null values in the violation_id and violation_description matched to show a
+  sense of data consistency.
+- While I could have used the shape[0] function or len() function to count the number of complaints based on
+  the number of rows. I found groupby() and size() to be more cleaner for my method chain approach and it
+  allowed me to rename the column to "number_of_complaints" to match the prompt requirements. shape[0] returns
+  the number of rows and shape[1] returns the number of columns.
+  ex.
+      violations_df.shape[0]
+
+Solve Duration:
+25 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10567
+
+Difficulty:
+Medium
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Meta - Top Books by Checkout Duration
+A public library system tracks book circulation to understand which titles generate the most value through patron engagement. 
+The library defines a book's lifetime value as the total number of days across all checkout periods for all copies of that book. 
+Calculate each book's lifetime value by summing the number of days between checkout date and return date for all completed checkouts. 
+Only include books that have more than 10 physical copies in the library's collection. 
+Exclude any checkouts where a book hasn't been returned yet.
+Return books ranked in the top 3 by lifetime value. 
+If books are tied, they receive the same rank with no gaps in ranking (e.g., 1, 1, 2, 3 rather than 1, 1, 3, 4). 
+Include all books ranked 1st, 2nd, or 3rd. 
+Output the book title, number of copies, and lifetime value in days.
+
+Data Dictionary:
+Table name = 'library_books'
+author: varchar (str)
+book_id: bigint (int)
+num_copies: bigint (int)
+title: varchar (str)
+
+Table name = 'library_checkouts'
+book_id: bigint (int)
+checkout_date: date (d)
+checkout_id: bigint (int)
+return_date: date (d)
+
+Code:
+** Solution #1
+-- Question:
+-- A public library system tracks book circulation to understand which titles generates the most value
+-- through patron engagement
+-- The library defines a book's lifetime value as the total number of days across all checkout periods
+-- for all copies of that book.
+-- Calculate each book's lifetime value by summing the number of days between checkout_date and return_date
+-- for all completed checkouts.
+-- Only include books that have more than 10 physical copies in the library's collection.
+-- Exclude any checkouts where a book hasn't been returned yet.
+-- Return books ranked in the top 3 by lifetime value.
+-- If books are tied, they receive the same rank with no gaps in ranking 
+-- (e.g. 1, 1, 2, 3, rather than 1, 1, 3, 4).
+-- Include all books ranked 1st, 2nd or 3rd.
+-- Output the book title, number of copies, and lifetime value in days.
+
+-- Input:
+-- library_books, library_checkouts
+
+-- Output:
+-- book_title, number_of_copies, lifetime_value
+
+-- Preview data:
+SELECT TOP 5* FROM library_books;
+SELECT TOP 5* FROM library_checkouts;
+
+-- Data quality:
+-- Dimensions - books: 10 x 4
+--            - checkouts: 106 x 4
+-- Duplicates - books: 0
+--            - checkouts: 0
+-- Nulls - books: 0
+--       - checkouts: return_date(3)
+-- Value Counts - books: author, book_id, title
+--              - checkouts: book_id, checkout_id
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN author is NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN book_id is NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN num_copies is NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN title is NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM library_books;
+
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN book_id is NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN checkout_date is NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN checkout_id is NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN return_date is NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM library_checkouts;
+
+SELECT -- Duplicates
+    author, book_id, num_copies, title,
+    COUNT(*) AS duplicate_count
+FROM library_books
+GROUP BY author, book_id, num_copies, title
+HAVING COUNT(*) > 1;
+
+SELECT -- Duplicates
+    book_id, checkout_date, checkout_id, return_date,
+    COUNT(*) AS duplicate_count
+FROM library_checkouts
+GROUP BY book_id, checkout_date, checkout_id, return_date
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    author,
+    COUNT(*) AS frequency
+FROM library_books
+GROUP BY author
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    book_id,
+    COUNT(*) AS frequency
+FROM library_books
+GROUP BY book_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    title,
+    COUNT(*) AS frequency
+FROM library_books
+GROUP BY title
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    book_id,
+    COUNT(*) AS frequency
+FROM library_checkouts
+GROUP BY book_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    checkout_id,
+    COUNT(*) AS frequency
+FROM library_checkouts
+GROUP BY checkout_id
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Join books and checkouts tables by book_id
+-- 2. Filter for books with num_copies greater than 10
+-- 3. Filter for books where return_date is not null
+-- 4. Calculate lifeime value in days for each book
+--    lifetime_value = SUM(return_date - checkout_date)
+-- 5. Rank books by lifetime value in descending order and include ties
+-- 6. Filter for top 3 books by lifetime value
+
+-- Result:
+WITH RankedBooks AS (
+    SELECT 
+        b.title,
+        b.num_copies,
+        -- 4. Calculate lifeime value in days for each book
+        --    lifetime_value = SUM(return_date - checkout_date)
+        SUM(
+            DATEDIFF(day, c.checkout_date, c.return_date)
+        ) AS lifetime_value,
+        -- 5. Rank books by lifetime value in descending order and include ties
+        DENSE_RANK() OVER(
+            ORDER BY SUM(DATEDIFF(day, c.checkout_date, c.return_date)) DESC
+        ) AS dense_rank
+    FROM 
+        library_books AS b
+    JOIN 
+        -- 1. Join books and checkouts tables by book_id
+        library_checkouts AS c
+        ON b.book_id = c.book_id
+    WHERE 
+        -- 2. Filter for books with num_copies greater than 10
+        b.num_copies > 10
+        -- 3. Filter for books where return_date is not null
+        AND c.return_date IS NOT NULL
+    GROUP BY
+        b.title,
+        b.num_copies
+)
+SELECT
+    title AS book_title,
+    num_copies AS number_of_copies,
+    lifetime_value
+FROM 
+    RankedBooks
+WHERE 
+    -- 6. Filter for top 3 books by lifetime value
+    dense_rank <= 3;
+
+
+** Solution #2 (revised with suggestions)
+WITH BookValue AS (
+    SELECT 
+        b.title,
+        b.num_copies,
+        -- 4. Calculate lifeime value in days for each book
+        --    lifetime_value = SUM(return_date - checkout_date)
+        SUM(
+            DATEDIFF(day, c.checkout_date, c.return_date)
+        ) AS lifetime_value
+    FROM 
+        library_books AS b
+    JOIN 
+        -- 1. Join books and checkouts tables by book_id
+        library_checkouts AS c
+        ON b.book_id = c.book_id
+    WHERE 
+        -- 2. Filter for books with num_copies greater than 10
+        b.num_copies > 10
+        -- 3. Filter for books where return_date is not null
+        AND c.return_date IS NOT NULL
+    GROUP BY
+        b.title,
+        b.num_copies
+),
+RankedBooks AS (
+    SELECT 
+        title,
+        num_copies,
+        lifetime_value,
+        -- 5. Rank books by lifetime value in descending order and include ties
+        DENSE_RANK() OVER(
+            ORDER BY lifetime_value DESC
+        ) AS dense_rank
+    FROM 
+        BookValue
+)
+SELECT
+    title AS book_title,
+    num_copies AS number_of_copies,
+    lifetime_value
+FROM 
+    RankedBooks
+WHERE 
+    -- 6. Filter for top 3 books by lifetime value
+    dense_rank <= 3;
+
+Notes:
+- The data quality check revealed 3 null values in the return_date column.
+- I started my approach to this problem by inner joining the books and checkouts tables by the book_id 
+  column. Next, I filtered for books with number of copies greater than 10 and filtered for books where
+  return_date was not null. From there, I calculated the lifetime value in days for each book using the
+  DATEDIFF() and SUM() functions. After aggregation, I ranked the books by lifetime value in descending
+  order and incldued ties using the DENSE_RANK() function. These steps were placed into a common table
+  expression (CTE) called RankedBooks and subsequently queried for filtering for top 3 books by lifetime
+  value.
+
+Suggestions and Final Thoughts:
+- The aggregation and ranking step for this query could have been separated into two different CTEs rather
+  than combined as one. The benefit of separating them is for readability and maintenance. Also window
+  functions are calculated after the GROUP BY clause so it is safer to just have them separated if possible.
+  Performance wise, its not much of a difference.
+
+Solve Duration:
+30 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
