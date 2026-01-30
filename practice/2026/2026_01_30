@@ -1,0 +1,575 @@
+Date: 01/30/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9638
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Airbnb - Total Searches for Rooms
+Find the total number of searches for each room type (apartments, private, shared) by city.
+
+Data Dictionary:
+Table name = 'airbnb_search_details'
+id: numeric (num)
+accommodates: numeric (num)
+bathrooms: numeric (num)
+number_of_reviews: numeric (num)
+zipcode: numeric (num)
+bedrooms: numeric (num)
+beds: numeric (num)
+price: numeric (num)
+property_type: character (str)
+room_type: character (str)
+amenities: character (str)
+bed_type: character (str)
+cancellation_policy: character (str)
+cleaning_fee: logical (bool)
+city: character (str)
+host_identity_verified: character (str)
+host_response_rate: character (str)
+host_since: POSIXct, POSIXt (dt)
+neighbourhood: character (str)
+review_scores_rating: numeric (num)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Find the total number of searches for each room type (apartments, private, shared) by city.
+
+## Input:
+# airbnb_search_details
+
+## Output:
+# city, room_type, total_searches
+
+## Import libraries:
+#install.packages("tidyverse")
+library(tidyverse)
+
+## Load and preview data:
+#airbnb_search_details <- read_csv("airbnb_search_details.csv")
+searches_df <- data.frame(airbnb_search_details)
+searches_df |> head(5)
+
+## Data quality:
+# Dimensions - 160 x 20
+# Duplicates - 0
+# Nulls - host_response_rate(32), neighbourhood(15), review_scores_rating(37)
+# Value Counts - id, property_type, room_type, amenities, bed_type, cancellation_policy, cleaning_fee,
+#              - city, host_identity_verified, host_response_rate, neighbourhood
+searches_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+searches_df |> dim()
+
+searches_df |> duplicated() |> sum()
+
+searches_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+searches_df |> count(id, sort=TRUE)
+searches_df |> count(property_type, sort=TRUE)
+searches_df |> count(room_type, sort=TRUE)
+searches_df |> count(amenities, sort=TRUE)
+searches_df |> count(bed_type, sort=TRUE)
+searches_df |> count(cancellation_policy, sort=TRUE)
+searches_df |> count(cleaning_fee, sort=TRUE)
+searches_df |> count(city, sort=TRUE)
+searches_df |> count(host_identity_verified, sort=TRUE)
+searches_df |> count(host_response_rate, sort=TRUE)
+searches_df |> count(neighbourhood, sort=TRUE)
+
+# Unique values for the id column, 3 categorical values for room_type and 6 for city columns
+
+## Iteration:
+# 1. Calculate the total number of searches for each room type by city
+# 2. Sort in ascending order by city and room type
+
+## Result:
+result_df <- searches_df |>
+    group_by(city, room_type) |>
+    summarise(
+        # 1. Calculate the total number of searches for each room type by city
+        total_searches = n(),
+        .groups="drop"
+    ) |>
+    arrange(
+        # 2. Sort in ascending order by city and room type
+        city, room_type
+    )
+    
+result_df
+
+-------------------------------------------------------------------------------
+
+** Solution #2 ** (revised with suggestions)
+reuslt_df <- searches_df |>
+    # 1. Calculate the total number of searches for each room type by city
+    count(city, room_type, name="total_searches") |>
+    # 2. Sort in ascending order by city and room type
+    arrange(city, room_type)
+
+-------------------------------------------------------------------------------
+    
+Notes:
+- The data quality check revealed all unique values for the id column, 3 categorical values for the room_type
+  column, and 6 categorical values for the city column.
+- My approach to this problem started with calculating the total number of searches for each room type by
+  city using the group_by(), summarise(), and n() functions. Next, I sorted the aggregated results in
+  ascending order by city and room_type using the arrange() function.
+
+Suggestions and Final Thoughts:
+- The count() function can be used for a more concise approach to the problem. This skips having to use
+  group_by(), summarise(), and n() functions. The parameters for the count function are 
+  count(cols, sort, name). Cols can be any number of columns to group from, sort can be false for ascending or 
+  true for descending, and name can be the title of the new column. count() is a wrapper for group_by() and
+  summarise(), both are of the same performance. 
+  ex. 
+      count(city, room_type, name="total_searches")
+
+Solve Duration:
+14 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9737
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+City of San Francisco - Verify that the first 4 digits are equal to 1415 for all phone numbers
+Verify that the first 4 digits are equal to 1415 for all phone numbers.
+Output the number of businesses with a phone number that does not start with 1415.
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_id: int64 (int)
+business_name: object (str)
+business_address: object (str)
+business_city: object (str)
+business_state: object (str)
+business_postal_code: float64 (flt)
+business_latitude: float64 (flt)
+business_longitude: float64 (flt)
+business_location: object (str)
+business_phone_number: float64 (flt)
+inspection_id: object (str)
+inspection_date: datetime64 (dt)
+inspection_score: float64 (flt)
+inspection_type: object (str)
+violation_id: object (str)
+violation_description: object (str)
+risk_category: object (str)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Verify that the first 4 digits are equal to 1415 for all phone numbers.
+# Output the number of businesses with a phone number that does not start with 1415.
+
+## Input:
+# sf_restaurant_health_violations
+
+## Output:
+# number_of_businesses
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#sf_restaurant_health_violations = pd.read_csv("sf_restaurant_health_violations.csv")
+violations_df = sf_restaurant_health_violations.copy()
+violations_df.head(5)
+
+## Data quality:
+# Dimensions - 297 x 17
+# Duplicates - 0
+# Nulls - business_postal_code(10), business_latitude(133), business_longitude(133),
+#         business_location(133), business_phone_number(214), inspection_score(73),
+#         violation_id(72), violation_description(72), risk_category(72)
+# Value Counts - business_id, business_name, business_address, business_city, business_state,
+#                business_location, inspection_id, inspection_type, violation_id,
+#                violation_description, risk_category, business_phone_number
+#violations_df.info()
+
+violations_df.shape
+
+violations_df.duplicated().sum()
+
+violations_df.isna().sum().reset_index(name="na_count")
+
+columns = ["business_id", "business_name", "business_address", "business_city", "business_state",
+           "business_location", "inspection_id", "inspection_type", "violation_id",
+           "violation_description", "risk_category", "business_phone_number"]
+           
+#for col in columns:
+#    print(f"-----{col}-----")
+#    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+#        print(violations_df[col].value_counts(dropna=False).reset_index(name="frequency"))
+#        print("")
+        
+# business_id and business_phone_number contains multiple duplicated values, 
+# 214 nulls in business_phone_number
+
+## Iteration:
+# 1. Filter for non-null values in business_phone_number
+# 2. Filter for busineses with phone numbers that do not start with 1415
+# 3. Count the number of unique businesses
+
+## Result:
+result_df = (
+    violations_df
+    # 1. Filter for non-null values in business_phone_number
+    .loc[lambda x: x["business_phone_number"].notna()]
+    # 2. Filter for busineses with phone numbers that do not start with 1415
+    .loc[lambda x: ~x["business_phone_number"].astype(str).str.startswith("1415")]
+    # 3. Count the number of unique businesses
+    .agg({"business_id": "nunique"})
+    .to_frame(name="number_of_businesses")
+)
+
+print("Number of unique businesses with a phone number that do not start with 1415: ")
+result_df
+
+-------------------------------------------------------------------------------
+
+** Solution #2 ** (revised with suggestions)
+result_df = (
+    violations_df
+    # 1. Filter for non-null values in business_phone_number
+    .loc[lambda x: x["business_phone_number"].notna()]
+    # 2. Convert to integer then string datatype and 
+    #    filter for busineses with phone numbers that do not start with 1415
+    .loc[lambda x: ~x["business_phone_number"].astype("Int64").astype(str).str.startswith("1415")]
+    # 3. Count the number of unique businesses
+    .agg({"business_id": "nunique"})
+    .to_frame(name="number_of_businesses")
+)
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed 214 null values in the business_phone_number column, and multiple duplicated
+  values for the business_id and business_phone_number columns.
+- I began my approach to this problem by filtering for non-null values in the business_phone_number column
+  and filtering for businesses with phone numbers that do not start with "1415" using the lambda x, loc[],
+  notna(), astype(), and str.startswith() functions. From there, I counted the number of unique businesses
+  using the agg() and to_frame() functions.
+  
+Suggestions and Final Thoughts:
+- The business_phone_number column was a float64 datatype and could potentially contain decimal values. It
+  is best to convert to an integer datatype before converting to a string to avoid any potential decimals.
+  ex.
+      violations_df["business_phone_number"].astype("Int64").astype(str)
+- The tilde (~) operator can be used at the start of a step to denote "not", or the inverse of an operation.
+  The str.startswith() function looks for patterns at the beginning of a string.
+  ex.
+      ~violations_df["business_phone_number"].str.startswith("1415")
+- For a while I was trying to count the number of unique businesses without having to use groupby() or
+  the shape[0] function. I wanted to be able to still have a single row with a single column named as
+  "number_of_businesses". I ended upon using the agg(), nunique(), and to_frame() function.
+  ex.
+      violations_df.agg({"business_id": "nunique"}).to_frame(name="number_of_businesses")
+
+Solve Duration:
+37 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+25 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10562
+
+Difficulty:
+Medium
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Meta - Daily Post Removal Ratio
+Calculate the daily ratio of posts removed by reviewers to posts reported by users. 
+For each date in the dataset range, count unique posts reported (multiple reports of the same post count as one) and how many of those were removed the same day.
+For dates with reported posts but no removals, show zero for removal metrics. 
+Calculate removal ratio as removed posts divided by reported posts. 
+Output the date, number of reported posts, number of removed posts, and the removal ratio.
+
+Data Dictionary:
+Table name = 'user_actions'
+action: varchar (str)
+date: date (d)
+details: varchar (str)
+post_id: bigint (int)
+user_id: bigint (int)
+
+Table name = 'post_removals'
+post_id: bigint (int)
+reason: varchar (str)
+removal_date: date (d)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+-- Question:
+-- Calculate the daily ratio of posts removed by reviewers to posts reported by users.
+-- For each date in the dataset range, count unique posts reported
+-- (multiple reports of the same post count as one)
+-- and how many of those were removed the same day.
+-- For dates with reported posts but no removals, show zero for removal metrics.
+-- Calculate removal ratio as removed posts divided by reported posts.
+-- Output the date, number of reported posts, number of removed posts, and the removal ratio.
+
+-- Input:
+-- user_actions, post_removals
+
+-- Output:
+-- date, number_of_reported_posts, number_of_removed_posts removal_ratio
+
+-- Preview data:
+SELECT TOP 5* FROM user_actions;
+SELECT TOP 5* FROM post_removals;
+
+-- Data quality:
+-- Dimensions - user_actions: 120 x 5
+--            - post_removals: 8 x 3
+-- Duplicates - user_actions: 0
+--            - post_removals: 0
+-- Nulls - user_actions: details(61)
+--         post_removals: 0
+-- Value Counts - user_actions: action, details, post_id, user_id
+--              - post_removals: post_id, reason
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN action IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN date IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN details IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN post_id IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    COUNT(*) AS total_rows
+FROM user_actions;
+
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN post_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN reason IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN removal_date IS NULL THEN 1 ELSE 0 END) AS col3,
+    COUNT(*) AS total_rows
+FROM post_removals;
+
+SELECT -- Duplicates
+    action, date, details, post_id, user_id,
+    COUNT(*) AS duplicate_count
+FROM user_actions
+GROUP BY
+    action, date, details, post_id, user_id
+HAVING COUNT(*) > 1;
+
+SELECT -- Duplicates
+    post_id, reason, removal_date,
+    COUNT(*) AS duplicate_count
+FROM post_removals
+GROUP BY
+    post_id, reason, removal_date
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    action,
+    COUNT(*) AS frequency
+FROM user_actions
+GROUP BY action
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    details,
+    COUNT(*) AS frequency
+FROM user_actions
+GROUP BY details
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    post_id,
+    COUNT(*) AS frequency
+FROM user_actions
+GROUP BY post_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    user_id,
+    COUNT(*) AS frequency
+FROM user_actions
+GROUP BY user_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    post_id,
+    COUNT(*) AS frequency
+FROM post_removals
+GROUP BY post_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    reason,
+    COUNT(*) AS frequency
+FROM post_removals
+GROUP BY reason
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    removal_date,
+    COUNT(*) AS frequency
+FROM post_removals
+GROUP BY removal_date
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Left join user_actions and post_removals tables by post_id
+-- 2. Calculate total number of unique posts reported for each date
+-- 3. Calculate total number of unique posts reported and removed for each date
+-- 4. Fill zero for removal for dates with reported posts but no removals
+-- 5. Calculate removal ratio, ratio = 1.0 * removed_posts / reported_posts
+-- 6. Arrange by date in ascending order 
+
+-- Result:
+WITH DatesSummary AS (
+    -- 4. Fill zero for removal for dates with reported posts but no removals 
+    SELECT
+        u.date,
+        -- 2. Calculate total number of unique posts reported for each date
+        COUNT(DISTINCT 
+            CASE WHEN LOWER(u.action) = 'report' THEN u.post_id END
+        ) AS number_of_reported_posts,
+        -- 3. Calculate total number of unique posts reported and removed for each date
+        COUNT(DISTINCT 
+            CASE WHEN LOWER(u.action) = 'report' AND u.date = p.removal_date THEN u.post_id END
+        ) AS number_of_removed_posts
+    FROM 
+        user_actions AS u
+    LEFT JOIN 
+        -- 1. Left join user_actions and post_removals tables by post_id
+        post_removals AS p
+        ON u.post_id = p.post_id
+    GROUP BY
+        u.date
+)
+SELECT
+    date,
+    number_of_reported_posts,
+    number_of_removed_posts,
+    -- 5. Calculate removal ratio, ratio = 1.0 * removed_posts / reported_posts
+    ROUND(
+        1.0 * number_of_removed_posts / NULLIF(number_of_reported_posts, 0)
+    , 2) AS removal_ratio
+FROM 
+    DatesSummary
+ORDER BY 
+    -- 6. Arrange by date in ascending order 
+    date ASC;
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+WITH DatesSummary AS (
+    -- 4. Fill zero for removal for dates with reported posts but no removals 
+    SELECT
+        u.date,
+        -- 2. Calculate total number of unique posts reported for each date
+        COUNT(DISTINCT 
+            CASE WHEN LOWER(u.action) = 'report' THEN u.post_id END
+        ) AS number_of_reported_posts,
+        -- 3. Calculate total number of unique posts reported and removed for each date
+        COUNT(DISTINCT 
+            CASE WHEN LOWER(u.action) = 'report' AND u.date = p.removal_date THEN u.post_id END
+        ) AS number_of_removed_posts
+    FROM 
+        user_actions AS u
+    LEFT JOIN 
+        -- 1. Left join user_actions and post_removals tables by post_id
+        --    and where date = removal_date
+        post_removals AS p
+        ON u.post_id = p.post_id
+        AND u.date = p.removal_date
+    GROUP BY
+        u.date
+)
+SELECT
+    date,
+    number_of_reported_posts,
+    number_of_removed_posts,
+    -- 5. Calculate removal ratio, ratio = 1.0 * removed_posts / reported_posts
+    ROUND(
+        1.0 * number_of_removed_posts / NULLIF(number_of_reported_posts, 0)
+    , 2) AS removal_ratio
+FROM 
+    DatesSummary
+ORDER BY 
+    -- 6. Arrange by date in ascending order 
+    date ASC;
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed 'report' values in the action column, 5 grouping values for the date
+  column, and multiple duplicated values in the post_id column.
+- My approach to this problem started with left joining the user_actions and post_removals table by the
+  post_id column. Next, I calculated the total number of unique posts reported for each date, and the total
+  number of unique posts reported and removed for each date using the COUNT() function combined with
+  DISTINCT and CASE WHEN statements. These steps were placed into a common table expression (CTE) called
+  DatesSummary and subsequently queried to calculate the removal ratio with the number_of_removed_posts
+  and number_of_reported_posts columns using the ROUND() and NULLIF() functions. Finally, I arranged the
+  results in ascending order by the date column.
+
+Suggestions and Final Thoughts:
+- Initially I had a WHERE filter for rows that contained 'report' in the action column but it removed
+  rows that had the date grouping 2024-01-17. I ended up having to use a CASE WHEN statement for the filter
+  and counting the distinct posts that way in order to account for all date groupings.
+  ex.
+      WHERE LOWER(action) = 'report';
+  ex.
+      COUNT(DISTINCT CASE WHEN LOWER(action) = 'report' THEN post_id END) AS number_of_reported_posts
+- The prompt specifies filling zero for removal for dates with reported posts but no removals. This meant
+  that the summary table created in my CTE would have 0 for the denominator for at least one row. The
+  NULLIF() function was necessary to use for replacing any denominators that had 0 with NULL and preventing
+  any divisions by zero in the ratio calculation.
+  ex. 
+      ROUND(1.0 * number_of_removed_posts / NULLIF(number_of_reported_posts, 0));
+- An additional filter could be added to the LEFT JOIN to account for removed posts that occur on the same
+  day and would limit the size of the intermediate table created during the join. This accounts for better
+  performance and optimization.
+  ex.
+      FROM
+          user_actions as u
+      LEFT JOIN
+          post_removals AS p
+          u.post_id = p.post_id
+          AND u.date = p.removal_date;
+          
+Solve Duration:
+45 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+20 minutes
+
+############################################################################################################
