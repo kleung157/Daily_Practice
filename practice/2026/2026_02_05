@@ -1,0 +1,628 @@
+Date: 02/05/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9642
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Airbnb - Find the unique room types
+Find the unique room types(filter room types column). 
+Output each unique room types in its own row.
+
+Data Dictionary:
+Table name = 'airbnb_searches'
+n_searches: numeric (num)
+n_guests_min: numeric (num)
+n_guests_max: numeric (num)
+ds: POSIXct, POSIXt (dt)
+id_user: character (str)
+ds_checkin: POSIXct, POSIXt (dt)
+ds_checkout: POSIXct, POSIXt (dt)
+n_nights: numeric (num)
+origin_country: character (str)
+filter_price_min: numeric (num)
+filter_price_max: numeric (num)
+filter_room_types: character (str)
+filter_neighborhoods: character (str)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Find the unique room types (filter room types column).
+# Output each unique room types in its own row.
+
+## Input:
+# airbnb_searches
+
+## Output:
+# unique_room_types
+
+## Import libaries:
+#install.packages("tidyverse")
+
+## Load and preview data:
+#airbnb_searches <- read_csv("airbnb_searches.csv")
+searches_df <- data.frame(airbnb_searches)
+searches_df |> head(5)
+
+## Data quality:
+# Dimensions - 130 x 13
+# Duplicates - 0
+# Nulls - ds_checkin(10), ds_checkout(10), n_nights(10), filter_price_min(36), filter_price_max(36),
+#         filter_neighborhoods(122)
+# Value Counts - id_user, origin_country, filter_room_types, filter_neighborhoods
+searches_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+searches_df |> dim()
+
+searches_df |> duplicated() |> sum()
+
+searches_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+searches_df |> count(id_user, sort=TRUE)
+searches_df |> count(origin_country, sort=TRUE)
+searches_df |> count(filter_room_types, sort=TRUE) # delimiters (,) and multiple categories in one row
+searches_df |> count(filter_neighborhoods, sort=TRUE)
+
+## Iteration:
+# 1. Filter for unique values within relevant column
+# 2. Remove delimiters, whitespace, and split strings
+# 3. Unnest lists
+# 4. Filter for non empty string or non null values
+# 5. Filter for unique categories
+# 6. Sort in ascending order by unique_room_type
+
+## Result:
+result_df <- searches_df |>
+    distinct(
+        # 1. Filter for unique values within relevant column
+        filter_room_types
+    ) |>
+    mutate(
+        # 2. Remove delimiters, whitespace, and split strings
+        cleaned_room_types = str_split(filter_room_types, ",")
+    ) |>
+    unnest(
+        # 3. Unnest lists
+        cleaned_room_types
+    ) |>
+    filter(
+        # 4. Filter for non empty string or non null values
+        cleaned_room_types != "" |
+        cleaned_room_types != NA
+    ) |>
+    distinct(
+        # 5. Filter for unique categories
+        unique_room_types = cleaned_room_types
+    ) |>
+    arrange(
+        # 6. Sort in ascending order by unique_room_type
+        unique_room_types
+    )
+    
+result_df
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+result_df <- searches_df |>
+    distinct(
+        # 1. Filter for unique strings within relevant column
+        filter_room_types
+    ) |>
+    separate_longer_delim(
+        # 2. Split strings into lists and unnest lists
+        filter_room_types, delim=","
+    ) |>
+    filter(
+        # 4. Filter for non empty string or non null values
+        filter_room_types != "" &
+        !is.na(filter_room_types)
+    ) |>
+    distinct(
+        # 5. Filter for unique categories
+        unique_room_types=filter_room_types
+    ) |>
+    arrange(
+        # 6. Sort in ascending order by unique_room_type
+        unique_room_types
+    )
+    
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed comma delimiters (,) and multiple categories contained in single rows for
+  the filter_room_types column.
+- My approach to this problem began with filtering for unique values within the filter_room_types column
+  using the distinct() function. From there, I split the character string values in the filter_room_type
+  column by the comma delimiter (,) and unnnested the lists into individual string values using the mutate(),
+  str_split(), and unnest() functions. Next, I filtered for non empty string or non null values in the
+  cleaned_room_types column using the filter() function. Afterwards, I filtered for unique categories and
+  renamed the relevant column using the distinct() function. Finally, I sorted the results in ascending order
+  by the unique_room_type column using the arrange() function.
+
+Suggestions and Final Thoughts:
+- When filtering for non empty strings or non null values, the ampersand (&) AND symbol should be used instead
+  of the pipe (|) OR symbol. The function used for non null values should be !is.na() as opposed to != NA.
+  ex.
+      filter(
+           cleaned_room_types != "" &
+           !is.na(cleaned_room_types)
+      )
+- It is best to handle selection and renaming of a column explicitly using the select() function separately 
+  as opposed to trying to rename columns and find unique values using the distinct() function. This prevents
+  carrying over any non relevant output columns. However, if there is a single column being manipulated then
+  the distinct() function can be used solely.
+  ex. 
+      distinct(cleaned_room_types) |>
+      select(unique_room_types=filter_room_types)
+- The separate_longer_delim() function can perform the same actions as the mutate(), str_split(), and unnest()
+  functions. It separates data into a longer format and is optimized for performance in modern dplyr. The only
+  downside is for cases where complex regular expression work is needed to be done on lists during the split.
+  ex.
+      separate_longer_delim(filter_room_types, delim=",")
+      
+Solve Duration:
+35 minutes
+
+Notes Duration:
+10 minutes
+
+Suggestions and Final Thoughts Duration:
+20 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9740
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+City of San Francisco - Daily Violation Counts
+Determine the change in the number of daily violations by calculating the difference between the count of current and previous violations by inspection date.
+Output the inspection date and the change in the number of daily violations. 
+Order your results by the earliest inspection date first.
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_id: int64 (int)
+business_name: object (str)
+business_address: object (str)
+business_city: object (str)
+business_state: object (str)
+business_postal_code: float64 (flt)
+business_latitude: float64 (flt)
+business_longitude: float64 (flt)
+business_location: object (str)
+business_phone_number: float64 (flt)
+inspection_id: object (str)
+inspection_date: datetime64 (dt)
+inspection_score: float64 (flt)
+inspection_type: object (str)
+violation_id: object (str)
+violation_description: object (str)
+risk_category: object (str)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Determine the change in the number of daily violations by calculating the difference
+# between the count of current and previous violations by inspection date.
+# Output the inspection date and the change in the number of daily violations.
+# Order your results by the earliest inspection date first.
+
+## Input:
+# sf_restaurant_health_violations
+
+## Output:
+# inspection_date, violations_change
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#sf_restaurant_health_violations = pd.read_csv("sf_restaurant_health_violations.csv")
+violations_df = sf_restaurant_health_violations.copy()
+violations_df.head(5)
+
+## Data quality:
+# Dimensions - 297 x 17
+# Duplicates - 0
+# Nulls - business_postal_code(10), business_latitude(133), business_longitude(133),
+#         business_location(133), business_phone_number(214), inspection_score(73),
+#         violation_id(72), violation_description(72), risk_category(72)
+# Value Counts - business_id, business_name, business_address, business_city, business_state,
+#                business_location, inspection_id, inspection_type, violation_id, 
+#                violation_description, risk_category
+#violations_df.info()
+
+violations_df.shape
+
+violations_df.duplicated().sum()
+
+violations_df.isna().sum().reset_index(name="na_count")
+
+columns = ["business_id", "business_name", "business_address", "business_city", "business_state",
+           "business_location", "inspection_id", "inspection_type", "violation_id",
+           "violation_description", "risk_category"]
+           
+#for col in columns:
+#    print(f"-----{col}-----")
+#    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+#        print(violations_df[col].value_counts(dropna=False).reset_index(name="frequency"))
+#        print("")
+
+# Violations ids are all unique with the exception of 72 null values
+
+## Iteration:
+# 1. Calculate the number of violations per inspection date
+# 2. Calculate the previous date's violation per inspection date
+# 3. Calculate the change in number of violations per inspection date
+# 4. Sort in ascending order by inspsection_date
+
+## Result:
+result_df = (
+    violations_df
+    # 1. Calculate the current number of violations per inspection date
+    .groupby("inspection_date")["violation_id"]
+    .count()
+    .reset_index(name="current_violation_count")
+    .assign(
+        # 2. Calculate the previous number of violations per inspection date
+        previous_violation_count = lambda x: x["current_violation_count"].shift(periods=1, fill_value=0),
+        # 3. Calculate the change in number of violations per inspection date
+        violations_change = lambda x: x["current_violation_count"] - x["previous_violation_count"]
+    )
+    [["inspection_date", "violations_change"]]
+    # 4. Sort in ascending order by inspsection_date
+    .sort_values(by="inspection_date", ascending=True)
+)
+
+print("Change in the number of daily violations by inspection date: ")
+result_df
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+result_df = (
+    violations_df
+    # 1. Calculate the current number of violations per inspection date
+    .groupby("inspection_date")["violation_id"]
+    .count()
+    .reset_index(name="current_violation_count")
+    # 2. Sort in ascending order by inspsection_date
+    .sort_values(by="inspection_date", ascending=True)
+    .assign(
+        # 3. Calculate the previous number of violations per inspection date
+        previous_violation_count = lambda x: x["current_violation_count"].shift(periods=1, fill_value=0),
+        # 4. Calculate the change in number of violations per inspection date
+        violations_change = lambda x: x["current_violation_count"] - x["previous_violation_count"]
+    )
+    [["inspection_date", "violations_change"]]
+)
+
+-------------------------------------------------------------------------------
+** Solution #3 ** (using diff() function)
+result_df = (
+    violations_df
+    # 1. Calculate the current number of violations per inspection date
+    .groupby("inspection_date")["violation_id"]
+    .count()
+    .reset_index(name="current_violation_count")
+    # 2. Sort in ascending order by inspsection_date
+    .sort_values(by="inspection_date", ascending=True)
+    .assign(
+        # 3. Calculate the previous number of violations per inspection date
+        # 4. Calculate the change in number of violations per inspection date
+        violations_change = lambda x: x["current_violation_count"].diff(periods=1).fillna(0)
+    )
+    [["inspection_date", "violations_change"]]
+)
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed unique values within the violation_id column with the exception of 72
+  null values. The violation_id and violation_description null value counts also match for data consistency.
+- I started my approach to this problem by calculating the current number of violations per inspection date
+  using the groupby(), count() and reset_index() functions. Next, I calculated the previous number of
+  violations per inspection date using lambda x, assign() and shift() functions. From there, I calculated
+  the change in number of violations between the current and previous violations per inspection date using
+  lambda x, and the assign() function. After calculations, I selected the relevant output columns and sorted
+  the results in ascending order by the inspection_date column using the sort_values() function.
+
+Suggestions and Final Thoughts:
+- The sort_values() function should be placed right after calculating thec current number of violations per
+  inspection date. By doing so, it ensures that the shift() function can obtain the actual date in the
+  correct order.
+  ex.
+      violations_df
+      .groupby("inspection_date")["violation_id"]
+      .count()
+      .reset_index(name="current_violation_count")
+      .sort_values(by="inspection_date", ascending=True)
+      .assign(...)
+- Initially I had dropped the null values and used the size() function to count the number of violations
+  but that removed rows that had dates where the null values were present. Not removing the null values
+  and using the count() function instead returned all possible rows of inspection dates and included the
+  ones with null as 0.
+- The diff() function combined with fillna() function can be used for a single step difference calculation
+  without having to create a separate column for the previous violation count and the violations change.
+  It is less explicit and performs identically to shift(). The downside is not having control over the
+  first row value.
+  ex.
+      violations_df
+      .assign(violations_change = lambda x: x["current_violation_count"].diff(periods=1).fillna(0))
+
+Solve Duration:
+30 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+20 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10558
+
+Difficulty:
+Medium
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Google - User Flag Performance Analysis
+You are analyzing user flagging performance on a video platform. 
+For each user who has had at least one of their flags reviewed by YouTube, calculate their flagging performance metrics as described below.
+Find each user's first name, last name, total number of distinct videos they flagged that had at least one reviewed flag, total number of distinct videos they flagged that were ultimately removed, and the latest date when any of their flags were reviewed.
+
+Data Dictionary:
+Table name = 'user_flags'
+flag_id: varchar (str)
+user_firstname: varchar (str)
+user_lastname: varchar (str)
+video_id: varchar (str)
+
+Table name = 'flag_review'
+flag_id: varchar (str)
+reviewed_by_yt: bit (bool)
+reviewed_date: date (d)
+reviewed_outcome: varchar (str)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+-- Question:
+-- You are analyzing user flagging performance on a video platform.
+-- For each user who has had at least one of their flags reviewed by YouTube,
+-- calculate their flagging performance metrics as described below.
+-- Find each user's first name, last name, and total number of distinct videos they flagged
+-- that had at least one reviewed flag,
+-- total number of distinct videos they flagged that were ultimately removed,
+-- and the latest date when any of their flags were reviewed.
+
+-- Input:
+-- user_flags, flag_review
+
+-- Output:
+-- user_firstname, user_lastname, num_flagged_reviewed_videos,
+-- num_flagged_videos_removed, latest_flag_review_date
+
+-- Preview data:
+SELECT TOP 5* FROM user_flags;
+SELECT TOP 5* FROM flag_review;
+
+-- Data quality:
+-- Dimensions - user_flags: 29 x 4
+--            - flag_reviews: 27 x 4
+-- Duplicates - user_flags: 0
+--            - flag_reviews
+-- Nulls - user_flags: flag_id(4), user_firstname(3), user_lastname(3), video_id(1)
+--       - flag_reviews: reviewed_date(9), reviewed_outcome(9)
+-- Value Counts - user_flags: flag_id, user_firstname, user_lastname, video_id
+--              - flag_reviews: flag_id, reviewed_by_yt, reviewed_outcome
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN flag_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN user_firstname IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN user_lastname IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN video_id IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM user_flags;
+
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN flag_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN reviewed_by_yt IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN reviewed_date IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN reviewed_outcome IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM flag_review;
+
+SELECT -- Duplicates
+    flag_id, user_firstname, user_lastname, video_id,
+    COUNT(*) AS duplicate_count
+FROM user_flags
+GROUP BY
+    flag_id, user_firstname, user_lastname, video_id
+HAVING COUNT(*) > 1;
+
+SELECT -- Duplicates
+    flag_id, reviewed_by_yt, reviewed_date, reviewed_outcome,
+    COUNT(*) AS duplicate_count
+FROM flag_review
+GROUP BY
+    flag_id, reviewed_by_yt, reviewed_date, reviewed_outcome
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts
+    flag_id,
+    COUNT(*) AS frequency
+FROM user_flags 
+GROUP BY flag_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    user_firstname,
+    COUNT(*) AS frequency
+FROM user_flags 
+GROUP BY user_firstname
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    user_lastname,
+    COUNT(*) AS frequency
+FROM user_flags 
+GROUP BY user_lastname
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    video_id,
+    COUNT(*) AS frequency
+FROM user_flags 
+GROUP BY video_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    flag_id,
+    COUNT(*) AS frequency
+FROM flag_review
+GROUP BY flag_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    reviewed_by_yt,
+    COUNT(*) AS frequency
+FROM flag_review
+GROUP BY reviewed_by_yt
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts
+    reviewed_outcome,
+    COUNT(*) AS frequency
+FROM flag_review
+GROUP BY reviewed_outcome
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Join user_flags and flag_reviews tables by flag_id column
+-- 2. Filter for users who had at least one flag reviewed by Youtube
+-- 3. Calculate distinct number of videos flagged that had at least one review flagged
+-- 4. Calculate distinct number of videos flagged that were removed
+-- 5. Calculate latest date for any flags reviewed
+
+-- Result:
+SELECT
+    u.user_firstname,
+    u.user_lastname,
+    -- 3. Calculate distinct number of videos flagged that had at least one review flagged
+    COUNT(DISTINCT u.video_id) AS num_flagged_reviewed_videos,
+    -- 4. Calculate distinct number of videos flagged that were removed
+    COUNT(DISTINCT
+        CASE WHEN r.reviewed_outcome = 'REMOVED' THEN u.video_id END
+    ) AS num_flagged_videos_removed,
+    -- 5. Calculate latest date for any flags reviewed
+    MAX(r.reviewed_date) AS latest_flag_review_date
+FROM 
+    user_flags AS u
+JOIN 
+    -- 1. Join user_flags and flag_reviews tables by flag_id column
+    flag_review AS r
+    ON u.flag_id = r.flag_id
+WHERE 
+    -- 2. Filter for users who had at least one flag reviewed by Youtube
+    r.reviewed_by_yt = 'TRUE'
+GROUP BY
+    user_firstname, 
+    user_lastname
+ORDER BY
+    user_firstname,
+    user_lastname;
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+SELECT
+    u.user_firstname,
+    u.user_lastname,
+    -- 3. Calculate distinct number of videos flagged that had at least one review flagged
+    COUNT(DISTINCT u.video_id) AS num_flagged_reviewed_videos,
+    -- 4. Calculate distinct number of videos flagged that were removed
+    COUNT(DISTINCT
+        CASE WHEN r.reviewed_outcome = 'REMOVED' THEN u.video_id END
+    ) AS num_flagged_videos_removed,
+    -- 5. Calculate latest date for any flags reviewed
+    MAX(r.reviewed_date) AS latest_flag_review_date
+FROM 
+    user_flags AS u
+INNER JOIN 
+    -- 1. Join user_flags and flag_reviews tables by flag_id column
+    flag_review AS r
+    ON u.flag_id = r.flag_id
+WHERE 
+    -- 2. Filter for users who had at least one flag reviewed by Youtube
+    r.reviewed_by_yt = 1
+GROUP BY
+    user_firstname, 
+    user_lastname
+ORDER BY
+    user_firstname,
+    user_lastname;
+    
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed 3 null values in the user_firstname column, 3 null values in the 
+  user_lastname column, 1 null value in the video_id column, 9 null values in the reviewed_date column,
+  and 9 null values in the reviewed_outcome column. 'TRUE' values are in the reviewed_by_yt column and
+  'REMOVED' values are in the reviewed_outcome column.
+- My approach to this problem started with inner joining the user_flags and flag_reviews tables by the
+  flag_id column. From there, I filtered for users who had at least one flag reviewed by YouTube. Next,
+  I calculated the distinct number of videos flagged that had at least one review flagged, the distinct
+  number of videos flagged that were removed, and the latest date for any flags reviewed using the
+  COUNT(DISTINCT) and MAX() functions. Lastly, I ordered the results in ascending order by user_firstname
+  and user_lastname.
+
+Suggestions and Final Thoughts:
+- In other SQL dialects filtering for "TRUE" for boolean datatypes works fine but for bit datatypes in 
+  MS SQL Server, it is better to filter for 1 to ensure bit type compatibility.
+  ex.
+      WHERE r.reviewed_by_yt = 1;
+- If the prompt did not specify in the beginning "for each user who has had at least one of their flags
+  reviewed by Youtube, calculate their flagging performance metrics", then all users would need to be
+  included meaning the filter for users who had at least one flag reviewed by YouTube would need to be
+  within the COUNT(DISTINCT CASE WHEN) steps rather than in the WHERE clause.
+  ex.
+      COUNT(DISTINCT 
+          CASE WHEN r.reviewed_by_yt = 1 THEN u.user_id END
+      ) AS num_flagged_reviewed_videos,
+      COUNT(DISTINCT
+          CASE WHEN r.reviewed_by_yt = 1 AND r.reviewed_outcome = 'REMOVED' THEN u.video_id END
+      ) AS num_flagged_videos_removed;
+- Narrowing down unique and distinct rows can be done in a separate CTE for the user_flags table using the
+  DISTINCT and GROUP BY clauses. This reduces the row count early and the subsequent joining of two tables
+  would be a lot less impact on memory and more explicitly stated.
+          
+Solve Duration:
+36 minutes
+
+Notes Duration:
+8 minutes
+
+Suggestions and Final Thoughts Duration:
+20 minutes
+
+############################################################################################################
