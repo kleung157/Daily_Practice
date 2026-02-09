@@ -1,1 +1,453 @@
+Date: 02/09/2026
 
+######################################################################################################
+
+Website:
+StrataScratch - ID 9650
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Spotify - Top 10 Songs 2010
+Find the top 10 ranked songs in 2010. Output the rank, group name, and song name, but do not show the same song twice. 
+Sort the result based on the rank in ascending order.
+
+Data Dictionary:
+Table name - 'billboard_top_100_year_end'
+year: numeric (num)
+year_rank: numeric (num)
+id: numeric (num)
+group_name: character (str)
+artist: character (str)
+song_name: character (str)
+
+Code:
+-------------------------------------------------------
+** Solution #1 (original attempt) **
+## Question:
+# Find the top 10 ranked songs in 2010.
+# Output the rank, group name, and song name, but do not show the same song twice.
+# Sort the result based on the rank in ascending order.
+
+## Input:
+# billboard_top_100_year_end
+
+## Output:
+# year_rank, group name, song_name
+
+## Import libraries:
+#install.packages("tidyverse")
+library(tidyverse)
+
+## Load and preview data:
+#billboard_top_100_year_end <- read_csv("billboard_top_100_year_end.csv")
+billboards_df <- data.frame(billboard_top_100_year_end)
+billboards_df |> head(5)
+
+## Data quality:
+# Dimensions - 6422 x 6
+# Duplicates - 0
+# Nulls - song_name(6)
+# Value Counts - id, group_name, artist, song_name
+billboards_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+billboards_df |> dim()
+
+billboards_df |> duplicated() |> sum()
+
+billboards_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+billboards_df |> count(id, sort=TRUE)
+billboards_df |> count(group_name, sort=TRUE)
+billboards_df |> count(artist, sort=TRUE)
+billboards_df |> count(song_name, sort=TRUE)
+
+## Iteration:
+# 1. Filter for year in 2010
+# 2. Filter for top 10 year_rank songs
+# 3. Filter for unique song names
+# 4. Sort in ascending order based on year_rank
+
+## Result:
+result_df <- billboards_df |>
+    filter(
+        # 1. Filter for year in 2010
+        year == 2010 &
+        # 2. Filter for top 10 year_rank songs
+        year_rank <= 10 
+    ) |>
+    group_by(year_rank, group_name) |>
+    distinct(
+        # 3. Filter for unique song names
+        song_name
+    ) |>
+    ungroup() |>
+    arrange(
+        # 4. Sort in ascending order based on year_rank
+        year_rank
+    )
+
+result_df
+
+-------------------------------------------------------
+** Solution #2 (revised with suggestions) **
+result_df <- billboards_df |>
+    filter(
+        # 1. Filter for year in 2010
+        year == 2010 &
+        # 2. Filter for top 10 year_rank songs
+        year_rank <= 10 
+    ) |>
+    distinct(
+        # 3. Filter for unique song names
+        song_name, .keep_all=TRUE
+    ) |>
+    select(
+        # 4. Select relevant columns
+        year_rank, group_name, song_name
+    ) |>
+    arrange(
+        # 5. Sort in ascending order based on year_rank
+        year_rank
+    )
+
+-------------------------------------------------------
+
+Notes:
+- The data quality check revealed 6 null values and multiple repeated values in the song_name column.
+- I started my approach to this problem by filtering for songs in the year 2010 and in the top 10
+  year rank using the filter() function. Next, I filtered for unique song names using the group_by(),
+  distinct(), and ungroup() functions. From there, I sorted the results in ascending order based on 
+  the year_rank column using the arrange() function.
+
+Suggestions and Final Thoughts:
+- The distinct() function has a parameter called .keep_all=TRUE which can keep all other columns while
+  filtering for unique values within specified columns. This skips having to use a group_by() function
+  as seen in Solution #1. 
+  ex.
+      distinct(song_name, .keep_all=TRUE) |>
+      select(year_rank, group_name, song_name)
+- Using the filter() function first before distinct() narrows down the number of rows that need to be
+  sorted as unique and is more performant computationally.
+
+Solve Duration:
+16 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+######################################################################################################
+
+Website:
+StrataScratch - ID 9743
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Spotify - Top 10 Songs
+Find the number of unique songs of each artist which were ranked among the top 10 over the years. Order the result based on the number of top 10 ranked songs in descending order.
+
+Data Dictionary:
+Table name - 'billboard_top_100_year_end'
+year: int64 (int)
+year_rank: int64 (int)
+group_name: object (str)
+artist: object (str)
+song_name: object (str)
+id: int64 (int)
+
+Code:
+-------------------------------------------------------
+** Solution #1 (original attempt) **
+## Question:
+# Find the number of unique songs for each artist which were ranked among the top 10 over the years.
+# Order the result based on the number of top 10 ranked songs in descending order.
+
+## Input:
+# billboard_top_100_year_end
+
+## Output:
+# artist, number_of_unique_top10_songs
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#billboard_top_100_year_end = pd.read_csv("billboard_top_100_year_end.csv")
+billboards_df = billboard_top_100_year_end.copy()
+billboards_df.head(5)
+
+## Data quality:
+# Dimensions - 6422 x 6
+# Duplicates - 0
+# Nulls - song_name(6)
+# Value Counts - id, group_name, artist, song_name
+#billboards_df.info()
+
+billboards_df.shape
+
+billboards_df.duplicated().sum()
+
+billboards_df.isna().sum().reset_index(name="na_count")
+
+columns = ["id", "group_name", "artist", "song_name"]
+
+#for col in columns:
+#    print(f"-----{col}-----")
+#    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+#        print(billboards_df[col].value_counts(dropna=False).reset_index(name="frequency"))
+#        print("")
+
+# Multiple repeated values in group_name, artist and song_name columns
+
+## Iteration:
+# 1. Filter for songs in the top 10 year_rank
+# 2. Calculate the number of unique top 10 songs for each artist
+# 3. Order results in descending order by number of unique top 10 songs
+
+## Result:
+result_df = (
+    billboards_df
+    # 1. Filter for songs in the top 10 year_rank
+    .loc[lambda x: x["year_rank"] <= 10]
+    # 2. Calculate the number of unique top 10 songs for each artist
+    .groupby("artist")["song_name"]
+    .nunique()
+    .reset_index(name="num_unique_top10_songs")
+    # 3.  Order results in descending order by number of unique top 10 songs
+    .sort_values(by="num_unique_top10_songs", ascending=False)
+)
+
+print("Number of unique top 10 ranked songs over the years for each artist: ")
+result_df
+
+-------------------------------------------------------
+** Solution #2 (revised with suggestions) **
+result_df = (
+    billboards_df
+    # 1. Filter for songs in the top 10 year_rank
+    .loc[lambda x: x["year_rank"] <= 10]
+    # 2. Drop duplicates of artist and song name
+    .drop_duplicates(subset=["artist", "song_name"])
+    # 3. Count the number of times artist appears in unique list
+    .groupby("artist")
+    .size()
+    .reset_index(name="num_unique_top10_songs")
+    # 4.  Order results in descending order by number of unique top 10 songs
+    .sort_values(by="num_unique_top10_songs", ascending=False)
+)
+
+-------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated values in the group_name, artist and song_name
+  columns. There were also 6 null values in the song_name column.
+- My approach to this problem began with filtering for songs in the top 10 within the year_rank column
+  using lambda x and the loc[] function. From there, I calculated the number of unique top 10 songs
+  for each artist using the groupby(), nunique(), and reset_index() functions. Lastly, I ordered the
+  results in descending order by the number of unique top 10 songs using the sort_values() function.
+
+Suggestions and Final Thoughts:
+- The drop_duplicates() function is similar to the distinct() function in R programming. The
+  parameters for drop_duplicates() requires specifying the subset of columns.
+  ex.
+      drop_duplicates(subset=["artist", "song_name"])
+- The drop_duplicates() function combined with the size() function is an alternative approach
+  that can be utilized for larger datasets and better performance as seen in Solution #2. The
+  nunique() function for aggregation has to keep track of a set of unique songs for every artist
+  simultaneously. While drop duplicates() and size() cleans the whole table once using hashing
+  and performs a frequency count on the remaining rows. The benefit of the nunique() function is for
+  readability and smaller data.
+
+Solve Duration:
+24 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+25 minutes
+
+######################################################################################################
+
+Website:
+StrataScratch - ID 10556
+
+Difficulty:
+Medium
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Meta - Pages Currently Active
+You are monitoring a system where pages can be turned on or off at different times. 
+The page status log records every state change event for each page. 
+Find the number of pages that are currently active based on their most recent status change. 
+Return the count of currently active pages.
+
+Data Dictionary:
+Table name - 'page_status_log'
+changed_at: datetime2 (dt)
+event_id: bigint (int)
+page_id: bigint (int)
+status: varchar (str)
+
+Code:
+-------------------------------------------------------
+** Solution #1 (original attempt) **
+-- Question:
+-- You are monitoring a system where pages can be turned on or off at different times.
+-- The page status log records every state change event for each page.
+-- Find the number of pages that are currently active based on their most recent status change.
+-- Return the count of currently active pages.
+
+-- Input:
+-- page_status_log
+
+-- Output:
+-- active_pages_count
+
+-- Preview data:
+SELECT TOP 5* FROM page_status_log;
+
+-- Data Quality:
+-- Dimensions - 49 x 4
+-- Duplicates - 0
+-- Nulls - status(6)
+-- Value Counts - event_id, page_id, status
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN changed_at IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN event_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN page_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN status IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS total_rows
+FROM page_status_log;
+
+SELECT -- Duplicates
+    changed_at, event_id, page_id, status,
+    COUNT(*) AS duplicate_count
+FROM page_status_log
+GROUP BY 
+    changed_at, event_id, page_id, status
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts, all unique id values
+    event_id,
+    COUNT(*) AS frequency
+FROM page_status_log
+GROUP BY event_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated id values
+    page_id,
+    COUNT(*) AS frequency
+FROM page_status_log
+GROUP BY page_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated categorical values, (on, off, null)
+    status,
+    COUNT(*) AS frequency
+FROM page_status_log
+GROUP BY status
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Rank the datetime of each status change in descending order for each page and include ties
+-- 2. Filter for the most recent status change for each page using rank
+-- 3. Filter for active status, status = 'on' for each page
+-- 4. Count the number of currently active pages
+
+-- Result:
+WITH RankedPageStatuses AS (
+    SELECT 
+        page_id,
+        status,
+        changed_at,
+        -- 1. Rank the datetime of each status change in descending order for each page and include ties
+        DENSE_RANK() OVER(PARTITION BY page_id ORDER BY changed_at DESC) AS dense_rank
+    FROM 
+        page_status_log
+)
+SELECT
+    -- 4. Count the number of currently active pages
+    COUNT(page_id) AS active_pages_count
+FROM 
+    RankedPageStatuses
+WHERE 
+    -- 2. Filter for the most recent status change for each page using rank
+    dense_rank = 1
+    -- 3. Filter for active status, status = 'on' for each page
+    AND LOWER(status) = 'on'
+    AND status IS NOT NULL;
+
+-------------------------------------------------------
+** Solution #2 (revised with suggestions) **
+WITH RankedPageStatuses AS (
+    SELECT 
+        page_id,
+        status,
+        changed_at,
+        -- 1. Rank the datetime of each status change in descending order for each page 
+        ROW_NUMBER() OVER(PARTITION BY page_id ORDER BY changed_at DESC) AS rn
+    FROM 
+        page_status_log
+)
+SELECT
+    -- 4. Count the number of currently active pages
+    COUNT(page_id) AS active_pages_count
+FROM 
+    RankedPageStatuses
+WHERE 
+    -- 2. Filter for the most recent status change for each page using rank
+    rn = 1
+    -- 3. Filter for active status, status = 'on' for each page
+    AND LOWER(status) = 'on'
+    AND status IS NOT NULL;
+
+-------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated id values in the page_id column, multiple repeated
+  categorical values ("on", "off", null") in the status column, and 6 null values in the status
+  column.
+- I began my approach to this problem by ranking the datetime of each status change in descending
+  order for each page with the changed_at column and included ties using the DENSE_RANK() function.
+  This step was placed into a common table expression (CTE) called RankedPageStatuses. The 
+  RankedPageStatuses CTE was subsequently queried and filtered for the most recent status change for
+  each page using rank, filtered for active status where status = 'on', and filtered for non null
+  values. Finally, the most current active pages were counted using the COUNT() function.
+
+Suggestions and Final Thoughts:
+- To avoid double counting potential ties in the changed_at datetime column, the ROW_NUMBER() window
+  function can be used to order the datetimes and force a unique ranking. Alternatively the 
+  DENSE_RANK() function can still be used if another condition is specified at the ORDER BY clause. 
+  ex.
+      ROW_NUMBER() OVER(PARTITION BY page_id ORDER BY changed_at DESC) AS rn;
+  ex.
+      DENSE_RANK() OVER(PARTITION BY page_id ORDER BY changed_at DESC event_id DESC) AS dense_rank;
+- I tried to consider potential edge cases by including the LOWER() function and a IS NOT NULL filter
+  in the WHERE clause.
+
+Solve Duration:
+21 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+######################################################################################################
