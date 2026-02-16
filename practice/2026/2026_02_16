@@ -1,0 +1,516 @@
+Date: 02/16/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9657
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+ESPN - Find the year which had the highest number of players
+Find the year which had the highest number of players. 
+Output the year along with the number of players.
+
+Data Dictionary:
+Table name = 'nfl_combine'
+year: numeric (num)
+heightfeet: numeric (num)
+weight: numeric (num)
+broad: numeric (num)
+bench: numeric (num)
+pickround: numeric (num)
+picktotal: numeric (num)
+firstname: character (str)
+lastname: character (str)
+position: character (str)
+heightinches: numeric (num)
+heightinchestotal: numeric (num)
+arms: numeric (num)
+hands: numeric (num)
+fortyyd: numeric (num)
+twentyyd: numeric (num)
+tenyd: numeric (num)
+twentyss: numeric (num)
+threecone: numeric (num)
+vertical: numeric (num)
+college: character (str)
+pick: character (str)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Find the year which had the highest number of players.
+# Output the year along with the number of players.
+
+## Input:
+# nfl_combine
+
+## Output:
+# year, number_of_players
+
+## Import libraries:
+#install.packages("tidyverse")
+library(tidyverse)
+
+## Load and preview data:
+#nfl_combine <- read_csv("nfl_combine.csv")
+combine_df <- data.frame(nfl_combine)
+combine_df |> head(5)
+
+## Data quality:
+# Dimensions - 126 x 24
+# Duplicates - 0
+# Nulls - college(51), pick(51)
+# Value Counts - firstname, lastname, position, college, pick
+combine_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+combine_df |> dim()
+
+combine_df |> duplicated() |> sum()
+
+combine_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+combine_df |> count(firstname, sort=TRUE)
+combine_df |> count(lastname, sort=TRUE)
+combine_df |> count(position, sort=TRUE)
+combine_df |> count(college, sort=TRUE)
+combine_df |> count(pick, sort=TRUE)
+
+## Iteration:
+# 1. Calculate the number of players for each year
+# 2. Filter for year with highest number of players
+
+## Result:
+result_df <- combine_df |>
+    group_by(year) |>
+    summarise(
+        # 1. Calculate the number of players for each year
+        number_of_players = n(),
+        .groups="drop"
+    ) |>
+    slice_max(
+        # 2. Filter for year with highest number of players
+        number_of_players
+    )
+    
+result_df
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+result_df <- combine_df |>
+    count(
+        # 1. Calculate the number of players for each year
+        year, name="number_of_players"
+    ) |>
+    slice_max(
+        # 2. Filter for year with highest number of players
+        number_of_players, with_ties=TRUE
+    )
+    
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed 0 duplicate values, 51 null values in the college and pick columns, and
+  repeated value counts for firstname, lastname, position, college, and pick columns.
+- I started off my approach to this problem by calculating the number of players for each year using the
+  group_by(), summarise(), and n() functions. Next, I filtered for the year with the highest number of
+  players using the slice_max() function.
+
+Suggestions and Final Thoughts:
+- The count() function can be used for more conciseness as opposed to using the group_by(), summarise(),
+  and n() functions. It counts the frequency for each year. Both approaches are the same performance as 
+  count() is a wrapper for the multiple functions.
+  ex.
+      result_df <- combine_df |>
+          count(year, name="number_of_players")
+- Typically, the slice_max() function has a parameter that handles ties and is defaulted to TRUE. To adjust
+  this criteria, the parameter with_ties can be changed to FALSE.
+  ex.
+      slice_max(number_of_players, with_ties=FALSE)
+
+Solve Duration:
+8 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9744
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Spotify - The Best Artist
+Find the number of times an artist has been on the Billboard Top 100 in the past 20 years, based on the most recent year available in the dataset. 
+Use the latest year in the dataset as the reference point and count entries from the last 20 years relative to that year. 
+Output the result alongside the artist's name and order records based on the count in descending order.
+
+Data Dictionary:
+Table name = 'billboard_top_100_year_end'
+year: int64 (int)
+year_rank: int64 (int)
+group_name: object (str)
+artist: object (str)
+song_name: object (str)
+id: int64 (int)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Find the number of times an artist has been on the Billboard Top 100 in the past 20 years,
+# based on the most recent year available in the dataset.
+# Use the latest year in the dataset as the reference point
+# and count entries from the last 20 years relative to that year.
+# Output the result alongside the artist's name and order records based on the count in descending order.
+
+## Input:
+# billboard_top_100_year_end
+
+## Output:
+# artist, appearances_count
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#billboard_top_100_year_end = pd.read_csv("billboard_top_100_year_end.csv")
+billboard_df = billboard_top_100_year_end.copy()
+billboard_df.head(5)
+
+## Data quality:
+# Dimensions - 6422 x 6
+# Duplicates - 0
+# Nulls - song_name(6)
+# Value Counts - group_name, artist, song_name, id
+#billboard_df.info()
+
+billboard_df.shape
+
+billboard_df.duplicated().sum()
+
+billboard_df.isna().sum().reset_index(name="na_count")
+
+#columns = ["group_name", "artist", "song_name", "id"]
+
+#for col in columns:
+#    print(f"-----{col}-----")
+#    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+#        print(billboard_df[col].value_counts(dropna=False).reset_index(name="frequency"))
+#        print("")
+
+# Multiple repeated values for group_name, artist, and song_name
+
+## Iteration:
+# 1. Find the most recent year
+# 2. Filter for data within the past 20 years from most recent year
+# 3. Count the number of appearances for each artist
+# 4. Sort in descending order by appearances_count
+
+## Result:
+# 1. Find the most recent year
+target_year = billboard_df["year"].max()
+
+result_df = (
+    billboard_df
+    # 2. Filter for data within the past 20 years from most recent year
+    .loc[lambda x: x["year"] >= (target_year - 20)]
+    # 3. Count the number of appearances for each artist
+    .groupby("artist")
+    .size()
+    .reset_index(name="appearances_count")
+    # 4. Sort in descending order by appearances_count
+    .sort_values(by="appearances_count", ascending=False)
+)
+
+print("Number of times an artist has been on the Billboard Top 100 in the past 20 years: ")
+result_df
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+# 1. Find the most recent year
+target_year = billboard_df["year"].max()
+
+result_df = (
+    billboard_df
+    # 2. Filter for data within the past 20 years from most recent year
+    .loc[lambda x: 
+        (x["year"] <= target_year) & 
+        (x["year"] > (target_year - 20))
+    ]
+    # 3. Count the number of appearances for each artist
+    .groupby("artist")
+    .size()
+    .reset_index(name="appearances_count")
+    # 4. Sort in descending order by appearances_count
+    .sort_values(by="appearances_count", ascending=False)
+)
+
+print("Number of times an artist has been on the Billboard Top 100 in the past 20 years: ")
+result_df
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed 0 duplicate values, 6 null values in the song_name column, and multiple
+  repeated values for group_name, artist, and song_name columns.
+- I began my approach to this problem by finding the most recent year in the dataset and assigning it to a 
+  variable using the max() function. From there, I filtered for data within the past 20 years based on the
+  most recent year using the lambda x and loc[] function. Next, I counted the number of appearances for each
+  artist using the groupby(), size(), and reset_index() functions. Finally, I sorted the results in
+  descending order based on the appearances_count column using the sort_values() function.
+
+Suggestions and Final Thoughts:
+- Double check the range of years when using comparison operators such as >=, <=, >, <, and =. In Solution #1
+  the total number of years within the range is 21. The fix is changing the operator to > rather than >=.
+  For conciseness, accuracy, and potential edge cases, a range of years with an ampersand for AND would be a
+  safer approach.
+  ex.
+      target_year = billboard_df["year"].max()
+      billboard_df.loc[lambda x: x["year"] > (target_year - 20)]
+  ex.
+      target_year = billboard_df["year"].max()
+      billboard_df.loc[lambda x: 
+          (x["year"] <= target_year) & 
+          (x["year"] > (target_year - 20))
+      ]
+
+Solve Duration:
+17 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10555
+
+Difficulty:
+Medium
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Google - Top 2 Highest-Selling Items
+Management wants to identify the most popular products within each category to optimize inventory and marketing strategies. 
+Find the top 2 products with the highest total quantity sold in each category. 
+If products within a category have the same total quantity, order them alphabetically by product name and assign consecutive ranks (1, 2, 3, etc.).
+For example, if two products in the Electronics category both sold 15 units, then iPad Pro would get rank 1 (alphabetically first) and iPhone 14 would get rank 2 (alphabetically second).
+Return the category, product name, total quantity sold, and rank within category. 
+You should expect maximum 2 products per category in your results, though some categories might only have 1 product available.
+
+Data Dictionary:
+Table name = 'ecommerce_transactions'
+category: varchar (str)
+customer_id: varchar (str)
+price: float (flt)
+product_name: varchar (str)
+quantity: bigint (int)
+txn_id: varchar (str)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+-- Question:
+-- Management wants to identify the most popular products within each category to optimize
+-- inventory and marketing strategies.
+-- Find the top 2 products with the highest total quantity sold in each category.
+-- If products within a category have the same total quantity,
+-- order them alphabetically by product name assign consecutive ranks (1, 2, 3, etc.)
+-- For example, if two products in the Electronics category both sold 15 units,
+-- then iPad Pro would get rank 1 (alphabetically first) 
+-- and iPhone 14 would get rank 2 (alphabetically second)
+-- Return the category, product name, total quantity sold, and rank within category.
+-- You should expect maximum 2 products per category in your result,
+-- though some categories might only have 1 product available.
+
+-- Input:
+-- ecommerce_transactions
+
+-- Output:
+-- category, product_name, total_quantity_sold, rank
+
+-- Preview data:
+SELECT TOP 5* FROM ecommerce_transactions;
+
+-- Data quality:
+-- Dimensions - 50 x 6
+-- Duplicates - 0
+-- Nulls - 0
+-- Value Counts - category, customer_id, product_name, txn_id
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN category IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN customer_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN price IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN product_name IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN quantity IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN txn_id IS NULL THEN 1 ELSE 0 END) AS col6,
+    COUNT(*) AS total_rows
+FROM ecommerce_transactions;
+
+SELECT -- Duplicates
+    category, customer_id, price, product_name, quantity, txn_id,
+    COUNT(*) AS duplicate_count
+FROM ecommerce_transactions
+GROUP BY
+    category, customer_id, price, product_name, quantity, txn_id
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts, 5 categories, multiple repeated values
+    category,
+    COUNT(*) AS frequency
+FROM ecommerce_transactions
+GROUP BY category
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated values
+    customer_id,
+    COUNT(*) AS frequency
+FROM ecommerce_transactions
+GROUP BY customer_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated values
+    product_name,
+    COUNT(*) AS frequency
+FROM ecommerce_transactions
+GROUP BY product_name
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, all unique values
+    txn_id,
+    COUNT(*) AS frequency
+FROM ecommerce_transactions
+GROUP BY txn_id
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Calculate the total quantity sold for each product in each category
+-- 2. Rank products based on highest total quantity sold in each category
+--    Group by category, rank by total quantity sold in DESC order and product name in ASC order
+-- 3. Filter for top 2 products with highest total quantity sold in each category
+
+-- Result:
+WITH RankedProducts AS (
+    SELECT
+        category,
+        product_name,
+        -- 1. Calculate the total quantity sold for each product in each category
+        SUM(quantity) AS total_quantity_sold,
+        -- 2. Rank products based on highest total quantity sold in each category
+        --    Group by category, rank by total quantity sold in DESC order and product name in ASC order
+        DENSE_RANK() OVER(
+            PARTITION BY
+                category
+            ORDER BY
+                SUM(quantity) DESC,
+                product_name ASC
+        ) AS rank
+    FROM
+        ecommerce_transactions
+    GROUP BY 
+        category, 
+        product_name
+)
+SELECT
+    category,
+    product_name,
+    total_quantity_sold,
+    rank
+FROM 
+    RankedProducts
+WHERE 
+    -- 3. Filter for top 2 products with highest total quantity sold in each category
+    rank <= 2;
+    
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+WITH RankedProducts AS (
+    SELECT
+        category,
+        product_name,
+        -- 1. Calculate the total quantity sold for each product in each category
+        SUM(quantity) AS total_quantity_sold,
+        -- 2. Rank products based on highest total quantity sold in each category
+        --    Group by category, rank by total quantity sold in DESC order and product name in ASC order
+        ROW_NUMBER() OVER(
+            PARTITION BY
+                category
+            ORDER BY
+                SUM(quantity) DESC,
+                product_name ASC
+        ) AS rank
+    FROM
+        ecommerce_transactions
+    GROUP BY 
+        category, 
+        product_name
+)
+SELECT
+    category,
+    product_name,
+    total_quantity_sold,
+    rank
+FROM 
+    RankedProducts
+WHERE 
+    -- 3. Filter for top 2 products with highest total quantity sold in each category
+    rank <= 2;
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated values for the category, product_name, and customer_id
+  columns. The txn_id column had all unique values.
+- My approach to this problem began with calculating the total quantity sold for each product in each
+  category using the SUM() function. From there, I ranked the products based on highest total quantity sold 
+  and alphabetical product name in each category using the DENSE_RANK() function. These steps were placed
+  into a common table expression (CTE) called RankedProducts. Next, I queried the RankedProducts CTE and 
+  filtered for top 2 products with highest total quantity sold in each category.
+
+Suggestions and Final Thoughts:
+- The ROW_NUMBER() function would be a more appropriate function to handle ties and produce unique
+  sequential integer rankings as opposed to DENSE_RANK(). DENSE_RANK() does work but it isn't as clear,
+  robust, and idiomatic.
+  ex.
+      ROW_NUMBER() OVER(
+          PARTITION BY
+              category
+          ORDER BY
+              SUM(quantity) DESC,
+              product_name ASC
+      ) AS rank;
+- While I could have created an extra common table expression (CTE) for the sum aggregation of quantity,
+  it made more sense to have the aggregation and rank step in the same CTE and then filter in the next
+  query.
+
+Solve Duration:
+25 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
