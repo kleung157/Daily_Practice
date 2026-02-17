@@ -1,0 +1,583 @@
+Date: 02/17/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9658
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+ESPN - Underweight/Overweight Athletes
+Identify colleges with underweight and overweight athletes. 
+Consider athletes with weight < 180 pounds as underweight and players with weight > 250 pounds as overweight. 
+Output the college along with the total number of overweight and underweight players. 
+If the college does not have any underweight/overweight players, leave the college out of the output. 
+You can assume that each athlete's full name is unique on their college.
+
+Data Dictionary:
+Table name = 'nfl_combine'
+year: numeric (num)
+heightfeet: numeric (num)
+weight: numeric (num)
+broad: numeric (num)
+bench: numeric (num)
+round: numeric (num)
+pickround: numeric (num)
+picktotal: numeric (num)
+name: character (str)
+firstname: character (str)
+lastname: character (str)
+position: character (str)
+heightinches: numeric (num)
+heightinchestotal: numeric (num)
+arms: numeric (num)
+hands: numeric (num)
+fortyyd: numeric (num)
+twentyyd: numeric (num)
+tenyd: numeric (num)
+twentyss: numeric (num)
+threecone: numeric (num)
+vertical: numeric (num)
+college: character (str)
+pick: character (str)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Identify colleges with underweight and overweight athletes.
+# Consider athletes with weight < 180 pounds as underweight 
+# and players with weight > 250 pounds as overweight.
+# Output the college along with the total number of overweight and underweight players.
+# If the college does not have any underweight/overweight players, leave the college out of the output.
+# You can assume that each athlete's full name is unique on their college.
+
+## Input:
+# nfl_combine
+
+## Output:
+# college, num_overweight, num_underweight 
+
+## Import libraries:
+#install.packages("tidyverse")
+library(tidyverse)
+
+## Load and preview data:
+#nfl_combine <- read_csv("nfl_combine.csv")
+combine_df <- data.frame(nfl_combine)
+combine_df |> head(5)
+
+## Data quality:
+# Dimensions - 126 x 24
+# Duplicates - 0
+# Nulls - college(51), pick(51)
+# Value Counts - name, firstname, lastname, position, college, pick
+combine_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+combine_df |> dim()
+
+combine_df |> duplicated() |> sum()
+
+combine_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+combine_df |> count(name, sort=TRUE)
+combine_df |> count(firstname, sort=TRUE)
+combine_df |> count(lastname, sort=TRUE)
+combine_df |> count(position, sort=TRUE)
+combine_df |> count(college, sort=TRUE)
+combine_df |> count(pick, sort=TRUE)
+
+## Iteration:
+# 1. Filter for non null values in college column
+# 2. Categorize athletes as overweight (> 250 lb), underweight (< 180 lb), or neither
+# 3. Calculate the number of overweight and underweight players for each college
+# 4. Filter for colleges with overweight/underweight players
+# 5. Sort in ascending order by college
+
+## Result:
+result_df <- combine_df |>
+    filter(
+        # 1. Filter for non null values in college column
+        !is.na(college)
+    ) |>
+    group_by(college) |>
+    summarise(
+        # 2. Categorize athletes as overweight (> 250 lb), underweight (< 180 lb), or neither
+        # 3. Calculate the number of overweight and underweight players for each college
+        num_overweight = sum(weight > 250, na.rm=TRUE),
+        num_underweight = sum(weight < 180, na.rm=TRUE),
+        .groups="drop"
+    ) |>
+    filter(
+        # 4. Filter for colleges with overweight/underweight players
+        num_overweight != 0 |
+        num_underweight != 0
+    ) |>
+    arrange(
+        # 5. Sort in ascending order by college
+        college
+    )
+    
+result_df
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+N/A
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed 51 null values in the college and pick columns. The columns firstname,
+  lastname, position, college, and pick had multiple repeated values while the column name contained all
+  unique values.
+- I started my approach to this problem by filtering for non null values in the college column using the
+  filter() and !is.na() functions. From there, I categorized athletes as overweight (> 250 lb) or
+  underweight (< 180 lb) based on their weight and calculated the number of overweight and underweight
+  players for each college using the group_by(), summarise(), and sum() functions. Next, I filtered for
+  colleges with overweight and underweight players using the filter() function. Lastly, I sorted the
+  results in ascending order by the college column using the arrange() function.
+
+Suggestions and Final Thoughts:
+- I was trying to decide whether I should place the filter for non null values in the college column at
+  the start of the pipe or at the end. It made more sense to place it at the start in order to narrow down 
+  the number of rows that needed to be aggregated. 
+  ex.
+      filter(!is.na(college))
+- When leaving out colleges that did not have underwweight or overweight players out of the output, it was
+  a bit tricky to figure out which logical operators use. I kept defaulting to AND but the OR operator made
+  more sense to allow non zero values to exist in the overweight and underweight columns. There are a 
+  multitude of ways to write the filters out using != or >.
+  ex.
+      filter(num_overweight != 0 | num_underweight != 0)
+  ex.
+      filter(num_overweight + num_underweight > 0)
+  ex.
+      filter(num_overweight > 0 | num_underweight > 0)
+- Didn't really have anything to fix in my original attempt so I didn't include a second revision.
+
+Solve Duration:
+29 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9745
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Spotify - Find the best artists in the last 20 years
+Find the best artists in the last 20 years.
+Use the metric (100 - avg_yearly_rank) * number_of_years_present to score each artist.
+Output the artist's name and the average yearly rank alongside the score. 
+Round the score and average rank to 2 decimals.
+Order records based on the score in descending order.
+
+Data Dictionary:
+Table name = 'billboard_top_100_year_end'
+year: int64 (int)
+year_rank: int64 (int)
+group_name: object (str)
+artist: object (str)
+song_name: object (str)
+id: int64 (int)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Find the best artists in the last 20 years.
+# Use the metric (100 - avg_yearly_rank) * number_of_years_present to score each artist.
+# Output the artist's name and the average yearly rank alongside the score.
+# Round the score and average rank to 2 decimals.
+# Order records based on the score in descending order.
+
+## Input:
+# billboard_top_100_year_end
+
+## Output:
+# artist, avg_yearly_rank, score
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#billboard_top_100_year_end = pd.read_csv("billboard_top_100_year_end.csv")
+billboard_df = billboard_top_100_year_end.copy()
+billboard_df.head(5)
+
+## Data quality:
+# Dimensions - 6422 x 6
+# Duplicates - 0
+# Nulls - song_name(6)
+# Value Counts - group_name, artist, song_name, id
+#billboard_df.info()
+
+billboard_df.shape
+
+billboard_df.duplicated().sum()
+
+billboard_df.isna().sum().reset_index(name="na_count")
+
+#columns = ["group_name", "artist", "song_name", "id"]
+
+#for col in columns:
+#    print(f"-----{col}-----")
+#    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+#        print(billboard_df[col].value_counts(dropna=False).reset_index(name="frequency"))
+#        print("")
+
+# Multiple repeated values for group_name, artist and song_name. All unique values for id.
+
+## Iteration:
+# 1. Find the most recent year and the earliest year within last 20 years
+# 2. Filter for records within last 20 years
+# 3. Calculate average yearly rank and number of years present for each artist
+# 4. Calculate score for each artist, 
+#    score = (100 - avg_yearly_rank) * number_of_years_present
+# 5. Round score and average yearly rank to 2 decimals
+# 6. Sort results in descending order by score
+
+## Result:
+# 1. Find the most recent year and the earliest year within last 20 years
+end_year = billboard_df["year"].max()
+start_year = end_year - 20
+
+result_df = (
+    billboard_df
+    # 2. Filter for records within last 20 years
+    .loc[lambda x:
+        (x["year"] <= end_year) &
+        (x["year"] > start_year)
+    ]
+    # 3. Calculate average yearly rank and number of years present for each artist
+    .groupby("artist")
+    .agg(
+        avg_yearly_rank=("year_rank", "mean"),
+        number_of_years_present=("year", "nunique")
+    )
+    .reset_index()
+    # 4. Calculate score for each artist, 
+    #    score = (100 - avg_yearly_rank) * number_of_years_present
+    # 5. Round score and average yearly rank to 2 decimals
+    .assign(
+        score = lambda x: ((100 - x["avg_yearly_rank"]) * x["number_of_years_present"]).round(2),
+        avg_yearly_rank = lambda x: x["avg_yearly_rank"].round(2)
+    )
+    # 6. Sort results in descending order by score
+    .sort_values(by="score", ascending=False)
+    [["artist", "avg_yearly_rank", "score"]]
+    
+)
+
+print("Best artists in the last 20 years:")
+result_df
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+N/A
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated values for the group_name, artist, and song_name columns.
+  The id column contained all unique values.
+- I began my approach to this problem by assigning the most recent year and the earliest year within last 20
+  years to different variables. Next, I filtered for records within the last 20 years using lambda x and
+  loc[] function. From there, I calculated the average yearly rank and the number of unique years present for
+  each artist using the groupby(), agg(), mean(), nunique() and reset_index() functions. After aggregation,
+  I calculated the score for each artist and rounded the appropriate columns to 2 decimal places using the
+  lambda x, assign(), and round() functions. Lastly, I sorted the results in descending order by score and
+  selected the relevant output columns using the sort_values() function.
+
+Suggestions and Final Thoughts:
+- Initially I had used the size() function for counting the number of years present. I realized when I looked
+  at the aggregated data that the nunique() function would be more appropriate to not duplicate years that an
+  artist was present.
+  ex.
+      billboard_df.groupby("artist").agg(number_of_years_present("year", "nunique")
+- In a previous problem, I had filtered for records that had an extra year since I wasn't as aware of the
+  inclusivity of start and end dates. This time, I made sure to have a comparison operator of <= for the end
+  date and > for the start date to not go over the number of years that need to be filtered. My previous logic
+  was both <= and >= which would be a total of 21 years instead of 20.
+  ex.
+      billboard_df.loc[lambda x: (x["year"] <= end_year) & (x["year"] > start_year)
+- The score calculation metric used in this problem looks at a weighted measure of dominance and longevity
+  of an artist on the billboard charts. A performance metric is multiplied by a frequency metric and artists
+  are rewarded with staying at the top for longer periods. The dominance factor is (100 - avg_yearly_rank)
+  and the longevity factor is (number_of_years_present).
+  ex.
+      score = (100 - avg_yearly_rank) * number_of_years_present
+- Similar to the R problem earlier, I did not make any revisions to my original attempt. Thus no alternate
+  solution is provided.
+
+Solve Duration:
+28 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+15 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10554
+
+Difficulty:
+Medium
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Anazon - Top-Rated Support Employees
+You're analyzing employee performance at a customer support center. 
+Management wants to identify which support agents are providing the best customer experience based on satisfaction scores.
+Rank employees by their average customer satisfaction score for resolved tickets. 
+Return the top 3 ranks, where ranks should be consecutive and should not skip numbers even if there are ties. 
+For example, if the scores are [4.9, 4.7, 4.7, 4.5], the rankings would be [1, 2, 2, 3].
+Return the employee ID, employee name, average satisfaction score, and employee rank.
+
+Data Dictionary:
+Table name = 'amazon_support_tickets'
+customer_satisfaction: float (flt)
+department: varchar (str)
+employee_id: varchar (str)
+employee_name: varchar (str)
+resolution_status: varchar (str)
+resolution_time_minutes: float (flt)
+ticket_id: varchar (str)
+ticket_priority: varchar (str)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+-- Question:
+-- You're analyzing employee performance at a customer support center.
+-- Management wants to identify which support agents are providing the best customer experience
+-- based on satisfaction scores.
+-- Rank employees by their average customer satisfaction score for resolved tickets.
+-- Return the top 3 ranks, where ranks should be consecutive 
+-- and should not skip numbers even if there are ties.
+-- For example, if the scores are [4.9, 4.7, 4.7, 4.5], the rankings would be [1, 2, 2, 3].
+-- Return the employee ID, employee name, average satisfaction score, and employee rank.
+
+-- Input:
+-- amazon_support_tickets
+
+-- Output:
+-- employee_id, employee_name, avg_customer_satisfaction, employee_rank
+
+-- Preview data:
+SELECT TOP 5* FROM amazon_support_tickets;
+
+-- Data Quality:
+-- Dimensions - 25 x 8
+-- Duplicates - 0
+-- Nulls - customer_satisfaction(14), resolution_time_minutes(4)
+-- Value Counts - department, employee_id, employee_name, resolution_status, ticket_id, ticket_priority
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN customer_satisfaction IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN department IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN employee_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN employee_name IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN resolution_status IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN resolution_time_minutes IS NULL THEN 1 ELSE 0 END) AS col6,
+    SUM(CASE WHEN ticket_id IS NULL THEN 1 ELSE 0 END) AS col7,
+    SUM(CASE WHEN ticket_priority IS NULL THEN 1 ELSE 0 END) AS col8,
+    COUNT(*) AS total_rows
+FROM amazon_support_tickets;
+
+SELECT -- Duplicates
+    customer_satisfaction, department, employee_id, employee_name, resolution_status, resolution_time_minutes, ticket_id, ticket_priority,
+    COUNT(*) AS duplicate_count
+FROM amazon_support_tickets
+GROUP BY
+    customer_satisfaction, department, employee_id, employee_name, resolution_status, resolution_time_minutes, ticket_id, ticket_priority
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts, 4 categories
+    department,
+    COUNT(*) AS frequency
+FROM amazon_support_tickets
+GROUP BY department
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated values
+    employee_id,
+    COUNT(*) AS frequency
+FROM amazon_support_tickets
+GROUP BY employee_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated values
+    employee_name,
+    COUNT(*) AS frequency
+FROM amazon_support_tickets
+GROUP BY employee_name
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, 3 categories
+    resolution_status,
+    COUNT(*) AS frequency
+FROM amazon_support_tickets
+GROUP BY resolution_status
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, all unique values
+    ticket_id,
+    COUNT(*) AS frequency
+FROM amazon_support_tickets
+GROUP BY ticket_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, 4 categories
+    ticket_priority,
+    COUNT(*) AS frequency
+FROM amazon_support_tickets
+GROUP BY ticket_priority
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Filter for 'resolved' tickets in resolution_status
+-- 2. Filter for non-null values in customer_satisfaction
+-- 3. Calculate the average customer satisfaction for each employee
+-- 4. Rank employees by average customer satisfaction in descending order,
+--    rank consecutively and include ties
+-- 5. Filter for top 3 ranks based on highest average customer satisfaction
+
+-- Result:
+WITH RankedEmployees AS (
+    SELECT 
+        employee_id,
+        employee_name,
+        -- 3. Calculate the average customer satisfaction for each employee
+        AVG(customer_satisfaction) AS avg_customer_satisfaction,
+        -- 4. Rank employees by average customer satisfaction in descending order,
+        --    rank consecutively and include ties
+        DENSE_RANK() OVER(
+            ORDER BY AVG(customer_satisfaction) DESC
+        ) AS employee_rank
+    FROM 
+        amazon_support_tickets
+    WHERE 
+        -- 1. Filter for 'resolved' tickets in resolution_status
+        LOWER(resolution_status) = 'resolved'
+        -- 2. Filter for non-null values in customer_satisfaction
+        AND customer_satisfaction IS NOT NULL
+    GROUP BY
+        employee_id,
+        employee_name
+)
+SELECT
+    employee_id,
+    employee_name,
+    avg_customer_satisfaction,
+    employee_rank
+FROM 
+    RankedEmployees
+WHERE 
+    -- 5. Filter for top 3 ranks based on highest average customer satisfaction
+    employee_rank <= 3;
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+WITH RankedEmployees AS (
+    SELECT 
+        employee_id,
+        employee_name,
+        -- 3. Calculate the average customer satisfaction for each employee
+        ROUND(
+            1.0 * AVG(customer_satisfaction)
+        , 2) AS avg_customer_satisfaction,
+        -- 4. Rank employees by average customer satisfaction in descending order,
+        --    rank consecutively and include ties
+        DENSE_RANK() OVER(
+            ORDER BY AVG(customer_satisfaction) DESC
+        ) AS employee_rank
+    FROM 
+        amazon_support_tickets
+    WHERE 
+        -- 1. Filter for 'resolved' tickets in resolution_status
+        LOWER(resolution_status) = 'resolved'
+        -- 2. Filter for non-null values in customer_satisfaction
+        AND customer_satisfaction IS NOT NULL
+    GROUP BY
+        employee_id,
+        employee_name
+)
+SELECT
+    employee_id,
+    employee_name,
+    avg_customer_satisfaction,
+    employee_rank
+FROM 
+    RankedEmployees
+WHERE 
+    -- 5. Filter for top 3 ranks based on highest average customer satisfaction
+    employee_rank <= 3;
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed 14 null values in the customer_satisfaction column and 4 null values in
+  the resolution_time_minutes column. The department column contained 4 different categories. The employee_id
+  and employee_name columns contained multiple repeated values. The resolution_status column contained 3
+  different categories where one was 'resolved'. The ticket_id column contained all unique values. The
+  ticket_priority column contained 4 different categories.
+- My approach to this problem began by filtering for 'resolved' tickets in the resolution_status column and
+  filtering for non-null values in the customer_satisfaction column. From there, I calculated the average
+  customer satisfaction score for each employee using the AVG() function. Next, I ranked employees by their
+  average customer satisfaction score in descending order and included ties using the DENSE_RANK() function.
+  All of these steps were placed into a common table expression (CTE) called RankedEmployees. Finally, I
+  queried the RankedEmployees CTE and filtered for top 3 ranked employees based on highest average customer
+  satisfaction.
+
+Suggestions and Final Thoughts:
+- In the event that the customer_satisfaction column was an integer data type rather than a float data type,
+  it would be safer to convert the column to a float using 1.0* and then rounding the average calculation to
+  2 decimal places.
+  ex.
+      ROUND(
+          1.0 * AVG(customer_satisfaction)
+      , 2) AS avg_customer_satisfaction;
+- When performing the data quality check, I noticed that I missed a very important part of the problem which
+  was filtering for 'resolved' tickets in the resolution_status column. I wouldn't have realized that the
+  prompt wanted specifically average customer satisfaction scores for resolved tickets until I did this
+  necessary audit. This led me to also consider edge cases for potential case sensitivity for 'resolved'
+  values in the resolution_status column and null values in the customer_satisfaction column.
+  ex.
+      WHERE
+           LOWER(resolution_status) = 'resolved'
+           AND customer_satisfaction IS NOT NULL;
+- While I could have separated the average customer satisfaction calculation and the ranking of employees 
+  into their own common table expressions (CTE), it made more sense to place them in the same one for 
+  conciseness and performance.
+
+Solve Duration:
+20 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
