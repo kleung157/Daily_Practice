@@ -1,0 +1,537 @@
+Date: 02/20/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9668
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+Google - English, German, French, Spanish Speakers
+Find company IDs with more than 2 unique users who speak any of the following languages: 
+English, German, French, or Spanish.
+
+Data Dictionary:
+Table name = 'playbook_users'
+user_id: numeric (num)
+company_id: numeric (num)
+created_at: POSIXct, POSIXt (dt)
+language: character (str)
+activated_at: POSIXct, POSIXt (dt)
+state: character (str)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Find company IDs with more than 2 unique users who speak any of the following languages:
+# English, German, French, or Spanish
+
+## Input:
+# playbook_users
+
+## Output:
+# company_id
+
+## Import libraries:
+#install.packages("tidyverse")
+library(tidyverse)
+
+## Load and preview data:
+#playbook_users <- read_csv("playbook_users.csv")
+users_df <- data.frame(playbook_users)
+users_df |> head(5)
+
+## Data quality:
+# Dimensions - 222 x 6
+# Duplicates - 0
+# Nulls - activated_at(2)
+# Value Counts - user_id, company_id, language, state
+users_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+users_df |> dim()
+
+users_df |> duplicated() |> sum()
+
+users_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+users_df |> count(user_id, sort=TRUE)       # multiple repeated values
+users_df |> count(company_id, sort=TRUE)    # multiple repeated values
+users_df |> count(language, sort=TRUE)      # 11 categories
+users_df |> count(state, sort=TRUE)         # 2 categories
+
+## Iteration:
+# 1. Filter for users who speak English, Germany, French, or Spanish
+# 2. Calculate the number of unique users for each company
+# 3. Filter for companies with more than 2 unique users
+# 4. Select relevant columns
+# 5. Sort in ascending order by company id
+
+## Result:
+target_languages = c("english", "germany", "french", "spanish")
+
+result_df <- users_df |>
+    filter(
+        # 1. Filter for users who speak English, Germany, French, or Spanish
+        str_to_lower(language) %in% target_languages
+    ) |>
+    group_by(company_id) |>
+    summarise(
+        # 2. Calculate the number of unique users for each company
+        num_unique_users = n_distinct(user_id, na.rm=TRUE),
+        .groups="drop"
+    ) |>
+    filter(
+        # 3. Filter for companies with more than 2 unique users
+        num_unique_users > 2
+    ) |>
+    select(
+        # 4. Select relevant columns
+        company_id
+    ) |>
+    arrange(
+        # 5. Sort in ascending order by company id
+        company_id
+    )
+
+result_df
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+target_languages = c("english", "german", "french", "spanish")
+
+result_df <- users_df |>
+    filter(
+        # 1. Filter for users who speak English, German, French, or Spanish
+        str_to_lower(language) %in% target_languages
+    ) |>
+    group_by(company_id) |>
+    summarise(
+        # 2. Calculate the number of unique users for each company
+        num_unique_users = n_distinct(user_id, na.rm=TRUE),
+        .groups="drop"
+    ) |>
+    filter(
+        # 3. Filter for companies with more than 2 unique users
+        num_unique_users > 2
+    ) |>
+    select(
+        # 4. Select relevant columns
+        company_id
+    ) |>
+    arrange(
+        # 5. Sort in ascending order by company id
+        company_id
+    )
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated values for the user_id and company_id columns, and
+  11 categories and 2 categories for the language and state columns respectively.
+- I started my approach to this problem by filtering for users who spoke English, Germany, French, or Spanish
+  using the filter(), str_to_lower() and %in% functions. Next, I calculated the number of unique users for
+  each company using the group_by(), summarise() and n_distinct() functions. From there, I filtered for
+  companies with more than 2 unique users using the filter() function. Finally, I selected the relevant
+  columns and sorted the results in ascending order by the company_id column using the select() and arrange()
+  functions.
+
+Suggestions and Final Thoughts:
+- When assigning the target languages to a variable, I mistakenly put Germany instead of German for the
+  language. I didn't notice that I even did that when I finished writing the code or checking it. My mind
+  seemed to be oblivious of it in the moment. 
+  ex.
+      target_languages = c("english", "german", "french", "spanish")
+- For better printing on large datasets, the as_tibble() function is better to use than the data.frame()
+  function.
+  ex.
+      users_df <- as_tibble(playbook_users)
+- To convert a column into a simple vector, the pull() function can be used without having a column name
+  assigned to the vector.
+  ex.
+      pull(company_id)
+
+Solve Duration:
+14 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+###########################################################################################################
+
+Website:
+StrataScratch - ID 9748
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+City of San Francisco - Find districts with the most crime incidents
+Find districts alongside their incidents.
+Output the district name alongside the number of incident occurrences.
+Order records based on the number of occurrences in descending order.
+
+Data Dictionary:
+Table name = 'sf_crime_incidents_2014_01'
+incidnt_num: float64 (flt)
+category: object (str)
+descript: object (str)
+day_of_week: object (str)
+date: datetime64 (dt)
+time: datetime64 (dt)
+pd_district: object (str)
+resolution: object (str)
+address: object (str)
+lon: float64 (flt)
+lat: float64 (flt)
+location: object (str)
+id: int64 (int)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Find districts alongside their incidents.
+# Output the district name alongside the number of incident occurrences.
+# Order records based on the number of occurrences in descending order.
+
+## Input:
+# sf_crime_incidents_2014_01
+
+## Output:
+# pd_district, num_incidents
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#sf_crime_incidents_2014_01 = pd.read_csv("sf_crime_incidents_2014_01.csv")
+incidents_df = sf_crime_incidents_2014_01.copy()
+incidents_df.head(5)
+
+## Data quality:
+# Dimensions - 100 x 13
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - incidnt_num, category, descript, day_of_week, 
+#                pd_district, resolution, address, location, id
+#incidents_df.info()
+
+incidents_df.shape
+
+incidents_df.duplicated().sum()
+
+incidents_df.isna().sum().reset_index(name="na_count")
+
+#columns = ["incidnt_num", "category", "descript", "day_of_week",
+#           "pd_district", "resolution", "address", "location", "id"]
+
+#for col in columns:
+#    print(f"-----{col}-----")
+#    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+#        print(incidents_df[col].value_counts(dropna=False).reset_index(name="frequency"))
+#        print("")
+
+# all unique values for incidnt_num and id
+# multiple repeated values for descript, day of week, pd_district, resolution, address, location
+
+## Iteration:
+# 1. Calculate the number of incidents for each district
+# 2. Sort the results in descending order based on num_incidents
+
+## Result:
+result_df = (
+    incidents_df
+    # 1. Calculate the number of incidents for each district
+    .groupby("pd_district")["id"]
+    .size()
+    .reset_index(name="num_incidents")
+    # 2. Sort the results in descending order based on num_incidents
+    .sort_values(by="num_incidents", ascending=False)
+)
+
+print("Number of crime incident occurences for each district: ")
+result_df
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+result_df = (
+    incidents_df
+    # 1. Calculate the number of incidents for each district
+    .groupby("pd_district")
+    .size()
+    .reset_index(name="num_incidents")
+    # 2. Sort the results in descending order based on num_incidents
+    .sort_values(by="num_incidents", ascending=False)
+)
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed all unique values for the incidnt_num and id columns, and multiple
+  repeated values for the descript, day_of_week, pd_district, resolution, address, and location columns.
+- I began my approach to this problem by calculating the number of incidents for each district using the
+  groupby(), size() and reset_index() functions. Next, I sorted the results in descending order based on
+  the number of incidents using the sort_values() function.
+
+Suggestions and Final Thoughts:
+- I included the id column for the grouping aggregation of row counts to show clarity and understanding in
+  the code. The size() function already counts the rows and the id column is generally ignored. Also size()
+  counts all rows including NaN values as opposed to the count() function.
+  ex.
+      incidents_df.groupby("pd_district").size().reset_index(name="num_incidents")
+
+Solve Duration:
+12 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+###########################################################################################################
+
+Website:
+StrataScratch - ID 10551
+
+Difficulty:
+Medium
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Find the top three locations with the highest total number of sunny hours. 
+Sunny hours are calculated as:
+Sunny Hours = Maximum Daylight Hours - (Cloud Cover Percentage ÷ 10).
+If the result is negative, treat it as zero. 
+Round all calculations to 2 decimal places.
+Return the location name and the total number of sunny hours. 
+If multiple locations are tied in total sunny hours, include all tied locations, even if this results in more than three being returned. 
+Do not skip ranks. 
+If there are ties, all tied locations should be included at their shared rank.
+
+Data Dictionary:
+Table name = 'weather_data'
+cloud_cover_percentage: float (flt)
+date: date (d)
+location_name: varchar (str)
+max_daylight_hours: float (flt)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+-- Question:
+-- Find the top three locations with the highest total number of sunny hours.
+-- Sunny hours are calculated as:
+-- Sunny Hours = Maximum Daylight Hours - (Cloud Cover Percentage / 10).
+-- If the result is negative, treat it as zero.
+-- Round all calculations to 2 decimal places.
+-- Return the location name and the total number of sunny hours.
+-- If multiple locations are tied in total sunny hours,
+-- include all tied locations, even if this results in more than three being returned.
+-- Do not skip ranks.
+-- If there are ties, all tied locations should be included at their shared rank.
+
+-- Input:
+-- weather_data
+
+-- Output:
+-- location_name, total_sunny_hours
+
+-- Preview data:
+SELECT TOP 5* FROM weather_data;
+
+-- Data quality:
+-- Dimensions - 60 x 4
+-- Duplicates - 0
+-- Nulls - 0
+-- Value Counts - location_name
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN cloud_cover_percentage IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN date IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN location_name IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN max_daylight_hours IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS row_count
+FROM weather_data;
+
+SELECT -- Duplicates
+    cloud_cover_percentage, date, location_name, max_daylight_hours,
+    COUNT(*) AS duplicate_count
+FROM weather_data
+GROUP BY 
+    cloud_cover_percentage, date, location_name, max_daylight_hours
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts, multiple repeated values
+    location_name,
+    COUNT(*) AS frequency
+FROM weather_data
+GROUP BY location_name
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Calculate sunny hours for each row
+--    Sunny hours = Maximum Daylight Hours - (Cloud Cover Percentage / 10)
+-- 2. Calculate total number of sunny hours for each location
+--    If result is negative, then 0
+--    Round to 2 decimals
+-- 3. Rank the locations by total sunny hours in descending order, include ties
+-- 4. Filter for top 3 locations with highest total number of sunny hours
+
+-- Result:
+WITH LocationSunnyHours AS (
+    SELECT 
+        location_name,
+        -- 1. Calculate sunny hours for each row
+        --    Sunny hours = Maximum Daylight Hours - (Cloud Cover Percentage / 10)
+        --    If result is negative, then 0
+        CASE 
+            WHEN 1.0 * max_daylight_hours - (cloud_cover_percentage / 10) < 0
+            THEN 0
+            ELSE 1.0 * max_daylight_hours - (cloud_cover_percentage / 10)
+        END AS sunny_hours
+    FROM
+        weather_data
+),
+RankedLocations AS (
+    SELECT
+        location_name,
+        -- 2. Calculate total number of sunny hours for each location
+        --    Round to 2 decimals
+        ROUND(
+            SUM(sunny_hours)
+        , 2) AS total_sunny_hours,
+        -- 3. Rank the locations by total sunny hours in descending order, include ties
+        DENSE_RANK() OVER(
+            ORDER BY 
+                ROUND(SUM(sunny_hours), 2) DESC
+        ) AS dense_rank
+    FROM 
+        LocationSunnyHours
+    GROUP BY 
+        location_name
+)
+SELECT
+    location_name,
+    total_sunny_hours
+FROM 
+    RankedLocations
+WHERE 
+    -- 4. Filter for top 3 locations with highest total number of sunny hours
+    dense_rank <= 3;
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+WITH LocationSunnyHours AS (
+    SELECT 
+        location_name,
+        -- 1. Calculate sunny hours for each row
+        --    Sunny hours = Maximum Daylight Hours - (Cloud Cover Percentage / 10)
+        --    If result is negative, then 0
+        CASE 
+            WHEN (1.0 * max_daylight_hours - (cloud_cover_percentage / 10)) < 0
+            THEN 0
+            ELSE (1.0 * max_daylight_hours - (cloud_cover_percentage / 10))
+        END AS sunny_hours
+    FROM
+        weather_data
+),
+RankedLocations AS (
+    SELECT
+        location_name,
+        -- 2. Calculate total number of sunny hours for each location
+        --    Round to 2 decimals
+        ROUND(
+            SUM(sunny_hours)
+        , 2) AS total_sunny_hours,
+        -- 3. Rank the locations by total sunny hours in descending order, include ties
+        DENSE_RANK() OVER(
+            ORDER BY 
+                ROUND(SUM(sunny_hours), 2) DESC
+        ) AS location_rank
+    FROM 
+        LocationSunnyHours
+    GROUP BY 
+        location_name
+)
+SELECT
+    location_name,
+    total_sunny_hours
+FROM 
+    RankedLocations
+WHERE 
+    -- 4. Filter for top 3 locations with highest total number of sunny hours
+    location_rank <= 3;
+    
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated values for the location_name column.
+- My approach to this problem began with calculating the sunny hours for each row with the following
+  formula "Sunny hours = Maximum Daylight Hours - (Cloud Cover Percentage / 10)". If the result of this
+  calculation was negative then it would be replaced with 0. Otherwise, the calculation would proceed.
+  These steps were placed into a common table expression (CTE) called LocationSunnyHours. The
+  LocationSunnyHours CTE was subsequently queried to calculate the total number of sunny hours for each
+  location and for ranking the locations by total sunny hours in descending order using the ROUND(), SUM(),
+  and DENSE_RANK() functions. The previous steps were then placed into a second CTE named RankedLocations.
+  Finally, the RankedLocations CTE was used to filter for top 3 locations with the highest total number of
+  sunny hours based on rank.
+
+Suggestions and Final Thoughts:
+- Even though the prompt mentions "round all calculations to 2 decimal places", I chose not to round the 
+  results of the initial sunny hours calculations and waited until after I performed the aggregation to
+  round the final total sunny hours value. This ensures a precise calculation and no decimal places are lost
+  within the intermediate steps.
+  ex.
+      ROUND(
+          SUM(sunny_hours)
+      , 2) AS total_sunny_hours;
+- I included 1.0 * for the sunny hours calculation to have explicit float casting in case the 
+  max_daylight_hours or cloud_cover_percentage columns were not float datatypes. This can prevent truncation
+  of values if the datatype was an integer.
+  ex.
+      (1.0 * max_daylight_hours - (cloud_cover_percentage / 10)) < 0;
+- When ranking, it is better to use an alias that isn't the name of the function itself to avoid confusion
+  or syntax errors.
+  ex.
+      DENSE_RANK() OVER(
+          ORDER BY 
+               ROUND(SUM(sunny_hours), 2) DESC
+      ) AS location_rank;
+- I have gotten used to ranking categorical columns based on aggregated values within the same common
+  table expression where the aggregated calculations take place. This lowers the number of CTEs that are
+  necessary for solving the problem, can be more concise, and performant overall.
+- DENSE_RANK() can be menmory intensive if the dataset is billions of rows. The alternative would be to use
+  ORDER BY and TOP 3 with TIES for a more performant query. DENSE_RANK() is usually for financial reporting
+  and leaderboards while the second approach is for dashboards and quick looks.
+  ex.
+      SELECT 
+          TOP 3 WITH TIES location_name, total_sunny_hours
+      FROM 
+          LocationTotals
+      ORDER BY 
+          total_sunny_hours DESC;
+
+Solve Duration:
+30 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+###########################################################################################################
