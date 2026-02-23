@@ -214,7 +214,6 @@ Spotify - Find the nominee who has won the most Oscars
 Find the nominee who has won the most Oscars.
 Output the nominee's name alongside the result.
 
-
 Data Dictionary:
 Table name = 'oscar_nominees'
 year: int64 (int)
