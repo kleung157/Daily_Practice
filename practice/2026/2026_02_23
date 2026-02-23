@@ -1,0 +1,555 @@
+Date: 02/23/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9694
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+City of Los Angeles - Single Facility Corporations
+Find all owners which have only a single facility.
+Output the owner_name and order the results alphabetically.
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+score: numeric (num)
+service_code: numeric (num)
+program_element_pe: numeric (num)
+serial_number: character (str)
+activity_date: POSIXct, POSIXt (dt)
+facility_name: character (str)
+grade: character (str)
+service_description: character (str)
+employee_id: character (str)
+facility_address: character (str)
+facility_city: character (str)
+facility_id: character (str)
+facility_state: character (str)
+facility_zip: character (str)
+owner_id: character (str)
+owner_name: character (str)
+pe_description: character (str)
+program_name: character (str)
+program_status: character (str)
+record_id: character (str)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Find all owners which have only a single facility.
+# Output the owner_name and order the results alphabetically.
+
+## Input:
+# los_angeles_restaurant_health_inspections
+
+## Output:
+# owner_name
+
+## Import libraries:
+#install.packages("tidyverse")
+library(tidyverse)
+
+## Load and preview data:
+#los_angeles_restaurant_health_inspections <- read_csv("los_angeles_restaurant_health_inspections.csv")
+inspections_df <- data.frame(los_angeles_restaurant_health_inspections)
+inspections_df |> head(5)
+
+## Data quality:
+# Dimensions - 299 x 20
+# Duplicates - 0
+# Nulls - program_name(2)
+# Value Counts - serial_number, facility_name, grade, service_description, employee_id, facility_address,
+#                facility_city, facility_id, facility_state, facility_zip, owner_id, owner_name, 
+#                pe_description, program_name, program_status, record_id
+inspections_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+inspections_df |> dim()
+
+inspections_df |> duplicated() |> sum()
+
+inspections_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+inspections_df |> count(serial_number, sort=TRUE) # all unique values
+inspections_df |> count(facility_name, sort=TRUE) # multiple repeated values
+inspections_df |> count(grade, sort=TRUE) # 3 categories
+inspections_df |> count(service_description, sort=TRUE) # 2 categories
+inspections_df |> count(employee_id, sort=TRUE) # multiple repeated values
+inspections_df |> count(facility_address, sort=TRUE) # multiple repeated values
+inspections_df |> count(facility_city, sort=TRUE) # single value
+inspections_df |> count(facility_id, sort=TRUE) # multiple repeated values
+inspections_df |> count(facility_state, sort=TRUE) # single value
+inspections_df |> count(facility_zip, sort=TRUE) # multiple repeated values
+inspections_df |> count(owner_id, sort=TRUE) # multiple repeated values
+inspections_df |> count(owner_name, sort=TRUE) # multiple repeated values, one value is mispelled
+inspections_df |> count(pe_description, sort=TRUE) # multiple repeated values
+inspections_df |> count(program_name, sort=TRUE) # multipel repeated values
+inspections_df |> count(program_status, sort=TRUE) # 2 categories
+inspections_df |> count(record_id, sort=TRUE) # multiple repeated values
+
+## Iteration:
+# 1. Clean and standardize owner_name
+# 2. Count the number of unique facilities for each owner
+# 3. Filter for owners with only a single facility
+# 4. Select relevant columns
+# 5. Sort in ascending order by owner name
+
+## Result:
+result_df <- inspections_df |>
+    mutate(
+        # 1. Clean and standardize owner_name
+        owner_name_cleaned = str_trim(str_replace(owner_name, "\\.", ""))
+    ) |> 
+    group_by(owner_name_cleaned) |>
+    summarise(
+        # 2. Count the number of unique facilities for each owner
+        num_unique_facilities = n_distinct(facility_id, na.rm=TRUE),
+        .groups="drop"
+    ) |>
+    filter(
+        # 3. Filter for owners with only a single facility
+        num_unique_facilities == 1
+    ) |>
+    select(
+        # 4. Select relevant columns
+        owner_name=owner_name_cleaned
+    ) |>
+    arrange(
+        # 5. Sort in ascending order by owner name
+        owner_name
+    )
+
+result_df
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+result_df <- inspections_df |>
+    mutate(
+        # 1. Clean and standardize owner_name
+        owner_name_cleaned = owner_name |>
+            str_to_upper() |> 
+            str_replace_all("\\.", "") |>
+            str_trim()
+    ) |> 
+    group_by(owner_name_cleaned) |>
+    summarise(
+        # 2. Count the number of unique facilities for each owner
+        num_unique_facilities = n_distinct(facility_id, na.rm=TRUE),
+        .groups="drop"
+    ) |>
+    filter(
+        # 3. Filter for owners with only a single facility
+        num_unique_facilities == 1
+    ) |>
+    select(
+        # 4. Select relevant columns
+        owner_name=owner_name_cleaned
+    ) |>
+    arrange(
+        # 5. Sort in ascending order by owner name
+        owner_name
+    )
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated values for the facility_name, facility_id, owner_id,
+  and owner_name columns. The owner_name column had an instance where two values matched one another but
+  one was mispelled and needed to be cleaned.
+- I started my approach to this problem by cleaning and standardizing the owner_name column using the
+  str_trim() and str_replace() functions. Next, I counted the number of unique facilities for each owner
+  using the group_by(), summarise(), and n_distinct() functions. After aggregating, I filtered for owners
+  with only a single facility using the filter() function. From there, I selected the relevant output columns
+  and arranged the results in ascending order by owner name using the select() and arrange() functions.
+
+Suggestions and Final Thoughts:
+- For the str_replace() and str_remove() functions, replacing wildcard characters like periods (.) need to
+  contain double backslashes (\\) to be recognized. To replace every instance of these characters, the 
+  alternative functions str_replace_all() and str_remove_all() can be used.
+  ex.
+      str_replace_all(owner_name, "\\.", "")
+  ex.
+      str_replace_all(owner_name, "[\\.,']", "")    # to account for periods, commas and apostrophes
+- The str_to_upper() or str_to_lower() functions are helpful for standardizing case sensitivity.
+  ex.
+      str_to_upper(owner_name)
+- When creating new columns using mutate(), the modern pipe operator (|>) can be used for multiple functions
+  implemented on an existing column. This makes the code easier to understand and debug.
+  ex.
+      mutate(
+          owner_name_cleaned = owner_name |>
+              str_to_upper() |> 
+              str_replace_all("\\.", "") |>
+              str_trim()
+      )
+
+Solve Duration:
+29 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9750
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Spotify - Find the nominee who has won the most Oscars
+Find the nominee who has won the most Oscars.
+Output the nominee's name alongside the result.
+
+
+Data Dictionary:
+Table name = 'oscar_nominees'
+year: int64 (int)
+category: object (str)
+nominee: object (str)
+movie: object (str)
+winner: bool (bool)
+id: int64 (int)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Find the nominee who has won the most Oscars.
+# Output the nominee's name alongside the result.
+
+## Input:
+# oscar_nominees
+
+## Output:
+# nominee, num_oscars_won
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#oscar_nominees = pd.read_csv("oscar_nominees.csv")
+nominees_df = oscar_nominees.copy()
+nominees_df.head(5)
+
+## Data quality:
+# Dimensions - 1540 x 6
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - category, nominee, movie, winner, id
+#nominees_df.info()
+
+nominees_df.shape
+
+nominees_df.duplicated().sum()
+
+nominees_df.isna().sum().reset_index(name="na_count")
+
+# columns = ["category", "nominee", "movie", "winner", "id"]
+
+#for col in columns:
+#    print(f"-----{col}-----")
+#    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+#        print(nominees_df[col].value_counts(dropna=False).reset_index(name="frequency"))
+#        print("")
+
+# multiple repeated values in category, nominee, movie and winner
+# unique values for id
+
+## Iteration:
+# 1. Filter for nominees that won oscars
+# 2. Calculate the number of oscars won for each nominee
+# 3. Filter for the nominee(s) who have won the most oscars
+# 4. Sort in ascending order by nominee
+
+## Result:
+result_df = (
+    nominees_df
+    # 1. Filter for nominees that won oscars
+    .loc[lambda x: x["winner"] == 1]
+    # 2. Calculate the number of oscars won for each nominee
+    .groupby("nominee")["winner"]
+    .size()
+    .reset_index(name="num_oscars_won")
+    # 3. Filter for the nominee(s) who have won the most oscars
+    .loc[lambda x: x["num_oscars_won"] == x["num_oscars_won"].max()]
+    # 4. Sort in ascending order by nominee
+    .sort_values(by="nominee", ascending=True)
+)
+
+print("Nominees who have won the most Oscars: ")
+result_df
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+result_df = (
+    nominees_df
+    # 1. Filter for nominees that won oscars
+    .loc[lambda x: x["winner"] == True]
+    # 2. Calculate the number of oscars won for each nominee
+    .groupby("nominee")["winner"]
+    .size()
+    .reset_index(name="num_oscars_won")
+    # 3. Filter for the nominee(s) who have won the most oscars
+    .loc[lambda x: x["num_oscars_won"] == x["num_oscars_won"].max()]
+    # 4. Sort in ascending order by nominee
+    .sort_values(by="nominee", ascending=True)
+)
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated values in the category, nominee, movie, and winner
+  columns. The id column contained all unique values.
+- I began my approach to this problem by filtering for nominees that won oscars using the lambda x and loc[]
+  function. From there, I calculated the number of oscars won for each nominee using the groupby(), size(),
+  and reset_index() functions. Next, I filtered for the nominee(s) who have won the most oscars using the
+  lambda x, loc[] and max() functions. Finally, I sorted the results in ascending order by nominee using the
+  sort_values() function.
+
+Suggestions and Final Thoughts:
+- Using the value "1" for TRUE works for boolean columns but for clarity and understanding, the "True" value
+  works better if the column values are that specific value.
+  ex.
+      nominees_df.loc[lambda x: x["winner"] == True]
+- If the rows that contained "False" values for the winner column were necessary to retain the nominees that
+  received no Oscar wins then groupby(), agg(), lambda x, and sum() would be a better approach. However, it is
+  much slower than filtering first with loc[] and aggregating as seen in Solution #1.
+  ex.
+      nominees_df.groupby("nominee")["winner"].agg(lambda x: x.sum())
+
+Solve Duration:
+18 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10544
+
+Difficulty:
+Medium
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Visa - High-Density Areas
+Identify the top 3 areas with the highest customer density. 
+Customer density = (total number of unique customers in the area / area size).
+Your output should include the area name and its calculated customer density, and ties will be ranked the same.
+
+Data Dictionary:
+Table name = 'transaction_records'
+customer_id: bigint (int)
+store_id: bigint (int)
+transaction_amount: bigint (int)
+transaction_date: date (d)
+transaction_id: bigint (int)
+
+Table name = 'stores'
+area_name: varchar (str)
+area_size: bigint (int)
+store_id: bigint (int)
+store_location: varchar (str)
+store_open_date: date (d)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+-- Question:
+-- Identify the top 3 areas with the highest customer density.
+-- Customer density = (total number of unique customers in the area / area size)
+-- Your output should include the area name and its calculated customer density,
+-- and ties will be ranked the same.
+
+-- Input:
+-- transaction_records, stores
+
+-- Output:
+-- area_name, customer_density
+
+-- Preview data:
+SELECT TOP 5* FROM transaction_records;
+SELECT TOP 5* FROM stores;
+
+-- Data quality:
+-- Dimensions - transactions: 30 x 5
+--            - stores: 5 x 5
+-- Duplicates - transactions: 0
+--            - stores: 0
+-- Nulls - transactions: 0
+--       - stores: 0
+-- Value Counts - transactions: customer_id, store_id, transaction_id
+--              - stores: area_name, store_id, store_location
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN customer_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN store_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN transaction_amount IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN transaction_date IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN transaction_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    COUNT(*) AS row_count
+FROM transaction_records;
+
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN area_name IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN area_size IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN store_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN store_location IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN store_open_date IS NULL THEN 1 ELSE 0 END) AS col5,
+    COUNT(*) AS row_count
+FROM stores;
+
+SELECT -- Duplicates
+    customer_id, store_id, transaction_amount, transaction_date, transaction_id,
+    COUNT(*) AS duplicate_count
+FROM transaction_records
+GROUP BY
+    customer_id, store_id, transaction_amount, transaction_date, transaction_id
+HAVING COUNT(*) > 1;
+
+SELECT -- Duplicates
+    area_name, area_size, store_id, store_location, store_open_date,
+    COUNT(*) AS duplicate_count
+FROM stores
+GROUP BY
+    area_name, area_size, store_id, store_location, store_open_date
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts, multiple repeated values
+    customer_id,
+    COUNT(*) AS frequency
+FROM transaction_records
+GROUP BY customer_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated values
+    store_id,
+    COUNT(*) AS frequency
+FROM transaction_records
+GROUP BY store_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, all unique values
+    transaction_id,
+    COUNT(*) AS frequency
+FROM transaction_records
+GROUP BY transaction_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, all unique values
+    area_name,
+    COUNT(*) AS frequency
+FROM stores
+GROUP BY area_name
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, all unique values
+    store_id,
+    COUNT(*) AS frequency
+FROM stores
+GROUP BY store_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, all unique values
+    store_location,
+    COUNT(*) AS frequency
+FROM stores
+GROUP BY store_location
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Join transaction_records and stores tables by store_id
+-- 2. Calculate customer density for each area
+--    customer density = (total number of unique customers in area / area size)
+-- 3. Rank the areas by customer density in descending order, include ties
+-- 4. Filter for top 3 areas with highest customer density
+
+-- Result:
+WITH RankedAreas AS (
+    SELECT 
+        s.area_name,
+        -- 2. Calculate customer density for each area
+        --    customer density = (total number of unique customers in area / area size)
+        ROUND(
+            1.0 * COUNT(DISTINCT t.customer_id) / s.area_size
+        , 2) AS customer_density,
+        -- 3. Rank the areas by customer density in descending order, include ties
+        DENSE_RANK() OVER(
+            ORDER BY 
+                ROUND(1.0 * COUNT(DISTINCT t.customer_id) / s.area_size, 2) DESC
+        ) AS area_rank
+    FROM
+        transaction_records AS t
+    JOIN 
+        -- 1. Join transaction_records and stores tables by store_id
+        stores AS s
+        ON t.store_id = s.store_id
+    GROUP BY 
+        s.area_name, 
+        s.area_size
+)
+SELECT
+    area_name,
+    customer_density
+FROM 
+    RankedAreas
+WHERE
+    -- 4. Filter for top 3 areas with highest customer density
+    area_rank <= 3
+ORDER BY
+    customer_density DESC,
+    area_name ASC;
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+N/A
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated values for the customer_id and store_id columns, and
+  all unique values for the transaction_id column in the transaction_records table. All unique values were 
+  present for area_name, store_id, and store_location columns in the stores table.
+- My approach to this problem began with inner joining the transaction_records and stores tables by the 
+  store_id column. Next, I calculated the customer density for each area with the formula
+  "customer density = (total number of unique customers in area / area size)" using the ROUND() and 
+  COUNT(DISTINCT) functions. From there, I ranked the areas by customer density in descending order and
+  included ties using the DENSE_RANK() function. These steps were placed into a common table expression (CTE)
+  called RankedAreas. Finally, I queried the RankedAreas CTE to filter for top 3 areas with highest customer
+  density based on rank.
+
+Suggestions and Final Thoughts:
+- I had considered separating the aggregation step from the ranking step into differente CTEs. When I wrote 
+  out everything in a single pass CTE, it just made more sense to have it all together for clarity and
+  performance.
+- For this particular problem, I did not need to create a revision upon my original attempt.
+
+Solve Duration:
+24 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
