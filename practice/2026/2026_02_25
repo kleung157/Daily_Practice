@@ -1,0 +1,521 @@
+Date: 02/25/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9700
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+City of Los Angeles - Rules To Determine Grades
+Find the rules used to determine each grade. 
+Show the rule in a separate column in the format of 'Score > X AND Score <= Y => Grade = A' where X and Y are the lower and upper bounds for a grade.
+Output the corresponding grade and its highest and lowest scores along with the rule.
+Order the result based on the grade in ascending order.
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+score: numeric (num)
+service_code: numeric (num)
+program_element_pe: numeric (num)
+serial_number: character (str)
+activity_date: POSIXct, POSIXt (dt)
+facility_name: character (str)
+grade: character (str)
+service_description: character (str)
+employee_id: character (str)
+facility_address: character (str)
+facility_city: character (str)
+facility_id: character (str)
+facility_state: character (str)
+facility_zip: character (str)
+owner_id: character (str)
+owner_name: character (str)
+pe_description: character (str)
+program_name: character (str)
+program_status: character (str)
+record_id: character (str)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Find the rules used to determine each grade.
+# Show the rule in a separate column in the format of 'Score > X AND Score <= Y => Grade = A'
+# where X and Y are lower and upper bounds for a grade.
+# Output the corresponding grade and its highest and lowest scores along with the rule.
+# Order the result based on the grade in ascending order.
+
+## Input:
+# los_angeles_restaurant_health_inspections
+
+## Output:
+# grade, highest_score, lowest_score, rule
+
+## Import libraries:
+#install.packages("tidyverse")
+library(tidyverse)
+
+## Load and preview data:
+#los_angeles_restaurant_health_inspections <- read_csv("los_angeles_restaurant_health_inspections.csv")
+inspections_df <- data.frame(los_angeles_restaurant_health_inspections)
+inspections_df |> head(5)
+
+## Data quality:
+# Dimensions - 299 x 20
+# Duplicates - 0
+# Nulls - program_name(2)
+# Value Counts - serial_number, facility_name, grade, service_description, employee_id, facility_address,
+#                facility_city, facility_id, facility_state, facility_zip, owner_id, owner_name,
+#                pe_description, program_name, program_status, record_id
+inspections_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+inspections_df |> dim()
+
+inspections_df |> duplicated() |> sum()
+
+inspections_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+inspections_df |> count(serial_number, sort=TRUE) # all unique values
+inspections_df |> count(facility_name, sort=TRUE) # multiple repeated values
+inspections_df |> count(grade, sort=TRUE) # multiple repeated values (3 categories)
+inspections_df |> count(service_description, sort=TRUE) # multiple repeated values (2 categories)
+inspections_df |> count(employee_id, sort=TRUE) # multiple repeated values
+inspections_df |> count(facility_address, sort=TRUE) # multiple repeated values
+inspections_df |> count(facility_city, sort=TRUE) # single repeated value
+inspections_df |> count(facility_id, sort=TRUE) # multiple repeated values
+inspections_df |> count(facility_state, sort=TRUE) # single repeated value
+inspections_df |> count(facility_zip, sort=TRUE) # multiple repeated values
+inspections_df |> count(owner_id, sort=TRUE) # multiple repeated values
+inspections_df |> count(owner_name, sort=TRUE) # multiple repeated values
+inspections_df |> count(pe_description, sort=TRUE) # multiple repeated values
+inspections_df |> count(program_name, sort=TRUE) # multiple repeated values
+inspections_df |> count(program_status, sort=TRUE) # multiple repeated values (2 categories)
+inspections_df |> count(record_id, sort=TRUE) # multiple repeated values
+
+## Iteration:
+# 1. Calculate highest score for each grade
+# 2. Calculate lowest score for each grade
+# 3. Create rule column for each grade with format 'Score > X AND Score <= Y => Grade = G'
+#    X = lowest, Y = highest, G = grade
+# 4. Sort the results in ascending order by grade
+
+## Result:
+result_df <- inspections_df |>
+    group_by(grade) |>
+    summarise(
+        # 1. Calculate highest score for each grade
+        highest_score = max(score, na.rm=TRUE),
+        # 2. Calculate lowest score for each grade
+        lowest_score = min(score, na.rm=TRUE),
+        .groups="drop"
+    ) |>
+    mutate(
+        # 3. Create rule column for each grade with format 'Score > X AND Score <= Y => Grade = G'
+        #    X = lowest, Y = highest, G = grade
+        rule = paste("Score >", lowest_score, "AND Score <=", highest_score, "=> Grade =", grade)
+    ) |>
+    arrange(
+        # 4. Sort the results in ascending order by grade
+        grade
+    )
+
+result_df
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+result_df <- inspections_df |>
+    mutate(
+        grade = str_to_upper(grade)
+    ) |>
+    group_by(grade) |>
+    summarise(
+        # 1. Calculate highest score for each grade
+        highest_score = max(score, na.rm=TRUE),
+        # 2. Calculate lowest score for each grade
+        lowest_score = min(score, na.rm=TRUE),
+        .groups="drop"
+    ) |>
+    mutate(
+        # 3. Create rule column for each grade with format 'Score > X AND Score <= Y => Grade = G'
+        #    X = lowest, Y = highest, G = grade
+        rule = paste0("Score > ", lowest_score - 1, " AND Score <= ", highest_score, " => Grade = " , grade)
+    ) |>
+    arrange(
+        # 4. Sort the results in ascending order by grade
+        grade
+    )
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated values and 3 categories in the grade column.
+- My approach to this problem began with calculating the highest and lowest scores for each grade using the
+  group_by(), summarise(), min(), and max() functions. From there, I created a rule column for each grade with
+  the format 'Score > X AND Score <= Y => Grade = G' where X = lowest, Y = highest, G = grade using the mutate()
+  and paste() functions. Lastly, I sorted the results in ascending order by the grade column using the arrange()
+  function.
+
+Suggestions and Final Thoughts:
+- The difference between the paste and paste0() function is that the paste0() function does not automatically
+  contain a space between each variable listed. While the paste() function does include a space between each
+  variable. paste0() requires the user to input the spaces within strings.
+  ex.
+      paste0("Score > ", lowest_score, " AND Score <= ", highest_score, " => Grade = ", grade)
+- To ensure the values in the grade column do not contain any fluctuations in case lettering, it is best to
+  make sure all grades are upper case for standardization and uniformity. This can be achieved using the
+  mutate() and str_to_upper() function.
+  ex.
+      mutate(grade = str_to_upper(grade))
+- The prompt excludes the lowest score itself when creating the rule for each grade. If the rule itself could
+  not be changed from > to >= then the alternative solution could be to subtract 1 from the lowest_score. The
+  prompt does not specify this to be necessary but it can something to consider for potential edge cases.
+  ex.
+      rule = paste("Score >", lowest_score - 1, "AND Score <=", highest_score, "=> Grade =", grade)
+
+Solve Duration:
+20 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9751
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Buzzfeed - Nominees Without An Oscar
+Find the nominees who have been nominated the most but have never won an Oscar. 
+Output the number of unsuccessful nominations alongside the nominee's name. 
+Order records based on the number of nominations in descending order.
+
+Data Dictionary:
+Table name = 'oscar_nominees'
+year: int64 (int)
+category: object (str)
+nominee: object (str)
+movie: object (str)
+winner: bool (bool)
+id: int64 (int)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Find the nominees who have been nominated the most but never won an Oscar.
+# Output the number of unsuccessful nominations alongside the nominee's name.
+# Order records based on the number of nominations in descending order.
+
+## Input:
+# oscar_nominees
+
+## Output:
+# nominee, num_unsuccessful_nominations
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#oscar_nominees = pd.read_csv("oscar_nominees.csv")
+nominees_df = oscar_nominees.copy()
+nominees_df.head(5)
+
+## Data quality:
+# Dimensions - 1540 x 6
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - category, nominee, movie, winner, id
+#nominees_df.info()
+
+nominees_df.shape
+
+nominees_df.duplicated().sum()
+
+nominees_df.isna().sum().reset_index(name="na_count")
+
+#columns = ["category", "nominee", "movie", "winner", "id"]
+
+#for col in columns:
+#    print(f"-----{col}----")
+#    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+#        print(nominees_df[col].value_counts(dropna=False).reset_index(name="frequency"))
+#        print("")
+
+# multiple repeated values for category, nominee, movie, and winner
+# all unique values for id 
+
+## Iteration:
+# 1. Find all unique Oscar winners
+# 2. Filter for nominees who never won an Oscar, winner = 'False'
+# 3. Calculate the number of unsuccessful nominations for each nominee
+# 4. Sort results in descending order by number of unsuccessful nominations
+
+## Result:
+# 1. Find all unique Oscar winners
+nominee_winners = (
+    nominees_df
+    .loc[nominees_df["winner"] == True, "nominee"]
+    .unique()
+)
+
+result_df = (
+    nominees_df
+    # 2. Filter for nominees who never won an Oscar, winner = 'False'
+    .loc[lambda x: ~x["nominee"].isin(nominee_winners)]
+    # 3. Calculate the number of unsuccessful nominations for each nominee
+    .groupby("nominee")["winner"]
+    .size()
+    .reset_index(name="num_unsuccessful_nominations")
+    # 4. Sort results in descending order by number of unsuccessful nominations
+    .sort_values(by="num_unsuccessful_nominations", ascending=False)
+)
+
+print("Nominees who have been nominated the most but have never won an Oscar: ")
+result_df
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+# 1. Find all unique Oscar winners
+nominee_winners = set(nominees_df.loc[nominees_df["winner"] == True, "nominee"])
+
+result_df = (
+    nominees_df
+    # 2. Filter for nominees who never won an Oscar, winner = 'False'
+    .loc[lambda x: ~x["nominee"].isin(nominee_winners)]
+    # 3. Calculate the number of unsuccessful nominations for each nominee
+    .groupby("nominee")["winner"]
+    .size()
+    .reset_index(name="num_unsuccessful_nominations")
+    # 4. Sort results in descending order by number of unsuccessful nominations
+    .sort_values(by="num_unsuccessful_nominations", ascending=False)
+)
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated vlaues for the category, nominee, movie, and winner
+  columns. The id column contained all unique values.
+- I started my approach to this problem by filtering for all unique oscar winners from the original dataset
+  and assigning them to a variable named nominee_winners using the loc[] and unique() functions. Next, I
+  filtered for nominees who never won an Oscar based on whether they did not appear in the nominee_winners
+  variable using the loc[] and isin() functions. From there, I calculated the number of unsuccessful
+  nominations for each nominee using the groupby(), size(), and reset_index() functions. Finally, I sorted
+  the results in descending order by the number of unsuccessful nominations using the sort_values() function.
+
+Suggestions and Final Thoughts:
+- Checking against a set is faster than checking against a numpy array especially for larger datasets. The 
+  set() function can be used for the nominee_winners variable as opposed to the unique() function.
+  ex.
+      nominee_winners = set(nominees_df.loc[nominees_df["winner"] == True, "nominee"])
+- Initially I had considered using the filter logic of winner = False to find the nominees who had never won
+  an Oscar but I realized when constructing the original approach that it would also end up including the
+  nominees that did win before. This prompted me to make create a separate set for oscar winners to compare
+  against the original data to filter out any nominees that had won previously overall. When trying to create
+  the not in logic for pandas, the isin() function is combined with a tilde ~.
+  ex.
+      nominees_df.loc[lambda x: ~x["nominee"].isin(nominee_winners)]
+
+Solve Duration:
+30 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10543
+
+Difficulty:
+Medium
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+KPMG - Second Highest Salary
+Identify the second-highest salary in each department.
+Your output should include the department, the second highest salary, and the employee ID. 
+Do not remove duplicate salaries when ordering salaries.
+For example, if multiple employees share the same highest salary, the second-highest salary will be the next salary that is lower than the highest salaries.
+
+Data Dictionary:
+Table name = 'employee_data'
+department: varchar (str)
+employee_id: bigint (int)
+hire_date date (d)
+salary: bigint (int)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+-- Question:
+-- Identify the second-highest salary in each department.
+-- Your output should include the department, the second highest salary, and the employee ID.
+-- Do not remove duplicate salaries when ordering salaries.
+-- For example, if multiple employees share the same highest, 
+-- the second-highest salary will be the next salary that is lower than the highest salaries.
+
+-- Input:
+-- employee_data
+
+-- Output:
+-- department, salary, employee_id
+
+-- Preview data:
+SELECT TOP 5* FROM employee_data;
+
+-- Data quality:
+-- Dimensions - 15 x 4
+-- Duplicates - 0
+-- Nulls - 0
+-- Value Counts - department, employee_id
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN department IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN employee_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN hire_date IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN salary IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS row_count
+FROM employee_data;
+
+SELECT -- Duplicates
+    department, employee_id, hire_date, salary,
+    COUNT(*) AS duplicate_count
+FROM employee_data
+GROUP BY
+    department, employee_id, hire_date, salary
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts, multiple repeated values (4 categories)
+    department,
+    COUNT(*) AS frequency
+FROM employee_data
+GROUP BY department
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, all unique values
+    employee_id,
+    COUNT(*) AS frequency
+FROM employee_data
+GROUP BY employee_id
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Rank salaries in descending order for each department, include ties
+-- 2. Filter for second highest salary in each department
+
+-- Result:
+WITH RankedSalaries AS (
+    SELECT 
+        department,
+        salary,
+        employee_id,
+        -- 1. Rank salaries in descending order for each department, include ties
+        DENSE_RANK() OVER(
+            PARTITION BY 
+                department 
+            ORDER BY 
+                salary DESC
+        ) AS salary_rank
+    FROM 
+        employee_data
+)
+SELECT
+    department,
+    salary,
+    employee_id
+FROM 
+    RankedSalaries AS rs
+WHERE 
+    -- 2. Filter for second highest salary in each department
+    salary_rank = 2
+ORDER BY
+    department,
+    employee_id;
+
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+WITH RankedSalaries AS (
+    SELECT 
+        department,
+        salary,
+        employee_id,
+        -- 1. Rank salaries in descending order for each department, include ties
+        DENSE_RANK() OVER(
+            PARTITION BY 
+                department 
+            ORDER BY 
+                salary DESC
+        ) AS salary_rank
+    FROM 
+        employee_data
+),
+SecondSalaries AS (
+    SELECT
+        department,
+        salary,
+        employee_id
+    FROM 
+        RankedSalaries AS rs
+    WHERE 
+        -- 2. Filter for second highest salary in each department
+        salary_rank = 2
+)
+-- 3. Include departments that do not have second highest salaries
+SELECT DISTINCT
+    ed.department,
+    ss.salary,
+    ss.employee_id
+FROM 
+    employee_data AS ed
+LEFT JOIN 
+    SecondSalaries AS ss
+    ON ed.department = ss.department
+ORDER BY
+    department,
+    employee_id;
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated values and 4 categories in the department column. The
+  employee_id column contained all unique values.
+- I began my approach to this problem by ranking salaries in descending order for each department and
+  included ties using the DENSE_RANK() function. This step was placed into a common table expression (CTE)
+  called RankedSalaries. Next, I queried this CTE and filtered for second highest salary in each department
+  based on rank.
+
+Suggestions and Final Thoughts:
+- Some departments do not have a second highest salary and the prompt does not specify whether to still
+  include them. If each department was necessary to be included then a LEFT JOIN can be used to return any
+  missing departments as seen in Solution #2.
+
+Solve Duration:
+14 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+15 minutes
+
+############################################################################################################
