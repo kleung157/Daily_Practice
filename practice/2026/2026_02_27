@@ -1,0 +1,650 @@
+Date: 02/27/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9705
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+City of Los Angeles - Find the total number of inspections with low risk in 2017
+Find the total number of inspections with low risk in 2017.
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+score: numeric (num)
+service_code: numeric (num)
+program_element_pe: numeric (num)
+serial_number: character (str)
+activity_date: POSIXct, POSIXt (dt)
+facility_name: character (str)
+grade: character (str)
+service_description: character (str)
+employee_id: character (str)
+facility_address: character (str)
+facility_city: character (str)
+facility_id: character (str)
+facility_state: character (str)
+facility_zip: character (str)
+owner_id: character (str)
+owner_name: character (str)
+pe_description: character (str)
+program_name: character (str)
+program_status: character (str)
+record_id: character (str)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Find the total number of inspections with low risk in 2017.
+
+## Input:
+# los_angeles_restaurant_health_inspections
+
+## Output:
+# num_inspections
+
+## Import libraries:
+#install.packages("tidyverse")
+library(tidyverse)
+
+## Load and preview data:
+#los_angeles_restaurant_health_inspections <- read_csv("los_angeles_restaurant_health_inspections.csv")
+inspections_df <- data.frame(los_angeles_restaurant_health_inspections)
+inspections_df |> head(5)
+
+## Data quality:
+# Dimensions - 299 x 20
+# Duplicates - 0
+# Nulls - program_name(2)
+# Value Counts - serial_number, facility_name, grade, service_description, employee_id, facility_address,
+#                facility_city, facility_id, facility_state, facility_zip, owner_id, owner_name,
+#                pe_description, program_name, record_id
+inspections_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+inspections_df |> dim()
+
+inspections_df |> duplicated() |> sum()
+
+inspections_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+inspections_df |> count(serial_number, sort=TRUE) # all unique values
+inspections_df |> count(facility_name, sort=TRUE) # multiple repeated values
+inspections_df |> count(grade, sort=TRUE) # multiple repeated values (3 categories)
+inspections_df |> count(service_description, sort=TRUE) # multiple repeated values (2 categories)
+inspections_df |> count(employee_id, sort=TRUE) # multiple repeated values
+inspections_df |> count(facility_address, sort=TRUE) # multiple repeated values
+inspections_df |> count(facility_city, sort=TRUE) # single repeated value
+inspections_df |> count(facility_id, sort=TRUE) # multiple repeated values
+inspections_df |> count(facility_zip, sort=TRUE) # multiple repeated values
+inspections_df |> count(owner_id, sort=TRUE) # multiple repeated values
+inspections_df |> count(owner_name, sort=TRUE) # multiple repeated values
+inspections_df |> count(pe_description, sort=TRUE) # multiple repeated values (contains LOW RISK)
+inspections_df |> count(program_name, sort=TRUE) # multiple repeated values
+inspections_df |> count(record_id, sort=TRUE) # multiple repeated values
+
+## Iteration:
+# 1. Filter for 2017 records by activity_date
+# 2. Filter for inspections with 'low risk' in pe_description
+# 3. Count the number of inspections 
+
+## Result:
+target_year = 2017
+
+result_df <- inspections_df |>
+    filter(
+        # 1. Filter for 2017 records by activity_date
+        year(activity_date) == target_year &
+        # 2. Filter for inspections with 'low risk' in pe_description
+        str_detect(str_to_lower(pe_description), 'low risk')
+    ) |>
+    summarise(
+        # 3. Count the number of inspections 
+        num_inspections = n()
+    )
+
+result_df
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+target_year = 2017
+
+result_df <- inspections_df |>
+    filter(
+        # 1. Filter for 2017 records by activity_date
+        year(activity_date) == target_year &
+        # 2. Filter for inspections with 'low risk' in pe_description
+        str_detect(pe_description, fixed('low risk', ignore_case=TRUE))
+    ) |>
+    count(
+        # 3. Count the number of inspections 
+        name="num_inspections"
+    )
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated values and 'low risk' values in the pe_description
+  column. The serial_number column contained all unique values.
+- I began my approach to this problem by filtering for 2017 records in the activity_date column and filtering
+  for inspections with 'low risk' in the pe_description column using the filter(), year(), str_to_lower(),
+  and str_detect() functions. Next, I counted the number of inspections using the summarise() and n() 
+  functions.
+
+Suggestions and Final Thoughts:
+- The str_detect() function works similarly to the str.contains() function in Python. It has a fixed() 
+  parameter that can specify case sensitivity and avoids having to use str_to_lower() or str_to_upper() to do
+  a separate case change on a column. This method is much faster and more performant.
+  ex.
+      filter(
+          str_detect(pe_description, fixed('low risk', ignore_case=TRUE))
+      )
+- The shorthand form of using summarise() and n() would be to use the count() function. It is the same
+  performance but just more concise.
+  ex.
+      count(
+          name="num_inspections"
+      )
+
+Solve Duration:
+19 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9753
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Buzzfeed - Find movies that had the most nominated actors/actresses
+Find movies that had the most nominated actors/actresses. 
+Be aware of the fact that some movies have the same name. 
+Use the year column to separate count for such movies.
+Output the movie name alongside the number of nominees.
+Order the result in descending order.
+
+Data Dictionary:
+Table name = 'oscar_nominees'
+year: int64 (int)
+category: object (str)
+nominee: object (str)
+movie: object (str)
+winner: bool (bool)
+id: int64 (int)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Find movies that had the most nominated actors/actresses.
+# Be aware of the fact that some movies have the same name.
+# Use the year column to separate count for such movies.
+# Output the movie alongside the number of nominees.
+# Order the result in descending order.
+
+## Input:
+# oscar_nominees
+
+## Output:
+# movie, num_nominees
+
+# Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#oscar_nominees = pd.read_csv("oscar_nominees.csv")
+nominees_df = oscar_nominees.copy()
+nominees_df.head(5)
+
+## Data quality:
+# Dimensions - 1540 x 6
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - category, nominee, movie, winner, id
+#nominees_df.info()
+
+nominees_df.shape
+
+nominees_df.duplicated().sum()
+
+nominees_df.isna().sum().reset_index(name="na_count")
+
+#columns = ["category", "nominee", "movie", "winner", "id"]
+
+#for col in columns:
+#    print(f"-----{col}-----")
+#    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+#        print(nominees_df[col].value_counts(dropna=False).reset_index(name="frequency"))
+#        print("")
+
+# multiple repeated values for category, nominee, movie, and winner
+# all unique values for id 
+
+## Iteration:
+# 1. Count the number of nominees for each movie by year
+# 2. Select relevant columns
+# 3. Sort in descending order by number of nominees
+
+## Result:
+result_df = (
+    nominees_df
+    # 1. Count the number of nominees for each movie by year
+    .groupby(["year", "movie"])["nominee"]
+    .size()
+    .reset_index(name="num_nominees")
+    # 2. Select relevant columns
+    [["movie", "num_nominees"]]
+    # 3. Sort in descending order by number of nominees
+    .sort_values(by="num_nominees", ascending=False)
+)
+
+print("Movies that had the most nominated actors/actresses: ")
+result_df
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+result_df = (
+    nominees_df
+    # 1. Filter for categories containing 'actor' or 'actresses'
+    .loc[lambda x: x["category"].str.contains("actor|actress", case=False, na=False)]
+    # 2. Count the number of nominees for each movie by year
+    .groupby(["year", "movie"])["nominee"]
+    .size()
+    .reset_index(name="num_nominees")
+    # 3. Select relevant columns
+    [["movie", "num_nominees"]]
+    # 4. Sort in descending order by number of nominees
+    .sort_values(by="num_nominees", ascending=False)
+)
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated values for the category, nominee, movie, and winner
+  columns. The id column contained all unique values.
+- I started my approach to this problem by counting the number of nominees for each movie by year using the
+  groupby(), size(), and reset_index() functions. From there, I selected the relevant output columns and
+  sorted the results in descending order by the num_nominees column using the sort_values() function.
+
+Suggestions and Final Thoughts:
+- The dataset does not contain any other values besides "actors" and "actress" for the category column
+  but to be safe, it is best to include a pre-filter step before aggregating. This can achieved using the
+  lambda x, loc[], and str.contains() function.
+  ex.
+      nominees_df.loc[
+          lambda x: x["category"].str.contains("actor|actress", case=False, na=False)
+      ]
+
+Solve Duration:
+11 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10542
+
+Difficulty:
+Medium
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+IBM - Interaction Summary
+Calculate the total number of interactions and the total number of contents created for each customer. 
+Include all interaction types and content types in your calculations.
+Your output should include the customer's ID, the total number of interactions, and the total number of content items.
+
+Data Dictionary:
+Table name = 'customer_interactions'
+customer_id: bigint (int)
+interaction_date: date (d)
+interaction_id: bigint (int)
+interaction_type: varchar (str)
+
+Table name = 'user_content'
+content_id: bigint (int)
+content_text: varchar (str)
+content_type: varchar (str)
+customer_id: bigint (int)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+-- Question:
+-- Calculate the total number of interactions and 
+-- the total number of contents created for each customer.
+-- Include all interaction types and content types in your calculations.
+-- Your output should include the customer's ID, the total number of interactions, and
+-- the total number of content items.
+
+-- Input:
+-- customer_interactions, user_content
+
+-- Output:
+-- customer_id, num_interactions_total, num_contents_total
+
+-- Preview data:
+SELECT TOP 5* FROM customer_interactions;
+SELECT TOP 5* FROM user_content;
+
+-- Data quality:
+-- Dimensions - interactions: 15 x 4
+--            - content: 10 x 4
+-- Duplicates - interactions: 0
+--            - content: 0
+-- Nulls - interactions: 0
+--       - content: 0
+-- Value Counts - interactions: customer_id, interaction_id, interaction_type
+--              - content: content_id, content_text, content_type, customer_id
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN customer_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN interaction_date IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN interaction_id IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN interaction_type IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS row_count
+FROM customer_interactions;
+
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN content_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN content_text IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN content_type IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN customer_id IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS row_count
+FROM user_content;
+
+SELECT -- Duplicate count
+    customer_id, interaction_date, interaction_id, interaction_type,
+    COUNT(*) AS duplicate_count
+FROM customer_interactions
+GROUP BY
+    customer_id, interaction_date, interaction_id, interaction_type
+HAVING COUNT(*) > 1;
+
+SELECT -- Duplicate count
+    content_id, content_text, content_type, customer_id,
+    COUNT(*) AS duplicate_count
+FROM user_content
+GROUP BY
+    content_id, content_text, content_type, customer_id
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts, multiple repeated values
+    customer_id,
+    COUNT(*) AS frequency
+FROM customer_interactions
+GROUP BY customer_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, all unique values
+    interaction_id,
+    COUNT(*) AS frequency
+FROM customer_interactions
+GROUP BY interaction_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated values (3 categories)
+    interaction_type,
+    COUNT(*) AS frequency
+FROM customer_interactions
+GROUP BY interaction_type
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, all unique values
+    content_id,
+    COUNT(*) AS frequency
+FROM user_content
+GROUP BY content_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, all unique values
+    content_text,
+    COUNT(*) AS frequency
+FROM user_content
+GROUP BY content_text
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated values (3 categories)
+    content_type,
+    COUNT(*) AS frequency
+FROM user_content
+GROUP BY content_type
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated values
+    customer_id,
+    COUNT(*) AS frequency
+FROM user_content
+GROUP BY customer_id
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- Attempt #1
+-- 1. Join customer_interactions and user_content tables by customer_id
+-- 2. Calculate the total number of interactions (include all types) for each customer
+-- 3. Calculate the total number of contents (include all types)  for each customer
+
+-- Attempt #2
+-- 1. Find distinct customer ids from customer_interactions and user_content tables
+-- 2. Left Join DistinctCustomers and customer_interactions tables by customer_id
+-- 3. Left Join DistinctCustomers and user_content tables by customer_id
+-- 4. Calculate the total number of interactions (include all types) for each customer
+-- 5. Calculate the total number of contents (include all types)  for each customer
+
+-- Result:
+-- Attempt #1
+SELECT
+    ci.customer_id,
+    -- 2. Calculate the total number of interactions (include all types) for each customer
+    COUNT(DISTINCT ci.interaction_id) AS num_interactions_total,
+    -- 3. Calculate the total number of contents (include all types)  for each customer
+    COUNT(DISTINCT uc.content_id) AS num_contents_total
+FROM 
+    customer_interactions AS ci
+FULL OUTER JOIN 
+    -- 1. Join customer_interactions and user_content tables by customer_id
+    user_content AS uc
+    ON ci.customer_id = uc.customer_id
+GROUP BY
+    ci.customer_id
+ORDER BY 
+    ci.customer_id;
+
+-- Attempt #2
+WITH DistinctCustomers AS (
+    -- 1. Find distinct customer ids from customer_interactions and user_content tables
+    SELECT 
+        customer_id
+    FROM 
+        customer_interactions
+
+    UNION 
+
+    SELECT
+        customer_id
+    FROM 
+        user_content
+)
+SELECT
+    dc.customer_id,
+    -- 4. Calculate the total number of interactions (include all types) for each customer
+    COUNT(DISTINCT ci.interaction_id) AS num_interactions_total,
+    -- 5. Calculate the total number of contents (include all types)  for each customer
+    COUNT(DISTINCT uc.content_id) AS num_contents_total
+FROM
+    DistinctCustomers AS dc
+LEFT JOIN 
+    -- 2. Left Join DistinctCustomers and customer_interactions tables by customer_id
+    customer_interactions AS ci
+    ON dc.customer_id = ci.customer_id
+LEFT JOIN 
+    -- 3. Left Join DistinctCustomers and user_content tables by customer_id
+    user_content AS uc
+    ON dc.customer_id = uc.customer_id
+GROUP BY
+    dc.customer_id
+ORDER BY
+    dc.customer_id;
+
+-- Attempt #3
+SELECT
+    COALESCE(ci.customer_id, uc.customer_id) AS customer_id,
+    -- 2. Calculate the total number of interactions (include all types) for each customer
+    COUNT(DISTINCT ci.interaction_id) AS num_interactions_total,
+    -- 3. Calculate the total number of contents (include all types)  for each customer
+    COUNT(DISTINCT uc.content_id) AS num_contents_total
+FROM 
+    customer_interactions AS ci
+FULL OUTER JOIN 
+    -- 1. Join customer_interactions and user_content tables by customer_id
+    user_content AS uc
+    ON ci.customer_id = uc.customer_id
+GROUP BY
+    ci.customer_id
+ORDER BY 
+    ci.customer_id;
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+-- Option #1
+WITH InteractionCounts AS (
+    SELECT 
+        customer_id, 
+        COUNT(interaction_id) AS num_interactions
+    FROM 
+        customer_interactions
+    GROUP BY 
+        customer_id
+),
+ContentCounts AS (
+    SELECT
+        customer_id, 
+        COUNT(content_id) AS num_contents
+    FROM 
+        user_content
+    GROUP BY 
+        customer_id
+),
+DistinctCustomers AS (
+    SELECT 
+        customer_id 
+    FROM 
+        customer_interactions
+        
+    UNION
+    
+    SELECT 
+        customer_id 
+    FROM 
+        user_content
+)
+SELECT 
+    dc.customer_id,
+    COALESCE(ic.num_interactions, 0) AS num_interactions_total,
+    COALESCE(cc.num_contents, 0) AS num_contents_total
+FROM 
+    DistinctCustomers dc
+LEFT JOIN 
+    InteractionCounts ic 
+    ON dc.customer_id = ic.customer_id
+LEFT JOIN
+    ContentCounts cc 
+    ON dc.customer_id = cc.customer_id;
+
+-- Option 2
+WITH InteractionCounts AS (
+    SELECT 
+        customer_id, 
+        COUNT(interaction_id) AS num_interactions
+    FROM 
+        customer_interactions
+    GROUP BY 
+        customer_id
+),
+ContentCounts AS (
+    SELECT 
+        customer_id, 
+        COUNT(content_id) AS num_contents
+    FROM 
+        user_content
+    GROUP BY 
+        customer_id
+)
+SELECT 
+    -- COALESCE is needed here because customer_id could be NULL 
+    -- in one table but present in the other
+    COALESCE(ic.customer_id, cc.customer_id) AS customer_id,
+    COALESCE(ic.num_interactions, 0) AS num_interactions_total,
+    COALESCE(cc.num_contents, 0) AS num_contents_total
+FROM 
+    InteractionCounts ic
+FULL OUTER JOIN 
+    ContentCounts cc 
+    ON ic.customer_id = cc.customer_id
+ORDER BY 
+    customer_id;
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated values for thecustomer_id and interaction_type columns, and
+  all unique values for the interaction_id column in the customer_interactions table. For the user_content
+  table, there were all unique values for the content_id and content_text columns, and multiple repeated
+  values for the content_type and customer_id columns.
+- My approach to this problem began with finding distinct customer ids from customer_interaction and
+  user_content tables using the UNION clause and wrapping this step into a common table expression (CTE)
+  called "DistinctCustomers". From there, I left joined the DistinctCustomers CTE with the
+  customer_interactions table and the user_content tables by the customer_id column. Next, I calculated the
+  total number of interactions and the total number of contents for each customer using the COUNT() function.
+
+Suggestions and Final Thoughts:
+- I came up with two different attempts for Solution #1. Attempt #1 used a FULL OUTER JOIN but had a 
+  customer_id listed as NULL. Attempt #2 found all possible customer_ids from both tables, left joined to
+  the original tables and then aggregated.
+- The correct way to prevent fan out or Cartesian Product inflation is to aggregate before joining. 
+  In Solution #2, Option #1, this builds upon my second attempt from Solution #1 but makes sure to aggregate
+  before joining. This takes place in multiple CTEs and also uses COALESCE() to ensure numbers appear as 0 
+  rather than null. 
+  In Solution #2, Option #2, this builds upon my first attempt from Solution #1 but again makes sures to
+  aggregate before joining. Rather than use an additional CTE for distinct customer ids and multiple LEFT JOINs
+  , a single FULL OUTER JOIN is used and COALESCE() is put upon all output columns (customer_id, 
+  num_interactions, and num_contents). This is the most performant and concise approach overall.
+- Since I performed a thorough data quality check, the interaction_id and content_id columns were all unique
+  but the use of COUNT(DISTINCT) was still necessary. All attempts are valid solutions but to avoid any 
+  potential edge cases, the options in Solution #2 are much safer and performant options. 
+- If there is a many to many relationship between tables in the cardinality then it is a situation where
+  aggregation must be performed on the raw data before joining.
+
+Solve Duration:
+35 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+25 minutes
+
+############################################################################################################
