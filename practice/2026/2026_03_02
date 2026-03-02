@@ -407,8 +407,8 @@ SELECT TOP 5* FROM user_activities;
 --            - activities: 15 x 3
 -- Duplicates - profiles: 2
 --            - activities: 0
--- Nulls -
---
+-- Nulls - profiles: 0
+--       - activities: 0
 -- Value Counts - profiles: email, name, user_id
 --              - activities: activity_type, user_id
 SELECT -- Dimensions and nulls
