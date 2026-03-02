@@ -530,7 +530,7 @@ WITH UniqueProfiles AS (
 SELECT
     up.user_id,
     up.signup_date,
-    -- 5. Count number of activities for each user
+    -- 4. Count number of activities for each user
     COUNT(ua.user_id) AS activities_count
 FROM 
     UniqueProfiles AS up
@@ -546,7 +546,7 @@ GROUP BY
     up.user_id,
     up.signup_date
 HAVING 
-    -- 4. Filter for users that performed at least one activity within 30 day period
+    -- 5. Filter for users that performed at least one activity within 30 day period
     COUNT(ua.user_id) >= 1
 ORDER BY
     activities_count DESC;
