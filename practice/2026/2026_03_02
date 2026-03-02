@@ -484,6 +484,7 @@ ORDER BY frequency DESC;
 -- 4. Filter for users that performed at least one activity within 30 day period
 -- 5. Count number of activities for each user
 
+-- Result:
 WITH UniqueProfiles AS (
     -- 1. Filter out duplicate rows
     SELECT DISTINCT
