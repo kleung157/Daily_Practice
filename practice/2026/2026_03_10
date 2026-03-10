@@ -1,0 +1,647 @@
+Date: 03/10/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9710
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+City of Los Angeles - Owners With 3 Grades
+Find the owners who have at least one facility with all 3 grades.
+
+Data Dictionary:
+Table name = 'la_restaurant_health_inspections'
+score: numeric (num)
+service_code: numeric (num)
+program_element_pe: numeric (num)
+serial_number: character (str)
+activity_date: POSIXct, POSIXt (dt)
+facility_name: character (str)
+grade: character (str)
+service_description: character (str)
+employee_id: character (str)
+facility_address: character (str)
+facility_city: character (str)
+facility_id: character (str)
+facility_state: character (str)
+facility_zip: character (str)
+owner_id: character (str)
+owner_name: character (str)
+pe_description: character (str)
+program_name: character (str)
+program_status: character (str)
+record_id: character (str)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Find the owners who have at least one facility with all 3 grades.
+
+## Input:
+# la_restaurant_health_inspections
+
+## Output:
+# owner_name
+
+## Import libraries:
+#install.packages("tidyverse")
+library(tidyverse)
+
+## Load and preview data:
+#la_restaurant_health_inspections <- read_csv("la_restaurant_health_inspections.csv")
+inspections_df <- data.frame(la_restaurant_health_inspections)
+inspections_df |> head(5)
+
+## Data quality:
+# Dimensions - 300 x 20
+# Duplicates - 0
+# Nulls - program_name(2)
+# Value Counts - serial_number, facility_name, grade, service_description, employee_id, facility_address,
+#                facility_city, facility_id, facility_state, facility_zip, owner_id, owner_name,
+#                pe_description, program_name, program_status, record_id
+inspections_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+inspections_df |> dim()
+
+inspections_df |> duplicated() |> sum()
+
+inspections_df |> is.na() |> colSums() |> enframe(name="type", value="na_count")
+
+inspections_df |> count(serial_number, sort=TRUE) # all unique values
+inspections_df |> count(facility_name, sort=TRUE) # multiple repeated values
+inspections_df |> count(grade, sort=TRUE) # multiple repeated values (3 categories)
+inspections_df |> count(service_description, sort=TRUE) # multiple repeated values (2 categories)
+inspections_df |> count(employee_id, sort=TRUE) # multiple repeated values
+inspections_df |> count(facility_address, sort=TRUE) # multiple repeated values
+inspections_df |> count(facility_city, sort=TRUE) # single repeated value
+inspections_df |> count(facility_id, sort=TRUE) # multiple repeated values
+inspections_df |> count(facility_state, sort=TRUE) # single repeated value
+inspections_df |> count(facility_zip, sort=TRUE) # multiple repeated values
+inspections_df |> count(owner_id, sort=TRUE) # multiple repeated values
+inspections_df |> count(owner_name, sort=TRUE) # multiple repeated values, delimiter values need to be fixed
+inspections_df |> count(pe_description, sort=TRUE) # multiple repeated values
+inspections_df |> count(program_name, sort=TRUE) # multiple repeated values
+inspections_df |> count(program_status, sort=TRUE) # multiple repeated values (2 categories)
+inspections_df |> count(record_id, sort=TRUE) # multiple repeated values
+
+## Iteration:
+# 1. Create variable with target grades
+# 2. Clean text in owner_name column (remove delimiters, spaces, case sensitivity)
+# 3. Find unique grades for each owner_name, facility_id combination
+# 4. Filter for owners with at least one facility with all target grades
+# 5. Select relevant columns
+# 6. Sort in ascending order by owner name
+
+## Question:
+# Find the owners who have at least one facility with all 3 grades.
+
+## Input:
+# la_restaurant_health_inspections
+
+## Output:
+# owner_name
+
+## Result:
+result_df <- inspections_df |>
+    mutate(
+        # 1. Clean text in owner_name column (remove delimiters, spaces, case sensitivity)
+        owner_name_cleaned = owner_name |> 
+            str_to_upper() |>
+            str_trim() |>
+            str_replace_all("\\.", "")
+    ) |>
+    group_by(owner_name_cleaned, facility_id) |>
+    summarise(
+        # 2. Find unique grades for each owner_name, facility_id combination
+        grade_list = paste(unique(grade), collapse=", "),
+        .groups="drop"
+    ) |>
+    filter(
+        # 3. Filter for owners with at least one facility with all target grades
+        str_detect(grade_list, "A") &
+        str_detect(grade_list, "B") &
+        str_detect(grade_list, "C")
+    ) |>
+    select(
+        # 4. Select relevant columns
+        owner_name=owner_name_cleaned
+    ) |>
+    distinct(
+        # 5. Drop duplicates
+        owner_name
+    ) |>
+    arrange(
+        # 6. Sort in ascending order by owner name
+        owner_name
+    )
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+target_grades = c("A", "B", "C")
+
+result_df <- inspections_df |>
+    mutate(
+        # Clean text in owner_name column (remove delimiters, spaces, case sensitivity)
+        owner_name_cleaned = owner_name |> 
+            str_to_upper() |>
+            str_trim() |>
+            str_replace_all("\\.", "")
+    ) |>
+    filter(
+        # Filter for valid grades first to avoid noise
+        grade %in% target_grades
+    ) |>
+    group_by(owner_name_cleaned, facility_id) |>
+    summarise(
+        # Use n_distinct instead of string pasting for accuracy
+        unique_grade_count = n_distinct(grade, na.rm=TRUE),
+        .groups="drop"
+    ) |>
+    filter(
+        # If count is 3, they must have A, B, and C
+        unique_grade_count == 3
+    ) |>
+    select(
+        # Final output formatting
+        owner_name=owner_name_cleaned
+    distinct(
+        owner_name
+    ) |>
+    arrange(
+        owner_name
+    )
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated values for the owner_name, facility_id, and grade columns.
+  The grade column contained 3 categories ("A", "B", and "C"). The owner_name column contained values that
+  needed to be cleaned properly using text manipulation.
+- I started my approach to this problem by cleaning the text in the owner_name column by removing delimiters,
+  spaces, and accounting for case lettering using the mutate(), str_to_upper(), str_trim(), and
+  str_replace_all() functions. From there, I found unique grades in a list format for each owner_name and
+  facility_id combination using the group_by(), summarise(), paste(), and unique() functions. Next, I filtered
+  for owners with at least one facility with all target grades using the filter() and str_detect() functions.
+  Finally, I selected the relevant columns, dropped duplicates, and sorted the results in ascending order
+  by the owner name column using the select(), distinct(), and arrange() functions.
+
+Suggestions and Final Thoughts:
+- Initially I had created a variable that contained the necessary grades to filter for in my first approach.
+  in Solution #2, this variable is used to filter for valid values before grouping and aggregating. 
+  ex. 
+      target_grades = c("A", "B", "C")
+      filter(
+          grade %in% target_grades
+      )
+- I had considered using the n_distinct() function at one point but didn't use it correctly and ended up
+  using a combination of paste() and unique() instead to see the actual values. The use of n_distinct() and
+  then filter() to filter based on unique count is a lot more efficient and concise for this problem.
+  ex.
+      group_by(owner_name_cleaned, facility_id) |>
+      summarise(
+          unique_grade_count = n_distinct(grade, na.rm=TRUE),
+          .groups="drop"
+      ) |>
+      filter(
+          unique_grade_count == 3
+      )
+- While distinct() can remove duplicates, select columns, and rename columns, it is probably safer to use
+  select() first and then distinct() for remembering which columns were necessary and for overall clarity.
+  ex.
+      select(
+          owner_name=owner_name_cleaned
+      ) |>
+      distinct(
+          owner_name
+      )
+- I couldn't find the correct functions right away to implement my iteration plan. It took a number of 
+  trial and error approaches to get the combination that made sense to solve the problem at hand. There 
+  isn't a single solution to every problem but I would like to be able to formulate my own way and learn
+  from any mistakes that come from my methods.
+          
+Solve Duration:
+80 minutes
+
+Notes Duration:
+8 minutes
+
+Suggestions and Final Thoughts Duration:
+12 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9761
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Airbnb - Find the number of nights that are searching for when trying to book a host
+Find the number of nights that are searched by most people when trying to book a host.
+Output the number of nights alongside the total searches.
+Order records based on the total searches in descending order.
+
+Data Dictionary:
+Table name = 'airbnb_searches'
+ds: datetime64 (dt)
+id_user: object (str)
+ds_checkin: datetime64 (dt)
+ds_checkout: datetime64 (dt)
+n_searches: int64 (int)
+n_nights: float64 (flt)
+n_guests_min: int64 (int)
+n_guests_max: int64 (int)
+origin_country: object (str)
+filter_price_min: float64 (flt)
+filter_price_max: float64 (flt)
+filter_room_types: object (str)
+filter_neighborhoods: object (str)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Find the number of nights that are searched by most people when trying to book a host.
+# Output the number of nights alongside the total searches.
+# Order records based on the total searches in descending order.
+
+## Input:
+# airbnb_searches
+
+## Output:
+# n_nights, total_searches
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#airbnb_searches = pd.read_csv("airbnb_searches.csv")
+searches_df = airbnb_searches.copy()
+searches_df.head(5)
+
+## Data quality:
+# Dimensions - 130 x 13
+# Duplicates - 0
+# Nulls - ds_checkin(10), ds_checkout(10), n_nights(10), filter_price_min(36), filter_price_max(36),
+#         filter_neighborhoods(122)
+# Value Counts - id_user, origin_country, filter_room_types, filter_neighborhoods
+#searches_df.info()
+
+searches_df.shape
+
+searches_df.duplicated().sum()
+
+searches_df.isna().sum().reset_index(name="na_count")
+
+#columns = ["id_user", "origin_country", "filter_room_types", "filter_neighborhoods"]
+
+#for col in columns:
+#    print(f"----{col}-----")
+#    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+#        print(searches_df[col].value_counts(dropna=False).reset_index(name="frequency"))
+#        print("")
+
+# multiple repeated values for id_user, origin_country, filter_room_types, and filter_neighborhoods
+
+## Iteration:
+# 1. Filter for non null values
+# 2. Calculate the total number of searches for each number of nights
+# 3. Sort in descending order by total searches
+
+## Result:
+result_df = (
+    searches_df
+    # 1. Filter for non null values
+    .loc[lambda x: x["n_nights"].notna()]
+    # 2. Calculate the total number of searches for each number of nights
+    .groupby("n_nights")
+    .size()
+    .reset_index(name="total_searches")
+    # 3. Sort in descending order by total searches
+    .sort_values(by="total_searches", ascending=False)
+)
+
+print("Number of nights searched by most people when trying to book a host:")
+result_df
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+result_df = (
+    searches_df
+    # 1. Filter for non null values
+    .loc[lambda x: x["n_nights"].notna()]
+    # Convert datatype to int
+    .assign(n_nights = lambda x: x["n_nights"].astype(int))
+    # 2. Calculate the total number of searches for each number of nights
+    .groupby("n_nights")["n_searches"]
+    .sum()
+    .reset_index(name="total_searches")
+    # 3. Sort in descending order by total searches
+    .sort_values(by="total_searches", ascending=False)
+)
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated values for the id_user column. There were 10 null values
+  in the n_nights column. A number of searches column is present as n_searches, not sure if that conflicts
+  with the table name airbnb_searches.
+- I began my approach to this problem by filtering for non null values in the n_nights column using the
+  lambda x, loc[], and notna() functions. Next, I calculated the total number of searches for each number
+  of nights using the groupby(), size(), and reset_index() functions, Lastly, I sorted the results in
+  descending order by the total searches column using the sort_values() function.
+
+Suggestions and Final Thoughts:
+- I had noticed a n_searches column when performing data quality check but the table name airbnb_searches
+  kind of threw me off. I wasn't sure if each row of the table represented a search. Using the sum() function
+  made more sense overall to have an accurate number of search counts for the total platform demand. Using
+  the size() function misses volume of searches.
+  ex.
+      searches_df.groupby("n_nights")["n_searches"].sum().reset_index(name="total_searches")
+- The n_nights column is a float64 datatype. For proper formatting in the output, the data type can be
+  changed to a int datatype using the .astype(int) function within a assign() function.
+  ex.
+      searches_df
+      .loc[lambda x: x["n_nights"].notna()]
+      .assign(n_nights = lambda x: x["n_nights"].astype(int))
+
+Solve Duration:
+16 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+13 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10538
+
+Difficulty:
+Medium
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Meta - Top Posts Per Channel
+Identify the top 3 posts with the highest like counts for each channel. 
+Assign a rank to each post based on its like count, allowing for gaps in ranking when posts have the same number of likes.
+For example, if two posts tie for 1st place, the next post should be ranked 3rd, not 2nd. 
+Exclude any posts with zero likes.
+The output should display the channel name, post ID, post creation date, and the like count for each post. 
+Because there could be ties in rankings, your output could have more than 3 rows for each channel.
+
+Data Dictionary:
+Table name = 'posts'
+channel_id: bigint (int)
+comments: bigint (int)
+created_at: date (d)
+likes: bigint (int)
+post_id: bigint (int)
+shares: bigint (int)
+
+Table name = 'channels'
+channel_id: bigint (int)
+channel_name: varchar (str)
+channel_type: varchar (str)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+-- Question:
+-- Identify the top 3 posts with the highest like counts for each channel.
+-- Assign a rank to each post based on its like count,
+-- allowing for gaps in ranking when posts have the same number of likes.
+-- For example, if two posts tie for 1st place,
+-- the next post should be ranked 3rd, not 2nd. 
+-- Exclude any posts with zero likes.
+-- The output should display the channel name, post ID, post creation date, 
+-- and the like count for each post.
+-- Because there could be ties in ranking,
+-- your output could have more than 3 rows for each channel.
+
+-- Input:
+-- posts, channels
+
+-- Output:
+-- channel_name, post_id, post_creation_date, like_count
+
+-- Preview data:
+SELECT TOP 5* FROM posts;
+SELECT TOP 5* FROM channels;
+
+-- Data quality:
+-- Dimensions - posts: 51 x 6
+--            - channels: 5 x 3
+-- Duplicates - posts: 0
+--            - channels: 0
+-- Nulls - posts: 0
+--         channels: 0
+-- Value Counts - posts: channel_id, post_id
+--                channels: channel_id, channel_name, channel_type
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN channel_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN comments IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN created_at IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN likes IS NULL THEN 1 ELSE 0 END) AS col4,
+    SUM(CASE WHEN post_id IS NULL THEN 1 ELSE 0 END) AS col5,
+    SUM(CASE WHEN shares IS NULL THEN 1 ELSE 0 END) AS col6,
+    COUNT(*) AS row_count
+FROM posts;
+
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN channel_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN channel_name IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN channel_type IS NULL THEN 1 ELSE 0 END) AS col3,
+    COUNT(*) AS row_count
+FROM channels;
+
+SELECT -- Duplicates
+    channel_id, comments, created_at, likes, post_id, shares,
+    COUNT(*)
+FROM posts
+GROUP BY
+    channel_id, comments, created_at, likes, post_id, shares
+HAVING COUNT(*) > 1;
+
+SELECT -- Duplicates
+    channel_id, channel_name, channel_type,
+    COUNT(*)
+FROM channels
+GROUP BY
+    channel_id, channel_name, channel_type
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts, multiple repeated values
+    channel_id, 
+    COUNT(*) AS frequency
+FROM posts
+GROUP BY channel_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, all unique values
+    post_id, 
+    COUNT(*) AS frequency
+FROM posts
+GROUP BY post_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, all unique values
+    channel_id, 
+    COUNT(*) AS frequency
+FROM channels
+GROUP BY channel_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, all unique values
+    channel_name, 
+    COUNT(*) AS frequency
+FROM channels
+GROUP BY channel_name
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated values
+    channel_type, 
+    COUNT(*) AS frequency
+FROM channels
+GROUP BY channel_type
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Join posts and channels tables by channel_id
+-- 2. Filter for posts with non zero or non null likes
+-- 3. Calculate the total number of likes for each post based on channel 
+-- 4. Rank posts by number of likes in descending order for each channel, allow gaps for ties
+-- 5. Filter for top 3 posts with highest like counts based on rank
+
+-- Result:
+WITH RankedChannels AS (
+    SELECT 
+        c.channel_name,
+        p.created_at AS post_creation_date,
+        p.post_id,
+        -- 3. Calculate the total number of likes for each post based on channel 
+        SUM(p.likes) AS total_likes,
+        -- 4. Rank posts by number of likes in descending order for each channel, allow gaps for ties
+        RANK() OVER(
+            PARTITION BY c.channel_name 
+            ORDER BY SUM(p.likes) DESC
+        ) AS like_rank 
+    FROM 
+        posts AS p
+    LEFT JOIN 
+        -- 1. Join posts and channels tables by channel_id
+        channels AS c
+        ON p.channel_id = c.channel_id
+    WHERE
+        -- 2. Filter for posts with non zero or non null likes
+        p.likes IS NOT NULL 
+        AND p.likes > 0
+    GROUP BY
+        c.channel_name,
+        p.created_at,
+        p.post_id
+)
+SELECT
+    channel_name,
+    post_id,
+    post_creation_date,
+    total_likes
+FROM 
+    RankedChannels
+WHERE
+    -- 5. Filter for top 3 posts with highest like counts based on rank
+    like_rank <= 3
+ORDER BY
+    channel_name ASC,
+    like_rank ASC;
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+WITH RankedChannels AS (
+    SELECT 
+        c.channel_name,
+        p.created_at AS post_creation_date,
+        p.post_id,
+        p.likes,
+        -- 3. Rank posts by number of likes in descending order for each channel, allow gaps for ties
+        RANK() OVER(
+            PARTITION BY c.channel_id
+            ORDER BY p.likes DESC
+        ) AS like_rank 
+    FROM 
+        posts AS p
+    INNER JOIN 
+        -- 1. Join posts and channels tables by channel_id
+        channels AS c
+        ON p.channel_id = c.channel_id
+    WHERE
+        -- 2. Filter for posts with non zero or non null likes
+        p.likes IS NOT NULL 
+        AND p.likes > 0
+)
+SELECT
+    channel_name,
+    post_id,
+    post_creation_date,
+    likes
+FROM 
+    RankedChannels
+WHERE
+    -- 5. Filter for top 3 posts with highest like counts based on rank
+    like_rank <= 3
+ORDER BY
+    channel_name ASC,
+    like_rank ASC;
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated values in the channel_id column and all unique values
+  for the post_id column in the posts table. The channels table contained all unique values for the channel_id
+  and channel_name column, and multiple repeated values in the channel_type column.
+- My approach to this problem began with left joining the posts and channels tables by the channel_id column.
+  Next, I filtered for posts with non zero or non null values in the like column. From there, I calculated
+  the total number of likes for each post based on channel using the SUM() function. After aggregation, I
+  ranked the posts by number of likes in descending order for each channel and allowed for gaps with ties 
+  using the RANK() Function. These steps were placed into a common table expression (CTE) called
+  "RankedChannels". The RankedChannels CTE was then queried to filter for top 3 posts with highest like
+  counts based on rank.
+
+Suggestions and Final Thoughts:
+- The post_id column contains all unique values as seen in the data quality check. This means that a sum
+  aggregation is not necessary for totalling the number of likes for each channel_id, created_at, and post_id.
+- The use of RANK() over DENSE_RANK() was necessary to include gaps between rankings even if there are ties.
+- When using PARTITION BY in the OVER() function, the channel_id column is best to use and safer than using 
+  the channel_name column in case there are duplicate channel_names. The channel_id was found to be all unique
+  in the data quality check. Luckily, the channel_name column was also found to be all unique.
+  ex.
+      RANK() OVER(
+          PARTITION BY c.channel_id
+          ORDER BY p.likes DESC
+      ) AS like_rank;
+
+Solve Duration:
+30 minutes
+
+Notes Duration:
+8 minutes
+
+Suggestions and Final Thoughts Duration:
+8 minutes
+
+############################################################################################################
