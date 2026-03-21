@@ -1,0 +1,557 @@
+Date: 03/21/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9712
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+City of Los Angeles - Find the first and last times the maximum score was awarded
+Find the first and last times the maximum score was awarded
+
+Data Dictionary:
+Table name = 'los_angeles_restaurant_health_inspections'
+score: numeric (num)
+service_code: numeric (num)
+program_element_pe: numeric (num)
+serial_number: character (str)
+activity_date: POSIXct, POSIXt (dt)
+facility_name: character (str)
+grade: character (str)
+service_description: character (str)
+employee_id: character (str)
+facility_address: character (str)
+facility_city: character (str)
+facility_id: character (str)
+facility_state: character (str)
+facility_zip: character (str)
+owner_id: character (str)
+owner_name: character (str)
+pe_description: character (str)
+program_name: character (str)
+program_status: character (str)
+record_id: character (str)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Find the first and last times that maximum score was awarded
+
+## Input:
+# los_angeles_restaurant_health_inspections
+
+## Output:
+# max_score, first_date_awarded, last_date_awarded
+
+## Import libraries:
+#install.packages("tidyverse")
+library(tidyverse)
+
+## Load and preview data:
+#los_angeles_restaurant_health_inspections <- read_csv("los_angeles_restaurant_health_inspections.csv")
+inspections_df <- data.frame(los_angeles_restaurant_health_inspections)
+inspections_df |> head(5)
+
+## Data Quality:
+# Dimensions - 299 x 20
+# Duplicates - 0
+# Nulls - program_name(2)
+# Value Counts - serial_number, facility_name, grade, service_description, employee_id, facility_address,
+#                facility_city, facility_id, facility_state, facility_zip, owner_id, owner_name, 
+#                pe_description, program_name, program_status, record_id
+inspections_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+inspections_df |> dim()
+
+inspections_df |> duplicated() |> sum()
+
+inspections_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+inspections_df |> count(serial_number, sort=TRUE) # all unique values
+inspections_df |> count(facility_name, sort=TRUE) # multiple repeated values
+inspections_df |> count(grade, sort=TRUE) # multiple repeated values (3 categories)
+inspections_df |> count(service_description, sort=TRUE) # multiple repeated values (2 categories)
+inspections_df |> count(employee_id, sort=TRUE) # multiple repeated values
+inspections_df |> count(facility_address, sort=TRUE) # multiple repeated values
+inspections_df |> count(facility_city, sort=TRUE) # single repeated value
+inspections_df |> count(facility_id, sort=TRUE) # multiple repeated values
+inspections_df |> count(facility_state, sort=TRUE) # multiple repeated values
+inspections_df |> count(facility_zip, sort=TRUE) # multiple repeated values
+inspections_df |> count(owner_id, sort=TRUE) # multiple repeated values
+inspections_df |> count(owner_name, sort=TRUE) # multiple repeated values
+inspections_df |> count(pe_description, sort=TRUE) # multiple repeated values
+inspections_df |> count(program_name, sort=TRUE) # multiple repeated values
+inspections_df |> count(program_status, sort=TRUE) # multiple repeated values (2 categories)
+inspections_df |> count(record_id, sort=TRUE) # multiple repeated values
+
+# All unique values: serial_number
+# Multiple repeated values:  facility_name, grade, service_description, employee_id, facility_address,
+#                facility_city, facility_id, facility_state, facility_zip, owner_id, owner_name, 
+#                pe_description, program_name, program_status, record_id
+
+## Iteration:
+# 1. Find the maximum score awarded for all inspections
+# 2. Filter for inspections with the maximum score
+# 3. Calculate the first and last activity date that maximum score was awarded
+# 4. Select and rename relevant columns
+
+## Result:
+# 1. Find the maximum score awarded for all inspections
+target_score <- inspections_df$score |> max()
+
+result_df <- inspections_df |>
+    filter(
+        # 2. Filter for inspections with the maximum score
+        score == target_score
+    ) |>
+    group_by(score) |>
+    summarise(
+        # 3. Calculate the first and last activity date that maximum score was awarded
+        first_date_awarded = min(activity_date, na.rm=TRUE),
+        last_date_awarded = max(activity_date, na.rm=TRUE),
+        .groups="drop"
+    ) |>
+    select(
+        # 4. Select and rename relevant columns
+        max_score=score, first_date_awarded, last_date_awarded
+    )
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+inspections_df <- as_tibble(los_angeles_restaurant_health_inspections)
+
+# 1. Find the maximum score awarded for all inspections
+target_score <- max(inspections_df$score, na.rm=TRUE)
+
+result_df <- inspections_df |>
+    filter(
+        # 2. Filter for inspections with the maximum score
+        score == target_score
+    ) |>
+    summarise(
+        # 3. Calculate the first and last activity date that maximum score was awarded
+        max_score = unique(score),
+        first_date_awarded = min(activity_date, na.rm=TRUE),
+        last_date_awarded = max(activity_date, na.rm=TRUE)
+    )
+    
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed all unique values for the serial number column. Multiple repeated values
+  were found for facility_name, grade, service_description, employee_id, facility_address, facility_city, 
+  facility_id, facility_state, facility_zip, owner_id, owner_name, pe_description, program_name, 
+  program_status, and record_id columns
+- I began my approach to this problem by finding the maximum score awarded for all inspections using the
+  max() function. Next, I filtered for inspection rows with the maximum score using the filter() function.
+  From there, I calculated the first and last activity date for when the maximum score was awarded using
+  the group_by(), summarise(), min(), and max() functions. Finally, I selected and renamed the
+  relevant output columns using the select() function.
+
+Suggestions and Final Thoughts:
+- Keep data as a tibble rather than dataframe. Tibbles have better printing behavior for large datasets
+  and do not convert strings to factors.
+  ex.
+      inspections_df <- as_tibble(los_angeles_restaurant_health_inspections)
+- Whenever using aggregation functions, consider potential null edge cases that may occur. It is safer to
+  use the na.rm parameter.
+  ex.
+      target_score <- max(inspections_df$score, na.rm=TRUE)
+- The group_by() function is redundant because the maximum score has already been filtered for each row.
+  To keep the maximum score, use the unique() function while calculating the first and last dates in the
+  summarise() function.
+  ex.
+      summarise(
+          max_score = unique(score),
+          first_date_awarded = min(activity_date, na.rm=TRUE),
+          last_date_awarded = max(activity_date, na.rm=TRUE)
+      )
+
+Solve Duration:
+26 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9762
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Airbnb - Find the day of the week that most people check in
+Find the day of the week that most people want to check in.
+Output the day of the week alongside the corresponding check-in count.
+
+Data Dictionary:
+Table name = 'airbnb_contacts'
+id_guest: object (str)
+id_host: object (str)
+id_listing: object (str)
+ts_contact_at: datetime64 (dt)
+ts_reply_at: datetime64 (dt)
+ts_accepted_At: datetime64 (dt)
+ts_booking_at: datetime64 (dt)
+ds_checkin: datetime64 (dt)
+ds_checkout: datetime64 (dt)
+n_guests: int64 (int)
+n_messages: int64 (int)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Find the day of the week that most people want to check in.
+# Output the day of the week alongside the corresponding check-in count.
+
+## Input:
+# airbnb_contacts
+
+## Output:
+# day_of_week, checkin_count
+
+## Import libraries:
+import pandas as pd
+
+## Laod and preview data:
+#airbnb_contacts = pd.read_csv("airbnb_contacts.csv")
+contacts_df = airbnb_contacts.copy()
+contacts_df.head(5)
+
+## Data quality:
+# Dimensions - 100 x 11
+# Duplicates - 0
+# Nulls - ts_reply_at(6), ts_accepted_at(61), ts_booking_at(77)
+# Value Counts - id_guest, id_host, id_listing
+#contacts_df.info()
+
+contacts_df.shape
+
+contacts_df.duplicated().sum()
+
+contacts_df.isna().sum().reset_index(name="na_count")
+
+#columns = ["id_guest", "id_host", "id_listing"]
+
+#for col in columns:
+#    print(f"-----{col}-----")
+#    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+#        print(contacts_df[col].value_counts(dropna=False).reset_index(name="frequency"))
+#        print("")
+
+# multiple repeated values for id_guest, id_host, and id_listing
+
+## Iteration:
+# 1. Create day of week column using ds_checkin column
+# 2. Count the number of checkins for each day of week
+# 3. Filter for day of week with the most check ins
+# 4. Select relevant columns
+
+## Result:
+result_df = (
+    contacts_df
+    # 1. Create day of week column using ds_checkin column
+    .assign(day_of_week_num = lambda x: x["ds_checkin"].dt.dayofweek,
+            day_of_week = lambda x: x["ds_checkin"].dt.day_name())
+    # 2. Count the number of checkins for each day of week
+    .groupby(["day_of_week_num", "day_of_week"])
+    .size()
+    .reset_index(name="checkin_count")
+    # 3. Filter for day of week with the most check ins
+    .loc[lambda x: x["checkin_count"] == x["checkin_count"].max()]
+    # 4. Select relevant columns
+    [["day_of_week", "checkin_count"]]
+)
+
+print("Day of week that most people want to check in: ")
+result_df
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+result_df = (
+    contacts_df
+    # 1. Create day of week column using ds_checkin column
+    .assign(day_of_week_num = lambda x: x["ds_checkin"].dt.dayofweek,
+            day_of_week = lambda x: x["ds_checkin"].dt.day_name())
+    # 2. Count the number of checkins for each day of week
+    .groupby(["day_of_week_num", "day_of_week"])
+    .size()
+    .reset_index(name="checkin_count")
+    # 3. Filter for day of week with the most check ins
+    .pipe(lambda df: df[df["checkin_count"] == df["checkin_count"].max()])
+    # 4. Select relevant columns
+    [["day_of_week", "checkin_count"]]
+)
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated values for the id_guest, id_host, and id_listing
+  columns. Null values were present in ts_reply_at (6), ts_accepted_at (61), and ts_booking_at (77) columns.
+- My approach to this problem started with creating separate numerical and string columns for the day of week
+  with the ds_checkin column using the assign(), dt.dayofweek, and dt.day_name() functions. From there, I 
+  counted the number of checkins for each day of week using the groupby(), size(), and reset_index() functions.
+  Next, I filtered for the day of week with the most check ins using the loc[] and max() functions. Lastly,
+  I selected the relevant output columns.
+  
+Suggestions and Final Thoughts:
+- I decided to include both the numerical and string versions of the day of week because it made it easier
+  to arrange the string day of week in the appropriate order and present a column with the day of the week 
+  name. Also it didn't make sense to later assign a name to a numerical column and have the day of week be 
+  completely different if 0 to 6 was Sunday to Saturday rather than 0 to 6 as Monday to Sunday.
+  ex.
+      contacts_df.assign(day_of_week_num = lambda x: x["ds_checkin"].dt.dayofweek,
+                         day_of_week = lambda x: x["ds_checkin"].dt.day_name())
+- An alternative to using .loc[] for filtering for day of week with the most check ins is the pipe()
+  function. They essentially do the same thing but one can be more readable than the other.
+  ex.
+      contacts_df.pipe(lambda df: df[ df["checkin_count"] == df["checkin_count"].max() ])
+      
+Solve Duration:
+30 minutes
+
+Notes Duration:
+5 minutes
+  
+Suggestions and Final Thoughts Duration:
+15 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10368
+
+Difficulty:
+Medium
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Deloitte - Population Density
+You are working on a data analysis project at Deloitte where you need to analyze a dataset containing information
+about various cities. Your task is to calculate the population density of these cities, rounded to the nearest integer, and identify the cities with the minimum and maximum densities.
+The population density should be calculated as (Population / Area).
+The output should contain 'city', 'country', 'density'.
+
+Data Dictionary:
+Table name = 'cities_population'
+area: float (flt)
+city: varchar (str)
+country: varchar (str)
+population: bigint (int)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+-- Question:
+-- You are working on a data analysis project at Deloitte where you need to analyze a dataset
+-- containing information about various cities.
+-- Your task is to calculate the population density of these cities,
+-- rounded to the nearest integer, 
+-- and identify the cities with the minimum and maximum densities.
+-- The population density should be calculated as (Population / Area).
+-- The output should contain 'city', 'country', and 'density'.
+
+-- Input:
+-- cities_population
+
+-- Output:
+-- city, country, density
+
+-- Preview data:
+SELECT TOP 5* FROM cities_population;
+
+-- Data quality:
+-- Dimensions - 10 x 4
+-- Duplicates - 0
+-- Nulls - 0
+-- Value Counts - city, country
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN area IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN city IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN country IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN population IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS row_count
+FROM cities_population;
+
+SELECT -- Duplicates
+    area, city, country, population,
+    COUNT(*) AS duplicate_count
+FROM cities_population
+GROUP BY
+    area, city, country, population
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts, all unique values
+    city,
+    COUNT(*) AS frequency
+FROM cities_population
+GROUP BY city
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated values
+    country,
+    COUNT(*) AS frequency
+FROM cities_population
+GROUP BY country
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Calculate population density for each city and country combination, rounded to nearest integer
+--    Population Density = Population / Area
+-- 2. Rank the population density in descending order for maximum density
+-- 3. Rank the population density in ascending order for minimum density
+-- 4. Filter for cities with minimum and maximum densities based on rank
+
+-- Result:
+WITH CityDensities AS (
+    SELECT 
+        city,
+        country,
+        -- 1. Calculate populaiton density for each city and country combination, rounded to nearest integer
+        --    Population Density = Population / Area
+        ROUND(
+            1.0 * population / NULLIF(area, 0)
+        , 0) AS density
+    FROM 
+        cities_population
+    WHERE
+        -- Prevent division by zero
+        area != 0 
+),
+RankedCities AS (
+    SELECT
+        city,
+        country,
+        density,
+        -- 2. Rank the population density in descending order for maximum density
+        DENSE_RANK() OVER(
+            ORDER BY density DESC
+        ) AS max_density_rank,
+        -- 3. Rank the population density in ascending order for minimum density
+        DENSE_RANK() OVER(
+            ORDER BY density ASC
+        ) AS min_density_rank
+    FROM 
+        CityDensities
+)
+SELECT
+    city,
+    country,
+    density
+FROM 
+    RankedCities
+WHERE 
+    -- 4. Filter for cities with minimum and maximum densities based on rank
+    max_density_rank = 1
+    OR min_density_rank = 1
+ORDER BY 
+    density ASC,
+    city ASC;
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+WITH CityDensities AS (
+    SELECT 
+        city,
+        country,
+        -- 1. Calculate population density for each city and country combination, rounded to nearest integer
+        --    Population Density = Population / Area
+        CAST(
+            ROUND(
+                1.0 * population / NULLIF(area, 0)
+            , 0)
+            AS INT
+        ) AS density
+    FROM 
+        cities_population
+    WHERE
+        -- Prevent division by zero
+        area > 0 
+)
+-- 2. Select the city with the minimum  density
+SELECT
+    city,
+    country,
+    density
+FROM 
+    CityDensities
+WHERE
+    density = (SELECT MIN(density) FROM CityDensities)
+
+UNION
+
+-- 3. Select the city with the maximum density
+SELECT
+    city,
+    country,
+    density
+FROM 
+    CityDensities
+WHERE
+    density = (SELECT MAX(density) FROM CityDensities)
+ORDER BY 
+    density ASC,
+    city ASC;
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated values for the country column and all unique values for
+  the city column. 
+- I started my approach to this problem by calculating the population density for each city and country
+  combination and rounded the results to the nearest integer using the ROUND() and NULLIF() functions. I
+  filtered for area != 0 to prevent division by zero in the density calculation. These steps were placed into
+  a common table expression (CTE) named CityDensities. The CityDensities CTE was queried to rank the
+  population densities in descending order for maximum density and to rank the population densities in
+  ascending order for minimum density using the DENSE_RANK() function. These steps were then placed into
+  another CTE called RankedCities. Finally, the RankedCities CTE was queried to filter for city country
+  combinations with minimum and maximum densities based on rank.
+
+Suggestions and Final Thoughts:
+- There were a number of edge cases that appeared in this problem. Division by zero, nulls appearing in
+  the ranking of population density for city country combinations, and tied rankings. Filters were necessary
+  to prevent division by zero. Using the greater than (>) operator is better for filtering compared to the
+  not equal (!=) operators because it only showws positive values.
+  ex.
+      WHERE area > 0;
+- If a report requires a strict integer value then the CAST() function may be needed for the final output
+  for the population_density calculation. This could remove any decimals places in the final output.
+  ex.
+      CAST(
+          ROUND(
+              1.0 * population / NULLIF(area, 0)
+          , 0) 
+          AS INT
+      ) AS density;
+- For larger datasets, UNION of separate tables using filters and subquery aggregations like MIN() AND MAX()
+  can be a bit faster than the resource-intensive window functions like OVER() AND DENSE_RANK(). This is
+  seen in Solution #2.
+
+Solve Duration:
+28 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+20 minutes
+
+############################################################################################################
