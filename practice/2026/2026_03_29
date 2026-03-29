@@ -1,0 +1,513 @@
+Date: 03/29/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9724
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+City of San Francicsco - Find the postal code which has the highest average inspection score
+Find the postal code which has the highest average inspection score.
+Output the corresponding postal code along with the result.
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_id: numeric (num)
+business_name: character (str)
+business_address: character (str)
+business_city: character (str)
+business_state: character (str)
+business_postal_code: numeric (num)
+business_latitude: numeric (num)
+business_longitude: numeric (num)
+business_location: character (str)
+business_phone_number: numeric (num)
+inspection_id: character (str)
+inspection_date: POSIXct, POSIXt (dt)
+inspection_score: numeric (num)
+inspection_type: character (str)
+violation_id: character (str)
+violation_description: character (str)
+risk_category: character (str)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Find the postal code which has the highest average inspection score.
+# Output the corresponding postal code along with the result.
+
+## Input:
+# sf_restaurant_health_violations
+
+## Output:
+# business_postal_code, avg_inspection_score
+
+## Import libraries:
+#install.packages("tidyverse")
+library(tidyverse)
+
+## Load and preview data:
+#sf_restaurant_health_violations <- read_csv("sf_restaurant_health_violations.csv")
+violations_df <- as_tibble(sf_restaurant_health_violations)
+violations_df |> head(5)
+
+## Data quality:
+# Dimensions - 297 x 17
+# Duplicates - 0
+# Nulls - business_postal_code(10), business_latitude(133), business_longitude(133),
+#         business_location(133), business_phone_number(214), inspection_score(73),
+#         violation_id(72), violation_description(72), risk_category(72)
+# Value Counts - business_id, business_name, business_address, business_city, business_state,
+#                business_postal_code, business_location, inspection_id, inspection_type,
+#                violation_id, violation_description, risk_category
+violations_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+violations_df |> dim()
+
+violations_df |> duplicated() |> sum()
+
+violations_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+violations_df |> count(business_id, sort=TRUE) # multiple repeated values
+violations_df |> count(business_name, sort=TRUE) # multiple repeated values
+violations_df |> count(business_address, sort=TRUE) # multiple repeated values
+violations_df |> count(business_city, sort=TRUE) # single repeated value
+violations_df |> count(business_state, sort=TRUE) # single repeated value
+violations_df |> count(business_postal_code, sort=TRUE) # multiple repeated values
+violations_df |> count(business_location, sort=TRUE) # multiple repeated values
+violations_df |> count(inspection_id, sort=TRUE) # multiple repeated values
+violations_df |> count(inspection_type, sort=TRUE) # multiple repeated values
+violations_df |> count(violation_id, sort=TRUE) # all unique values except for null
+violations_df |> count(violation_description, sort=TRUE) # multiple repeated values
+violations_df |> count(risk_category, sort=TRUE) # multiple repeated values
+
+# business_postal_code has 10 nulls and multiple repeated values
+# inspection_score has 73 nulls
+# violation_id has all unique values except for nulls
+
+## Iteration:
+# 1. Filter for non null values in business_postal_code and inspection_score
+# 2. Calculate the average inspection score for each postal code
+# 3. Filter for postal code with highest average inspection score
+# 4. Sort in ascending order by business_postal_code
+
+## Result:
+result_df <- violations_df |>
+    filter(
+        # 1. Filter for non null values in business_postal_code and inspection_score
+        !is.na(business_postal_code) &
+        !is.na(inspection_score)
+    ) |>
+    group_by(business_postal_code) |>
+    summarise(
+        # 2. Calculate the average inspection score for each postal code
+        avg_inspection_score = round(mean(inspection_score, na.rm=TRUE), 2),
+        .groups="drop"
+    ) |>
+    slice_max(
+        # 3. Filter for postal code with highest average inspection score
+        avg_inspection_score, with_ties=TRUE
+    ) |>
+    arrange(
+        # 4. Sort in ascending order by business_postal_code
+        business_postal_code
+    )
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+result_df <- violations_df |>
+    filter(
+        # 1. Filter for non null values in business_postal_code and inspection_score
+        !is.na(business_postal_code) &
+        !is.na(inspection_score)
+    ) |>
+    group_by(business_postal_code) |>
+    summarise(
+        # 2. Calculate the average inspection score for each postal code
+        avg_inspection_score = round(mean(inspection_score, na.rm=TRUE), 2),
+        .groups="drop"
+    ) |>
+    slice_max(
+        # 3. Filter for postal code with highest average inspection score
+        avg_inspection_score, n=1, with_ties=TRUE
+    ) |>
+    arrange(
+        # 4. Sort in ascending order by business_postal_code
+        business_postal_code
+    )
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed 10 nulls and multiple repeated values for the business_postal_code
+  column. The inspection_score column contained 73 nulls. The violation_id column had all unique values
+  except for 72 nulls.
+- I started my approach to this problem by filtering for non null values in the business_postal_code and
+  inspection_score columns using the filter() and !is.na() functions. From there, I calculated the average
+  inspection score for each postal code using the group_by(), summarise(), round(), and mean() functions.
+  Next, I filtered for postal code with highest average inspection score using the slice_max() function.
+  Lastly, I sorted in ascending order by business_postal_code using the arrange() function.
+
+Suggestions and Final Thoughts:
+- The as.tibble() function has been replaced by as_tibble().
+  ex. 
+      violations_df <- as_tibble(sf_restaurant_health_violations)
+- The as.character() function is a safer alternative for handling postal code columns in case a postal code
+  loses their leading zeroes.
+- The glimpse() function can be used to check data types, dimensions, and values in vertical format
+  ex. 
+      glimpse(violations_df)
+- Filtering for non null values and including na.rm=TRUE in the aggregation function mean() are redundant
+  but is great for considering edge cases.
+
+Solve Duration:
+23 minutes
+
+Notes Duration:
+4 minutes
+
+Suggestions and Final Thoughts Duration:
+9 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9773
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Meta - Day 1 Common Reactions
+Find the most common reaction for day 1 by counting the number of occurrences for each reaction. 
+Output the reaction alongside its number of occurrences.
+
+Data Dictionary:
+Table name = 'facebook_reactions'
+poster: int64 (int)
+friend: int64 (int)
+reaction: object (str)
+date_day: int64 (int)
+post_id: int64 (int)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Find the most common reaction for day 1 by counting the number of occurrences for each reaction.
+# Output the reaction alongside its number of occurrences.
+
+## Input:
+# facebook_reactions
+
+## Output:
+# reaction, num_occurrences
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#facebook_reactions = pd.read_csv("facebook_reactions.csv")
+reactions_df = facebook_reactions.copy()
+reactions_df.head(5)
+
+## Data quality:
+# Dimensions - 19 x 5
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - reaction, post_id
+#reactions_df.info()
+
+reactions_df.shape
+
+reactions_df.duplicated().sum()
+
+reactions_df.isna().sum().reset_index(name="na_count")
+
+#columns = ["reaction", "post_id"]
+
+#for col in columns:
+#    print(f"-----{col}-----")
+#    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+#        print(reactions_df[col].value_counts(dropna=False).reset_index(name="frequency"))
+#        print("")
+
+# multiple repeated values for reaction (3 categories)
+# multiple repeated values for post_id
+
+## Iteration:
+# 1. Filter for day 1 from date_day column
+# 2. Count the number of occurrences for each reaction
+# 3. Filter for reaction(s) with the highest number of occurrences
+# 4. Sort by reaction in ascending order
+
+## Result:
+result_df = (
+    reactions_df
+    # 1. Filter for day 1 from date_day column
+    .loc[lambda x: x["date_day"] == 1]
+    # 2. Count the number of occurrences for each reaction
+    .groupby("reaction")
+    .size()
+    .reset_index(name="num_occurrences")
+    # 3. Filter for reaction(s) with the highest number of occurrences
+    .loc[lambda x: x["num_occurrences"] == x["num_occurrences"].max()]
+    # 4. Sort by reaction in ascending order
+    .sort_values(by="reaction", ascending=True)
+)
+
+print("Most common reactions for day 1 and their occurrences: ")
+result_df
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+result_df = (
+    reactions_df
+    # 1. Filter for day 1 from date_day column
+    .query("date_day == 1")
+    # 2. Count the number of occurrences for each reaction
+    .groupby("reaction", dropna=False)
+    .size()
+    .reset_index(name="num_occurrences")
+    # 3. Filter for reaction(s) with the highest number of occurrences
+    .loc[lambda x: x["num_occurrences"] == x["num_occurrences"].max()]
+    # 4. Sort by reaction in ascending order
+    .sort_values(by="reaction", ascending=True)
+)
+
+-------------------------------------------------------------------------------
+** Solution #3 ** (as a function)
+print("Most common reactions for day 1 and their occurrences: ")
+result_df
+
+def get_most_common_reaction(df, day):
+    """
+    Returns the most common reaction(s) for a specific day.
+    """
+    # 1. Logic remains the same, but we parameterize 'day'
+    result = (
+        df.loc[lambda x: x["date_day"] == day]
+        .groupby("reaction")
+        .size()
+        .reset_index(name="num_occurrences")
+    )
+    
+    # 2. Check if the result is empty (in case the day doesn't exist)
+    if result.empty:
+        return f"No data found for day {day}."
+    
+    # 3. Filter for the maximum occurrences
+    return (
+        result.loc[lambda x: x["num_occurrences"] == x["num_occurrences"].max()]
+        .sort_values(by="reaction")
+    )
+
+# How to use it:
+top_day_1 = get_most_common_reaction(reactions_df, 1)
+print(top_day_1)
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated values for the reaction column and post_id column.
+- I began my approach to this problem by filtering for day 1 from the date_day column using the loc[]
+  function. Next, I counted the number of occurrences for each reaction using the groupby(), size(), and
+  reset_index() functions. From there, I filtered for reactions with the highest number of occurrences using
+  the loc[] and max() functions. Finally, I sorted the results in ascending order by the reaction column
+  using the sort_values() function.
+
+Suggestions and Final Thoughts:
+- An alternative method for filtering for day 1, would be to use the query() function which is slightly
+  more optimal in terms of performance for larger datasets.
+  ex.
+      reactions_df.query("date_day == 1")
+- Adding dropna=False to the groupby() function counts null values as a category.
+  ex.
+      reactions_df.groupby("reaction", dropna=False)
+- Turning the solution into a function is shown in Solution #3.
+    
+Solve Duration:
+13 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10366
+
+Difficulty:
+Medium
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Capital One - Customer Feedback Analysis
+Capital One's marketing team is working on a project to analyze customer feedback from their feedback surveys.
+The team sorted the words from the feedback into three different categories:
+•	short_comments
+•	mid_length_comments
+•	long_comments
+The team wants to find comments that are not short and that come from social media. 
+The output should include feedback_id, feedback_text, source_channel, and a comment_category, which is already calculated in the data. 
+Include only one row per feedback_id.
+
+Data Dictionary:
+Table name = 'customer_feedback'
+comment_category: varchar (str)
+feedback_id: bigint (int)
+feedback_text: varchar (str)
+source_channel: varchar (str)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+-- Question:
+-- Capital One's marketing team is working on a project 
+-- to analyze customer feedback from their feedback surveys.
+-- The team sorted the words from the feedback into three different categories:
+-- short_comments, mid_length_comments, long_comments
+-- The team wants to find comments that are not short and that come from social media.
+-- The output should include feedback_id, feedback_text, source_channel, and a comment_category, 
+-- which is already calculated in the data.
+-- Include only one row per feedback_id.
+
+-- Input:
+-- customer_feedback
+
+-- Output:
+-- feedback_id, feedback_text, source_channel, comment_category
+
+-- Preview data:
+SELECT TOP 5* FROM customer_feedback;
+
+-- Data quality:
+-- Dimensions - 54 x 4
+-- Duplicates - 3
+-- Nulls - 0
+-- Value Counts - comment_category, feedback_id, feedback_text, source_channel
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN comment_category IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN feedback_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN feedback_text IS NULL THEN 1 ELSE 0 END) AS col3,
+    SUM(CASE WHEN source_channel IS NULL THEN 1 ELSE 0 END) AS col4,
+    COUNT(*) AS row_count
+FROM customer_feedback;
+
+SELECT -- Duplicates
+    comment_category, feedback_id, feedback_text, source_channel,
+    COUNT(*) AS duplicate_count
+FROM customer_feedback
+GROUP BY
+    comment_category, feedback_id, feedback_text, source_channel
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts, multiple repeated values (3 categories)
+    comment_category,
+    COUNT(*) AS frequency
+FROM customer_feedback
+GROUP BY comment_category
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated values
+    feedback_id,
+    COUNT(*) AS frequency
+FROM customer_feedback
+GROUP BY feedback_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated values
+    feedback_text,
+    COUNT(*) AS frequency
+FROM customer_feedback
+GROUP BY feedback_text
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated values (3 categories)
+    source_channel,
+    COUNT(*) AS frequency
+FROM customer_feedback
+GROUP BY source_channel
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Remove duplicate rows
+-- 2. Filter for comments that are not short in comment_category column
+-- 3. Filter for comments that come from social media in source_channel column
+-- 4. Sort in ascending order by feedback_id
+
+-- Result:
+SELECT DISTINCT -- 1. Remove duplicate rows
+    feedback_id,
+    feedback_text,
+    source_channel,
+    comment_category
+FROM 
+    customer_feedback
+WHERE 
+    -- 2. Filter for comments that are not short in comment_category column
+    LOWER(comment_category) != 'short_comments'
+    -- 3. Filter for comments that come from social media in source_channel column
+    AND LOWER(source_channel) = 'social_media'
+ORDER BY
+    feedback_id ASC;
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+SELECT 
+    feedback_id, 
+    MAX(feedback_text) AS feedback_text, -- Picks one if there are different versions
+    MAX(source_channel) AS source_channel,
+    MAX(comment_category) AS comment_category
+FROM 
+    customer_feedback
+WHERE 
+    LOWER(comment_category) != 'short_comments'
+    AND LOWER(source_channel) = 'social media'
+GROUP BY 
+    feedback_id
+ORDER BY 
+    feedback_id ASC;
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed 3 duplicate values in the dataset and multiple repeated values for all
+  columns.
+- My approach to this problem began with removing duplicate rows using DISTINCT in the SELECT clause. From
+  there I filtered for comments that were not short in the comment_category column using the LOWER() function
+  in the WHERE clause. Next, I filtered for comments that came from social media in the source_channel
+  column using the LOWER() function in the WHERE clause. Lastly, I sorted the results in ascending order
+  by the feedback_id column.
+
+Suggestions and Final Thoughts:
+- The data exploration revealed that "social_media" was the correct value to look for when the prompt asked
+  for "social media".
+- Even though there were duplicate feedback_ids, they all contained duplicate feedback text rather than having
+  different text. If there were different feedback_text then Solution #2 would be the more viable solution.
+
+Solve Duration:
+19 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
