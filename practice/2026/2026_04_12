@@ -1,0 +1,594 @@
+Date: 04/12/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9726
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+City of San Francisco - Classify Business Type
+Classify each business as either a restaurant, cafe, school, or other.
+•	A restaurant should have the word 'restaurant' in the business name. This includes common international or accented variants, such as “restaurante”, “restauranté”, etc.
+•	A cafe should have either 'cafe', 'café', or 'coffee' in the business name.
+•	A school should have the word 'school' in the business name.
+•	All other businesses should be classified as 'other'.
+•   Ensure each business name appears only once in the final output. If multiple records exist for the same business, retain only one unique instance.
+The final output should include only the distinct business names and their corresponding classifications.
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_id: numeric (num)
+business_name: character (str)
+business_address: character (str)
+business_city: character (str)
+business_state: character (str)
+business_postal_code: numeric (num)
+business_latitude: numeric (num)
+business_longitude: numeric (num)
+business_location: character (str)
+business_phone_number: numeric (num)
+inspection_id: character (str)
+inspection_date: POSIXct, POSIXt (dt)
+inspection_score: numeric (num)
+inspection_type: character (str)
+violation_id: character (str)
+violation_description: character (str)
+risk_category: character (str)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Classify each business as either a restaurant, cafe, school, or other.
+# - A restaurant should have the word 'restaurant' in the business name.
+#   This includes common international or accented variants, such as "restaurante", "restauranté", etc.
+# - A cafe should have either 'cafe', café', or 'coffee' in the business name.
+# - A school should have the word 'school' in the business name.
+# - All other businesses should be classified as 'other'.
+# - Ensure each business name appears only once in the final output.
+#   If multiple records exist for the same business, retain only one unique instance.
+# The final output should include only the distinct business name and their corresponding classifications.
+
+## Input:
+# sf_restaurant_health_violations
+
+## Output:
+# business_name, business_type
+
+## Import libraries:
+# install.packages("tidyverse")
+library(tidyverse)
+
+## Load and preview data:
+#sf_restaurant_health_violations <- read.csv("sf_restaurant_health_violations.csv")
+violations_df <- tibble(sf_restaurant_health_violations)
+violations_df |> head(5)
+
+## Data Quality:
+# Dimensions - 297 x 17
+# Duplicates - 0
+# Nulls - business_postal_code(10), business_latitude(133), business_longitude(133),
+#         business_location(133), business_phone_number(214), inspection_score(73),
+#         violation_id(72), violation_description(72), risk_category(72)
+# Value Counts - business_id, business_name, business_address, business_city, business_state,
+#                business_location, inspection_id, inspection_type, violation_id,
+#                violation_description, risk_category
+violations_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+violations_df |> dim()
+
+violations_df |> duplicated() |> sum()
+
+violations_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+violations_df |> count(business_id, sort=TRUE) # multiple repeated values
+violations_df |> count(business_name, sort=TRUE) # multiple repeated values
+violations_df |> count(business_address, sort=TRUE) # multiple repeated values
+violations_df |> count(business_city, sort=TRUE) # single repeated value
+violations_df |> count(business_state, sort=TRUE) # single repeated value
+violations_df |> count(business_location, sort=TRUE) # multiple repeated values
+violations_df |> count(inspection_id, sort=TRUE) # multiple repeated values
+violations_df |> count(inspection_type, sort=TRUE) # multiple repeated values
+violations_df |> count(violation_id, sort=TRUE) # all unique values except for null
+violations_df |> count(violation_description, sort=TRUE) # multiple repeated values
+violations_df |> count(risk_category, sort=TRUE) # multiple repeated values
+
+## Iteration:
+# 1. Find single instance of business names
+# 2. Classify business name based on classification criteria using text search
+# 3. Sort in ascending order by business_type and business_name
+
+## Result:
+result_df <- violations_df |>
+    distinct(
+        # 1. Find single instance of business names
+        business_name
+    ) |>
+    mutate(
+        # 2. Classify business name based on classification criteria using text search
+        business_type = case_when(
+            str_detect(business_name, regex("restaurant|restaurante|restauranté", ignore_case=TRUE)) ~ "restaurant",
+            str_detect(business_name, regex("cafe|café'|coffee", ignore_case=TRUE)) ~ "cafe",
+            str_detect(business_name, regex("school", ignore_case=TRUE)) ~ "school",
+            TRUE ~ "other"
+        )
+    ) |>
+    arrange(
+        # 3. Sort in ascending order by business_type and business_name
+        business_type, business_name
+    )
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+library(tidyverse)
+library(stringi)
+
+result_df <- violations_df |>
+    distinct(
+        # 1. Find single instance of business names
+        business_name
+    ) |>
+    mutate(
+        # 2. Convert accented characters to base form
+        clean_name = stri_trans_general(business_name, "Latin-ASCII") |> str_to_lower(),
+
+        # 3. Classify business name based on classification criteria using text search
+        business_type = case_when(
+            str_detect(clean_name, regex("restaurant", ignore_case=TRUE)) ~ "restaurant",
+            str_detect(clean_name, regex("cafe|coffee", ignore_case=TRUE)) ~ "cafe",
+            str_detect(clean_name, regex("school", ignore_case=TRUE)) ~ "school",
+            TRUE ~ "other"
+        )
+    ) |>
+    select(
+        # 4. Select relevant columns
+        business_name, business_type
+    )
+    arrange(
+        # 5. Sort in ascending order by business_type and business_name
+        business_type, business_name
+    )
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated values for the business_name column and all unique
+  values for the violation_id column with the exception of null values.
+- I started my approach to this problem by finding single instances of business names using the distinct()
+  function. Next, I classified each business name based on classification criteria with text search using the
+  mutate(), case_when(), str_detect(), and regex() functions. From there, I sorted the results in ascending
+  order by business_type and business_name columns using the arrange() function.
+
+Suggestions and Final Thoughts:
+- Accidentally left an extra apostrophe for the line on "cafe" classification
+  ex. 
+      str_detect(business_name, regex("restaurant|restaurante|restauranté", ignore_case=TRUE)) ~ "restaurant"
+- To account for all accented character variants, the stri_trans_general() function from the stringi package
+  can be used to convert all accented characters to their base form before matching
+  ex.
+      library(stringi)
+      mutate(
+          clean_name = stri_trans_general(business_name, "Latin-ASCII") |> str_to_lower()
+      )
+- I used distinct early on instead of the end to ensure less rows needed to be classified. The distinct()
+  function removes duplicates.
+  ex.
+      distinct(business_name)
+
+Solve Duration:
+30 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9777
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Meta - Successfully Sent Messages
+Find the ratio of successfully received messages to sent messages.
+
+Data Dictionary:
+Table name = 'facebook_messages_sent'
+sender: int64 (int)
+message_id: int64 (int)
+text: object (str)
+
+Table name = 'facebook_messages_received'
+receiver: int64 (int)
+message_id: int64 (int)
+text: object (str)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Find the ratio of successfully received messages to sent messages.
+
+## Input:
+# facebook_messages_sent, facebook_messages_received
+
+## Output:
+# received_sent_ratio
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#facebook_messages_sent = pd.read_csv("faceobok_messages_sent.csv")
+#facebook_messages_received = pd.read_csv("facebook_messages_received.csv")
+sent_df = facebook_messages_sent.copy()
+received_df = facebook_messages_received.copy()
+sent_df.head(5)
+received_df.head(5)
+
+## Data quality:
+# Dimensions - sent: 5 x 3
+#              received: 3 x 3
+# Duplicates - sent: 0
+#              received: 0
+# Nulls - sent: 0
+#         received: 0
+# Value Counts - sent: message_id, text
+#                received: message_id, text
+#sent_df.info()
+#received_df.info()
+
+sent_df.shape
+received_df.shape
+
+sent_df.duplicated().sum()
+received_df.duplicated().sum()
+
+sent_df.isna().sum().reset_index(name="na_count")
+received_df.isna().sum().reset_index(name="na_count")
+
+#columns = ["message_id", "text"]
+
+#for col in columns:
+#    print(f"-----{col}-----")
+#    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+#        print(sent_df[col].value_counts(dropna=False).reset_index(name="frequency"))
+#        print("")
+ 
+#for col in columns:
+#    print(f"-----{col}-----")
+#    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+#        print(received_df[col].value_counts(dropna=False).reset_index(name="frequency"))
+#        print("")
+   
+# All unique values for message and text columns for sent table
+# All unique values for message and text columns for received table
+
+## Iteration:
+# 1. Left join sent and received tables by "message_id" column
+# 2. Count the number of successfully received messages
+# 3. Count the number of sent messages
+# 4. Calculate ratio of successfully received messages to sent messages
+
+## Result:
+result_df = (
+    sent_df
+    # 1. Left join sent and received tables by "message_id" column
+    .merge(received_df, on="message_id", how="left")
+    # 2. Count the number of successfully received messages
+    # 3. Count the number of sent messages
+    # 4. Calculate ratio of successfully received messages to sent messages
+    .assign(received_sent_ratio = lambda x: (x["receiver"].count() / x["sender"].count()).round(2))
+    [["received_sent_ratio"]]
+    .drop_duplicates()
+)
+
+print("Ratio of successfully received messages to sent messages: ")
+result_df
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+# 1. Count the number of unique sent messages
+total_sent = sent_df["message_id"].nunique()
+
+# 2. Count the number of successfully received messages that match sent message_id
+success_count = sent_df["message_id"].isin(received_df["message_id"]).sum()
+
+# 3. Calculate ratio of successfully received messages to sent messages
+if total_sent > 0:
+    ratio = (success_count / total_sent).round(2)
+else:
+    ratio = 0.0
+
+print("Ratio of successfully received messages to sent messages: ")
+ratio
+
+-------------------------------------------------------------------------------
+** Solution #3 ** (method chaining and DataFrame output)
+merged_df = (
+    sent_df
+    # 1. Left join sent and received tables by "message_id" column
+    .merge(received_df, on="message_id", how="left")
+)
+
+result_df = pd.DataFrame(
+    # 2. Count the number of successfully received messages
+    # 3. Count the number of sent messages
+    # 4. Calculate ratio of successfully received messages to sent messages
+    [(merged_df["receiver"].count() / merged_df["message_id"].nunique()).round(2)],
+    columns=["received_sent_ratio"]
+)
+
+print("Ratio of successfully received messages to sent messages: ")
+result_df
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed all unique values for message and text columns for both the sent and
+  received tables.
+- I began my approach to this problem by left joining the sent and received tables by the message_id column
+  using the merge() function. From there, I counted the number of successfully received messages and the
+  number of sent messages using the count() function. Next, I calculated the ratio of successfully received
+  messages to sent messages using the assign() and round() functions. Lastly, I selected relevant columns and
+  dropped duplicates using the drop_duplicates() function.
+
+Suggestions and Final Thoughts:
+- I was trying to find a way to method chain everything together into a single step as opposed to separate
+  DataFrames but it seems to be a lot easier to create separate variables rather than creating a new
+  DataFrame since the final answer is a scalar value.
+- It is safer to count distinct id rows as opposed to using len() or count() because the message_id column
+  could contain duplicates.
+  ex.
+      total_sent = sent_df["message_id"].nunique()
+- Using the isin() function is more efficient and optimal than creating overhead tables and columns through
+  a left join. 
+  ex.
+      success_count = sent_df["message_id"].isin(received_df["message_id"]).sum()
+- To ensure there isn't a division by zero, the usage of an if/else statement can be used.
+  ex.
+      if total_sent > 0:
+          ratio = (success_count / total_sent).round(2)
+      else:
+          ratio = 0.0
+
+Solve Duration:
+28 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+25 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10365
+
+Difficulty:
+Medium
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Google - Common Friends Script
+You are analyzing a social network dataset at Google. 
+Your task is to find mutual friends between two users, Karl and Hans. 
+There is only one user named Karl and one named Hans in the dataset.
+The output should contain 'user_id' and 'user_name' columns.
+
+Data Dictionary:
+Table name = 'users'
+user_id: bigint (int)
+user_name: varchar (str)
+
+Table name = 'friends'
+friend_id: bigint (int)
+user_id: bigint (int)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+-- Question:
+-- You are analyzing a social network dataset at Google.
+-- Your task is to find mutual friends between two users, Karl and Hans.
+-- There is only one user named Karl and one named Hans in the dataset.
+-- The output should contain 'user_id' and 'user_name' columns.
+
+-- Input: 
+-- users, friends
+
+-- Output:
+-- user_id, user_name
+
+-- Preview data:
+SELECT TOP 5* FROM users;
+SELECT TOP 5* fROM friends;
+
+-- Data quality:
+-- Dimensions - users: 10 x 2
+--            - friends: 15 x 2
+-- Duplicates - users: 0
+--            - friends: 0
+-- Nulls - users: 0
+--         friends: 0
+-- Value Counts - users: user_id, user_name
+--              - friends: friend_id, user_id
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN user_name IS NULL THEN 1 ELSE 0 END) AS col2,
+    COUNT(*) AS row_count
+FROM users;
+
+SELECT
+    SUM(CASE WHEN friend_id IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    COUNT(*) AS row_count
+FROM friends;
+
+SELECT -- Duplicates
+    user_id, user_name,
+    COUNT(*) AS duplicate_count
+FROM users
+GROUP BY
+    user_id, user_name
+HAVING COUNT(*) > 1;
+
+SELECT -- Duplicates
+    friend_id, user_id,
+    COUNT(*) AS duplicate_count
+FROM friends
+GROUP BY
+    friend_id, user_id
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts, all unique values
+    user_id,
+    COUNT(*) AS frequency
+FROM users
+GROUP BY user_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated values
+    user_name,
+    COUNT(*) AS frequency
+FROM users
+GROUP BY user_name
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated values
+    friend_id,
+    COUNT(*) AS frequency
+FROM friends
+GROUP BY friend_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated values
+    user_id,
+    COUNT(*) AS frequency
+FROM friends
+GROUP BY user_id
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Find all of Karl friends
+-- 2. Find all of Hans friends
+-- 3. Match Karl and Hans friends
+-- 4. Find the username of each friend
+
+-- Result:
+WITH MutualFriends AS (
+    -- 1. Find all of Karl friends
+    SELECT
+        f.friend_id
+    FROM 
+        users AS u
+    JOIN 
+        friends AS f
+        ON u.user_id = f.user_id
+    WHERE 
+        u.user_name = 'Karl'
+
+    -- 3. Match Karl and Hans friends
+    INTERSECT
+
+    -- 2. Find all of Hans friends
+    SELECT
+        f.friend_id
+    FROM 
+        users AS u
+    JOIN 
+        friends AS f
+        ON u.user_id = f.user_id
+    WHERE 
+        u.user_name = 'Hans'
+)
+-- 4. Find the username of each friend
+SELECT
+    u.user_id,
+    u.user_name
+FROM 
+    MutualFriends AS mf
+JOIN 
+    users AS u
+    ON mf.friend_id = u.user_id
+ORDER BY 
+    u.user_id ASC;
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (Using subqueries and self joins)
+SELECT user_id, user_name
+FROM users
+WHERE user_id IN (
+    -- Friends of Karl
+    SELECT friend_id 
+    FROM friends 
+    WHERE user_id = (SELECT user_id FROM users WHERE user_name = 'Karl')
+    
+    INTERSECT
+    
+    -- Friends of Hans
+    SELECT friend_id 
+    FROM friends 
+    WHERE user_id = (SELECT user_id FROM users WHERE user_name = 'Hans')
+);
+
+-------------------------------------------------------------------------------
+** Solution #3 ** (Using inner joins)
+SELECT 
+    u.user_id, 
+    u.user_name
+FROM users u
+JOIN friends f1 ON u.user_id = f1.friend_id
+JOIN users u1 ON f1.user_id = u1.user_id
+JOIN friends f2 ON u.user_id = f2.friend_id
+JOIN users u2 ON f2.user_id = u2.user_id
+WHERE u1.user_name = 'Karl' 
+  AND u2.user_name = 'Hans';
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed all unique values for user_id and multiple repeated values for user_name
+  in the users table. For the friends table, there were multiple repeated values for the friend_id and
+  user_id columns.
+- My approach to this problem began with finding all of Karl's friends and all of Han's friends separately
+  using inner joins between the users and friends tables. Once their friends were found, I matched the
+  friends between Karl and Hans using the INTERSECT function. These steps were placed into a common table
+  expression (CTE) called "MutualFriends". Next, the "MutualFriends" CTE was queried to join the CTE back
+  to the users table to match the friend_id to the user_id and user_name. Finally, the results were ordered
+  in ascending order by user_id.
+
+Suggestions and Final Thoughts:
+- The use of subqueries and self joins in Solution #2 is more optimal and performant when dataset are large.
+  However, it is harder to maintain and understand logically if any modifications are necessary. Solution #1's
+  benefit isin maintainability and logic separation but it suffers in some levels of performance.
+- I normally try to avoid using subqueries as it tends to not be the easiest to read and not always the
+  most performant option. INTERSECT made the most sense to me compared to the self join or inner join methods
+  as seen in Solution #2 and Solution #3.
+
+Solve Duration:
+23 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+15 minutes
+
+############################################################################################################
