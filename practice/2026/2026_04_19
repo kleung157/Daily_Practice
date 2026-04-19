@@ -1,0 +1,565 @@
+Date: 04/19/2026
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9727
+
+Difficulty:
+Medium
+
+Question Type:
+R
+
+Question:
+City of San Francisco - Find the number of violations that each school had
+Find the number of violations that each school had. 
+Any inspection is considered a violation if its risk category is not null.
+Output the corresponding business name along with the result.
+Order the result based on the number of violations in descending order.
+
+Data Dictionary:
+Table name = 'sf_restaurant_health_violations'
+business_id: numeric (int)
+business_name: character (str)
+business_address: character (str)
+business_city: character (str)
+business_state: character (str)
+business_postal_code: numeric (num)
+business_latitude: numeric (num)
+business_longitude: numeric (num)
+business_location: character (str)
+business_phone_number: numeric (int)
+inspection_id: character (str)
+inspection_date: POSIXct, POSIXt (dt)
+inspection_score: numeric (num)
+inspection_type: character (str)
+violation_id: character (str)
+violation_description: character (str)
+risk_category: character (str)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Find the number of violations that each school had.
+# Any inspection is considered a violation if its risk category is not null.
+# Output the corresponding business name along with the result.
+# Order the result based on the number of violations in descending order
+
+## Input:
+# sf_restaurant_health_violations
+
+## Output:
+# business_name, num_violations
+
+## Import libraries:
+#install.packages("tidyverse")
+library(tidyverse)
+
+## Load and preview data: 
+#sf_restaurant_health_violations <- read.csv("sf_restaurant_health_violations.csv")
+violations_df <- tibble(sf_restaurant_health_violations)
+violations_df |> head(5)
+
+## Data quality:
+# Dimensions - 297 x 17
+# Duplicates - 0
+# Nulls - business_postal_code(10), business_latitude(133), business_longitude(133), 
+#         business_location(133), business_phone_number(214), inspection_score(73),
+#         violation_id(72), violation_description(72), risk_category(72)
+# Value Counts - business_id, business_name, business_address, business_city, business_state,
+#                business_location, inspection_id, inspection_type, violation_id,
+#                violation_description, risk_category
+violations_df |> lapply(class) |> unlist() |> enframe(name="index", value="type")
+
+violations_df |> dim()
+
+violations_df |> duplicated() |> sum()
+
+violations_df |> is.na() |> colSums() |> enframe(name="index", value="na_count")
+
+violations_df |> count(business_id, sort=TRUE) # multiple repeated values
+violations_df |> count(business_name, sort=TRUE) # multiple repeated values
+violations_df |> count(business_address, sort=TRUE) # multiple repeated values
+violations_df |> count(business_city, sort=TRUE) # single repeated values
+violations_df |> count(business_state, sort=TRUE) # single repeated values
+violations_df |> count(business_location, sort=TRUE) # multiple repeated values
+violations_df |> count(inspection_id, sort=TRUE) # multiple repeated values
+violations_df |> count(inspection_type, sort=TRUE) # multiple repeated values
+violations_df |> count(violation_id, sort=TRUE) # all unique values, except for nulls
+violations_df |> count(violation_description, sort=TRUE) # multiple repeated values
+violations_df |> count(risk_category, sort=TRUE) # multiple repeated values
+
+## Iteration:
+# 1. Filter for businesses that are schools
+# 2. Count the number of violations per school based on risk category not null
+# 3. Sort in descending order by number of violations
+
+## Result:
+result_df <- violations_df |>
+    filter(
+        # 1. Filter for businesses that are schools
+        str_detect(business_name, regex("school", ignore_case=TRUE))
+    ) |>
+    group_by(business_name) |>
+    summarise(
+        # 2. Count the number of violations per school based on risk category not null
+        num_violations = sum(!is.na(risk_category)),
+        .groups="drop"
+    ) |>
+    arrange(
+        # 3. Sort in descending order by number of violations
+        desc(num_violations)
+    )
+    
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+N/A
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed 72 nulls for violation_id and risk_category columns.
+- I started my approach to this problem by filtering for business names that contained the word school using
+  the filter(), str_detect(), and regex() functions. Next, I counted the number of violations per school
+  based on whether the risk category column was not null using the group_by(), summarise(), sum(), and
+  !is.na() functions. Lastly, I sorted the results in descending order by the num_violations column using
+  the arrange() and desc() functions.
+
+Suggestions and Final Thoughts:
+- The regex() function looks for string patterns and has a parameter that takes into account case sensitivity
+  ex.
+      regex("school", ignore_case=TRUE)
+- To count the number of rows that are not null as 1 and nulls as 0, the sum() and !is.na() functions can be
+  utilized. The sum() function does not need the parameter na.rm=TRUE.
+  ex.
+      group_by(business_name) |>
+      num_violations = sum(!is.na(risk_category))
+- When filtering for businesses that are schools, the string pattern search for "school" could possibly
+  also consider other businesses that contain the word "school" but are not schools technically. It is best
+  to check the list of business names that are shown after pattern matching.
+  ex.
+      filter(
+          str_detect(business_name, regex("school", ignore_case=TRUE))
+      )
+      
+Solve Duration:
+24 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+5 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 9779
+
+Difficulty:
+Medium
+
+Question Type:
+Python
+
+Question:
+Meta - Daily Interactions By Users Count
+Find the number of interactions along with the number of people involved with them on a given day. 
+Be aware that user1 and user2 columns represent user ids. 
+Output the date along with the number of interactions and people. 
+Order results based on the date in ascending order and the number of people in descending order.
+
+Data Dictionary:
+Table name = 'facebook_user_interactions'
+day: int64 (int)
+user1: int64 (int)
+user2: int64 (int)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+## Question:
+# Find the number of interactions along with the number of people involved with them on a given day.
+# Be aware that user1 and user2 columns represent user ids.
+# Output the date along with the number of interactions and people.
+# Order results based on the date in ascending order and the number of people in descending order.
+
+## Input:
+# facebook_user_interactions
+
+## Output:
+# day, num_interactions, num_people
+
+## Import libraries:
+import pandas as pd
+
+## Load and preview data:
+#facebook_user_interactions = pd.read_csv("facebook_user_interactions.csv")
+interactions_df = facebook_user_interactions.copy()
+interactions_df.head(5)
+
+## Data quality:
+# Dimensions - 10 x 3
+# Duplicates - 0
+# Nulls - 0
+# Value Counts - user1, user2
+#interactions_df.info()
+
+interactions_df.shape
+
+interactions_df.duplicated().sum()
+
+interactions_df.isna().sum().reset_index(name="na_count")
+
+#columns = ["user1", "user2"]
+
+#for col in columns:
+#    print(f"-----{col}-----")
+#    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+#        print(interactions_df[col].value_counts(dropna=False).reset_index(name="frequency"))
+#        print("")
+
+# multiple repeated values for user 1 and user 2 columns
+
+## Iteration:
+# 1. Count the number of interactions for each day
+# 2. Count the number of distinct people involved for each day
+# 3. Sort in ascending order by date and in descending order by number of people
+
+## Result:
+result_df = (
+    interactions_df
+    .groupby("day")
+    .apply(
+        lambda x: pd.Series(
+            {
+            # 1. Count the number of interactions for each day
+            "num_interactions": len(x),
+            # 2. Count the number of distinct people involved for each day
+            "num_people": pd.unique(x[["user1", "user2"]].values.ravel()).size
+            }
+        )
+    )
+    .reset_index()
+    # 3. Sort in ascending order by date and in descending order by number of people
+    .sort_values(by=["day", "num_people"], ascending=[True, False])
+)
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+result_df = (
+    interactions_df
+    .melt(id_vars='day', value_vars=['user1', 'user2'], value_name="users_combined")
+    .groupby('day')
+    .agg(
+        num_interactions=('users_combined', lambda x: len(x) / 2), # divide by 2 because melt doubles rows
+        num_people=('users_combined', 'nunique')
+    )
+    .reset_index()
+    .sort_values(by=["day", "num_people"], ascending=[True, False])
+)
+
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed multiple repeated values for the user1 and user2 columns.
+- I began my approach to this problem by counting the number of interactions for each day and counting the
+  number of distinct people for each day from both user columns using the groupby(), apply(), Series(), len(),
+  unique(), values(), ravel(), size(), and reset_index() functions. Next, I sorted the results in ascending
+  order by day and in descending order by the num_people column using the sort_values() function.
+
+Suggestions and Final Thoughts:
+- I was trying to find a way to use groupby() and agg() for this particular problem. I couldn't figure out
+  initially how to combine two separate aggregated columns into a single column and then finding the unique
+  values using the nunique() function. I ended up using apply() instead of agg() which I was not too familiar
+  with overall. I later found out that the melt() function is perfect for this. 
+- The pd.unique(x[["user1", "user2"]].values.ravel()).size line takes the two user columns, converts them
+  to a numpy array and flattens them into a single list of IDs. It then filters that list for unique IDs and
+  counts them to get the number of people involved.
+  ex.
+      pd.unique(
+          x[["user1", "user2"]]
+          .values
+          .ravel()
+      )
+      .size
+- The melt() function combines multiple columns into a single column based on a grouped variable id. It is
+  more performant for larger data sets. The primary purpose is to unpivot, or go from wide to long.
+  ex.
+      interactions_df.melt(id_vars='day', value_vars=['user1', 'user2'], value_name="users_combined")
+
+Solve Duration:
+33 minutes
+
+Notes Duration:
+3 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
+
+Website:
+StrataScratch - ID 10364
+
+Difficulty:
+Medium
+
+Question Type:
+SQL (MS SQL Server)
+
+Question:
+Meta - Friday's Likes Count
+You have access to Facebook’s database, which contains tables related to user interactions. 
+Your task is to calculate the total number of likes from friends for each date that falls on a Friday.
+A like should only be counted if the user who liked the post is a friend of the user who made the post, and the like occurred on or after the post was created.
+The output should contain two different columns: 'date' and 'likes'.
+
+Data Dictionary:
+Table name = 'user_posts'
+date_posted: date (d)
+post_id: bigint (int)
+user_name: varchar (str)
+
+Table name = 'friendships'
+user_name1: varchar (str)
+user_name2: varchar (str)
+
+Table name = 'likes'
+date_liked: date (d)
+post_id: bigint (int)
+user_name: varchar (str)
+
+Code:
+-------------------------------------------------------------------------------
+** Solution #1 ** (original attempt)
+-- Question:
+-- You have access to Facebook's database, which contains tables related to user interactions.
+-- Your task is to calculate the total number of likes from friends for each date that falls on a Friday.
+-- A like should only be counted if the user who liked the post is a friend of the user who made the post,
+-- and the like occurred on or after the post was created.
+-- The output should contain two different columns: 'date' and 'likes'.
+
+-- Input:
+-- user_posts, friendships, likes
+
+-- Output:
+-- date, likes
+
+-- Preview data:
+SELECT TOP 5* FROM user_posts;
+SELECT TOP 5* FROM friendships;
+SELECT TOP 5* FROM likes;
+
+-- Data quality:
+-- Dimensions - user_posts: 50 x 3
+--            - friendships: 43 x 2 
+--            - likes: 50 x 3
+-- Duplicates - user_posts: 0
+--            - friendships: 0
+--            - likes: 0
+-- Nulls - user_posts: 0
+--       - friendships: 0
+--       - likes: 0
+-- Value Counts - user_posts: post_id, user_name
+--              - friendships: user_name1, user_name2
+--              - likes: post_id, user_name
+
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN date_posted IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN post_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN user_name IS NULL THEN 1 ELSE 0 END) AS col3,
+    COUNT(*) AS row_count
+FROM user_posts;
+
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN user_name1 IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN user_name2 IS NULL THEN 1 ELSE 0 END) AS col2,
+    COUNT(*) AS row_count
+FROM friendships;
+
+SELECT -- Dimensions and nulls
+    SUM(CASE WHEN date_liked IS NULL THEN 1 ELSE 0 END) AS col1,
+    SUM(CASE WHEN post_id IS NULL THEN 1 ELSE 0 END) AS col2,
+    SUM(CASE WHEN user_name IS NULL THEN 1 ELSE 0 END) AS col3,
+    COUNT(*) AS row_count
+FROM likes;
+
+SELECT -- Duplicates
+    date_posted, post_id, user_name,
+    COUNT(*) AS duplicate_count
+FROM user_posts
+GROUP BY
+    date_posted, post_id, user_name
+HAVING COUNT(*) > 1;
+
+SELECT -- Duplicates
+    user_name1, user_name2,
+    COUNT(*) AS duplicate_count
+FROM friendships
+GROUP BY
+    user_name1, user_name2
+HAVING COUNT(*) > 1;
+
+SELECT -- Duplicates
+    date_liked, post_id, user_name,
+    COUNT(*) AS duplicate_count
+FROM likes
+GROUP BY
+    date_liked, post_id, user_name
+HAVING COUNT(*) > 1;
+
+SELECT -- Value Counts, all unique values
+    post_id,
+    COUNT(*) AS frequency
+FROM user_posts
+GROUP BY post_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated values
+    user_name,
+    COUNT(*) AS frequency
+FROM user_posts
+GROUP BY user_name
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated values
+    user_name1,
+    COUNT(*) AS frequency
+FROM friendships
+GROUP BY user_name1
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated values
+    user_name2,
+    COUNT(*) AS frequency
+FROM friendships
+GROUP BY user_name2
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated values
+    post_id,
+    COUNT(*) AS frequency
+FROM likes
+GROUP BY post_id
+ORDER BY frequency DESC;
+
+SELECT -- Value Counts, multiple repeated values
+    user_name,
+    COUNT(*) AS frequency
+FROM likes
+GROUP BY user_name
+ORDER BY frequency DESC;
+
+-- Iteration:
+-- 1. Find posted dates that fall on a Friday
+-- 2. Join user_posts and likes tables by post_id
+-- 3. Join user_posts/likes and friendships tables by user_name
+-- 4. Filter for date_liked greater than or equal to date_posted
+-- 5. Count the number of likes for each post
+-- 6. Sort in ascending order by date
+
+-- Result:
+WITH UserInteractions AS (
+    SELECT
+        u.date_posted,
+        DATENAME(weekday, u.date_posted) AS DayName,
+        u.post_id AS post_id_posted,
+        u.user_name AS user_posted,
+        l.date_liked,
+        l.post_id AS post_id_liked,
+        l.user_name AS user_liked,
+        f.user_name1,
+        f.user_name2
+    FROM 
+        user_posts AS u
+    LEFT JOIN 
+        -- 2. Join user_posts and likes tables by post_id
+        likes AS l
+        ON u.post_id = l.post_id
+        AND u.user_name != l.user_name -- Do not count self likes
+        -- 3. Filter for date_liked greater than or equal to date_posted
+        AND l.date_liked >= u.date_posted
+    LEFT JOIN 
+        -- 4. Join user_posts/likes and friendships tables by user_name
+        friendships AS f
+        ON (f.user_name1 = u.user_name AND f.user_name2 = l.user_name) -- Accounts for name swaps
+        OR (f.user_name1 = l.user_name AND f.user_name2 = u.user_name)
+    WHERE 
+        -- 1. Find posted dates that fall on a Friday
+        DATENAME(weekday, u.date_posted) = 'Friday'
+)
+SELECT
+    date_posted AS date,
+    -- 5. Count the number of likes for each post
+    COUNT(date_liked) AS likes
+FROM 
+    UserInteractions
+GROUP BY 
+    date_posted
+ORDER BY 
+    -- 6. Sort in ascending order by date
+    date ASC;
+
+-------------------------------------------------------------------------------
+** Solution #2 ** (revised with suggestions)
+SELECT 
+    u.date_posted AS date,
+    COUNT(l.date_liked) AS likes
+FROM 
+    user_posts AS u
+LEFT JOIN 
+    likes AS l 
+    ON u.post_id = l.post_id
+    AND u.user_name != l.user_name -- Do not count self likes
+    AND l.date_liked >= u.date_posted
+LEFT JOIN 
+    friendships AS f 
+    -- Check both directions of friendship
+    ON (u.user_name = f.user_name1 AND l.user_name = f.user_name2)
+    OR (u.user_name = f.user_name2 AND l.user_name = f.user_name1)
+WHERE 
+    -- Filter for Fridays only
+    DATENAME(weekday, u.date_posted) = 'Friday'
+GROUP BY 
+    u.date_posted
+ORDER BY 
+    u.date_posted;
+    
+-------------------------------------------------------------------------------
+
+Notes:
+- The data quality check revealed all unique values for the post_id column in the user_posts table. All other
+  value count columns contained multiple repeated values.
+- My approach to this problem started with filtering for posted dates that fell on a friday using the
+  DATENAME() function for finding the weekday. From there, I left joined the user_post and likes table by the
+  post_id column, filtered for where user_names were not equivalent, and filtered for date_liked greater
+  than or equal to date_posted. Next, I left joined the combination of user_posts/likes with the friendships
+  table by the user_name columns and accounted for potential name swaps or reversible user friend combinations.
+  These steps were placed into a common table expression (CTE) called "UserInteractions". The CTE was then
+  queried to count the number of likes for each posted date and the results sorted in ascending order by date.
+
+Suggestions and Final Thoughts:
+- There were a lot of edge cases to consider for this problem when joining multiple tables. Using left join
+  was more important to keep the original Friday dates from the date_posted column even if they contained
+  0 likes from the likes table. Adding a filter for user names not equaling each other avoids counting self
+  likes. Adding a filter for both directions of friendship accounts for the same friendship in any case.
+  Having the date_liked greater than or equal to date_posted being in the JOIN filter rather than the WHERE
+  clause allowed for only counting the date_liked column at the end for the true number of likes.
+- Solution #1 contains a CTE to show the initial work in case the problem needs to be debugged or filtered
+  for another weekday. Solution #2 is the straightfoward solution.
+- Since a lot of the columns contained similar names, I had to create unique aliases for every single column
+  in Solution #1's CTE. Otherwise the subsequent query to select the CTE would produce an error.
+
+Solve Duration:
+53 minutes
+
+Notes Duration:
+5 minutes
+
+Suggestions and Final Thoughts Duration:
+10 minutes
+
+############################################################################################################
